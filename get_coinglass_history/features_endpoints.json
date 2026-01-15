@@ -1,0 +1,76 @@
+{
+  "open_interest_history": {
+    "path": "/futures/open-interest/history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+  "open_interest_aggregated": {
+    "path": "/futures/open-interest/aggregated-history",
+    "default_params": {"symbol": "BTC", "interval": "1d"}
+  },
+  "open_interest_stablecoin": {
+    "path": "/futures/open-interest/aggregated-stablecoin-history",
+    "default_params": {"exchange_list": "Binance", "symbol": "BTC", "interval": "1d"}
+  },
+  "open_interest_coin_margin": {
+    "path": "/futures/open-interest/aggregated-coin-margin-history",
+    "default_params": {"exchange_list": "Binance", "symbol": "BTC", "interval": "1d"}
+  },
+
+  "funding_rate_history": {
+    "path": "/futures/funding-rate/history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+  "funding_rate_oi_weight": {
+    "path": "/futures/funding-rate/oi-weight-history",
+    "default_params": {"symbol": "BTC", "interval": "1d"}
+  },
+  "funding_rate_vol_weight": {
+    "path": "/futures/funding-rate/vol-weight-history",
+    "default_params": {"symbol": "BTC", "interval": "1d"}
+  },
+
+  "global_long_short_account_ratio": {
+    "path": "/futures/global-long-short-account-ratio/history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+  "top_long_short_account_ratio": {
+    "path": "/futures/top-long-short-account-ratio/history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+  "top_long_short_position_ratio": {
+    "path": "/futures/top-long-short-position-ratio/history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+
+  "net_position": {
+    "path": "/futures/v2/net-position/history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+
+  "liquidation_history": {
+    "path": "/futures/liquidation/history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+  "liquidation_aggregated": {
+    "path": "/futures/liquidation/aggregated-history",
+    "default_params": {"exchange_list": "Binance", "symbol": "BTC", "interval": "1d"}
+  },
+
+  "orderbook_ask_bids": {
+    "path": "/futures/orderbook/ask-bids-history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+  "orderbook_aggregated": {
+    "path": "/futures/orderbook/aggregated-ask-bids-history",
+    "default_params": {"exchange_list": "Binance", "symbol": "BTC", "interval": "1d"}
+  },
+
+  "taker_buy_sell_volume": {
+    "path": "/futures/v2/taker-buy-sell-volume/history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+  "taker_buy_sell_volume_aggregated": {
+    "path": "/futures/aggregated-taker-buy-sell-volume/history",
+    "default_params": {"exchange_list": "Binance", "symbol": "BTC", "interval": "1d"}
+  }
+}

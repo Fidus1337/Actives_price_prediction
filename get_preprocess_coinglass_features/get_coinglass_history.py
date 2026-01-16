@@ -5,9 +5,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ## HELPER FUNCTIONS	
-from helpers._coinglass_get_dataframe import _coinglass_get_dataframe, CoinGlassError
-from helpers._coinglass_normalize_time_to_date import _coinglass_normalize_time_to_date
-from helpers._prefix_columns import _prefix_columns
+from .helpers._coinglass_get_dataframe import _coinglass_get_dataframe, CoinGlassError
+from .helpers._coinglass_normalize_time_to_date import _coinglass_normalize_time_to_date
+from .helpers._prefix_columns import _prefix_columns
 
 # Load endpoints config from JSON
 _ENDPOINTS_PATH = Path(__file__).parent / "features_endpoints.json"
@@ -87,7 +87,7 @@ def list_endpoints() -> list[str]:
 # Примеры использования
 # ============================================================================
 if __name__ == "__main__":
-    load_dotenv("../dev.env")
+    load_dotenv("dev.env")
     API_KEY = os.getenv("COINGLASS_API_KEY")
     
     if not API_KEY:
@@ -109,7 +109,7 @@ if __name__ == "__main__":
         df = get_coinglass_history("open_interest_history", api_key=API_KEY)
         print(f"Получено {len(df)} записей")
         print(f"Колонки: {list(df.columns)}")
-        print(df.head())
+        print(df.tail())
         print()
     except CoinGlassError as e:
         print(f"Ошибка: {e}\n")

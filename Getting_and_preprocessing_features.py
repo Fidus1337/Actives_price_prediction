@@ -23,13 +23,21 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
           - funding_rate_vol_weight
           - global_long_short_account_ratio
           - top_long_short_account_ratio
+          - top_long_short_position_ratio
           - net_position
           - liquidation_history
           - liquidation_aggregated
           - orderbook_ask_bids
           - orderbook_aggregated
           - taker_buy_sell_volume
+          - taker_buy_sell_volume_aggregated
           - bitcoin_lth_supply
+          - bitcoin_active_addresses
+          - bitcoin_sth_supply
+          - bitcoin_reserve_risk
+          - bitfinex_margin_long_short
+          - coinbase_premium_index
+          - cgdi_index
     """
     features = {}
     
@@ -102,6 +110,14 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         interval="1d",
     )
     
+    # Top Traders Long/Short Position Ratio
+    features["top_long_short_position_ratio"] = getter.get_history(
+        endpoint_name="top_long_short_position_ratio",
+        exchange="Binance",
+        symbol="BTCUSDT",
+        interval="1d",
+    )
+    
     # Net Position History
     features["net_position"] = getter.get_history(
         endpoint_name="net_position",
@@ -150,11 +166,67 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         interval="1d",
     )
     
-    # Bitcoin Long-Term Holder Supply (Index)
+    # Taker Buy/Sell Volume Aggregated
+    features["taker_buy_sell_volume_aggregated"] = getter.get_history(
+        endpoint_name="taker_buy_sell_volume_aggregated",
+        exchange_list="Binance",
+        symbol="BTC",
+        interval="1d",
+    )
+    
+    # =========================================================================
+    # Bitcoin On-Chain / Index Features
+    # =========================================================================
+    
+    # Bitcoin Long-Term Holder Supply
     features["bitcoin_lth_supply"] = getter.get_bitcoin_lth_supply(
         pct_window=30,
         z_window=180,
         slope_window=14,
+    )
+    
+    # Bitcoin Active Addresses
+    features["bitcoin_active_addresses"] = getter.get_bitcoin_active_addresses(
+        pct_window=7,
+        z_window=180,
+        slope_window=14,
+    )
+    
+    # Bitcoin Short-Term Holder Supply
+    features["bitcoin_sth_supply"] = getter.get_bitcoin_sth_supply(
+        pct_window=30,
+        z_window=180,
+        slope_window=14,
+    )
+    
+    # Bitcoin Reserve Risk
+    features["bitcoin_reserve_risk"] = getter.get_bitcoin_reserve_risk(
+        z_window=180,
+        slope_window=14,
+    )
+    
+    # =========================================================================
+    # Exchange-Specific Features
+    # =========================================================================
+    
+    # Bitfinex Margin Long/Short
+    features["bitfinex_margin_long_short"] = getter.get_bitfinex_margin_long_short(
+        symbol="BTC",
+        interval="1d",
+    )
+    
+    # Coinbase Premium Index
+    features["coinbase_premium_index"] = getter.get_coinbase_premium_index(
+        interval="1d",
+    )
+    
+    # =========================================================================
+    # Derivatives Indices
+    # =========================================================================
+    
+    # CoinGlass Derivatives Index (CGDI)
+    features["cgdi_index"] = getter.get_cgdi_index(
+        interval="1d",
     )
     
     return features

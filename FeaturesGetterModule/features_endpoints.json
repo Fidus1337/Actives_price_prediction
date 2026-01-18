@@ -1,4 +1,9 @@
 {
+  "spot_price_history": {
+    "path": "/spot/price/history",
+    "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}
+  },
+
   "open_interest_history": {
     "path": "/futures/open-interest/history",
     "default_params": {"exchange": "Binance", "symbol": "BTCUSDT", "interval": "1d"}

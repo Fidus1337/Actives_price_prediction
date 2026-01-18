@@ -31,6 +31,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
           - orderbook_aggregated
           - taker_buy_sell_volume
           - taker_buy_sell_volume_aggregated
+          - spot_price_history
           - bitcoin_lth_supply
           - bitcoin_active_addresses
           - bitcoin_sth_supply
@@ -171,6 +172,18 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         endpoint_name="taker_buy_sell_volume_aggregated",
         exchange_list="Binance",
         symbol="BTC",
+        interval="1d",
+    )
+    
+    # =========================================================================
+    # Spot Price
+    # =========================================================================
+    
+    # Spot Price History (OHLCV)
+    features["spot_price_history"] = getter.get_history(
+        endpoint_name="spot_price_history",
+        exchange="Binance",
+        symbol="BTCUSDT",
         interval="1d",
     )
     

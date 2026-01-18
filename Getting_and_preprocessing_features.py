@@ -2,16 +2,15 @@
 Модуль для получения и предобработки фичей с CoinGlass API.
 """
 import pandas as pd
-from get_preprocess_coinglass_features.get_coinglass_history import get_coinglass_history
-from get_preprocess_coinglass_features.get_bitcoin_lth_supply import get_bitcoin_lth_supply
+from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 
 
-def fetch_all_coinglass_features(api_key: str) -> dict[str, pd.DataFrame]:
+def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFrame]:
     """
     Загружает все фичи с CoinGlass API.
     
     Args:
-        api_key: API ключ CoinGlass
+        getter: Экземпляр FeaturesGetter с API ключом
     
     Returns:
         Словарь с DataFrame для каждой фичи:
@@ -35,140 +34,124 @@ def fetch_all_coinglass_features(api_key: str) -> dict[str, pd.DataFrame]:
     features = {}
     
     # Open Interest History
-    features["open_interest_history"] = get_coinglass_history(
+    features["open_interest_history"] = getter.get_history(
         endpoint_name="open_interest_history",
-        api_key=api_key,
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
     )
     
     # Open Interest Aggregated
-    features["open_interest_aggregated"] = get_coinglass_history(
+    features["open_interest_aggregated"] = getter.get_history(
         endpoint_name="open_interest_aggregated",
-        api_key=api_key,
         symbol="BTC",
         interval="1d",
     )
     
     # Open Interest Stablecoin
-    features["open_interest_stablecoin"] = get_coinglass_history(
+    features["open_interest_stablecoin"] = getter.get_history(
         endpoint_name="open_interest_stablecoin",
-        api_key=api_key,
         exchange_list="Binance",
         symbol="BTC",
         interval="1d",
     )
     
     # Open Interest Coin Margin
-    features["open_interest_coin_margin"] = get_coinglass_history(
+    features["open_interest_coin_margin"] = getter.get_history(
         endpoint_name="open_interest_coin_margin",
-        api_key=api_key,
         exchange_list="Binance",
         symbol="BTC",
         interval="1d",
     )
     
     # Funding Rate History
-    features["funding_rate_history"] = get_coinglass_history(
+    features["funding_rate_history"] = getter.get_history(
         endpoint_name="funding_rate_history",
-        api_key=api_key,
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
     )
     
     # Funding Rate OI-Weighted
-    features["funding_rate_oi_weight"] = get_coinglass_history(
+    features["funding_rate_oi_weight"] = getter.get_history(
         endpoint_name="funding_rate_oi_weight",
-        api_key=api_key,
         symbol="BTC",
         interval="1d",
     )
     
     # Funding Rate Volume-Weighted
-    features["funding_rate_vol_weight"] = get_coinglass_history(
+    features["funding_rate_vol_weight"] = getter.get_history(
         endpoint_name="funding_rate_vol_weight",
-        api_key=api_key,
         symbol="BTC",
         interval="1d",
     )
     
     # Global Long/Short Account Ratio
-    features["global_long_short_account_ratio"] = get_coinglass_history(
+    features["global_long_short_account_ratio"] = getter.get_history(
         endpoint_name="global_long_short_account_ratio",
-        api_key=api_key,
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
     )
     
     # Top Traders Long/Short Account Ratio
-    features["top_long_short_account_ratio"] = get_coinglass_history(
+    features["top_long_short_account_ratio"] = getter.get_history(
         endpoint_name="top_long_short_account_ratio",
-        api_key=api_key,
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
     )
     
     # Net Position History
-    features["net_position"] = get_coinglass_history(
+    features["net_position"] = getter.get_history(
         endpoint_name="net_position",
-        api_key=api_key,
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
     )
     
     # Liquidation History
-    features["liquidation_history"] = get_coinglass_history(
+    features["liquidation_history"] = getter.get_history(
         endpoint_name="liquidation_history",
-        api_key=api_key,
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
     )
     
     # Liquidation Aggregated
-    features["liquidation_aggregated"] = get_coinglass_history(
+    features["liquidation_aggregated"] = getter.get_history(
         endpoint_name="liquidation_aggregated",
-        api_key=api_key,
         exchange_list="Binance",
         symbol="BTC",
         interval="1d",
     )
     
     # Orderbook Ask/Bids History
-    features["orderbook_ask_bids"] = get_coinglass_history(
+    features["orderbook_ask_bids"] = getter.get_history(
         endpoint_name="orderbook_ask_bids",
-        api_key=api_key,
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
     )
     
     # Orderbook Aggregated
-    features["orderbook_aggregated"] = get_coinglass_history(
+    features["orderbook_aggregated"] = getter.get_history(
         endpoint_name="orderbook_aggregated",
-        api_key=api_key,
         exchange_list="Binance",
         symbol="BTC",
         interval="1d",
     )
     
     # Taker Buy/Sell Volume
-    features["taker_buy_sell_volume"] = get_coinglass_history(
+    features["taker_buy_sell_volume"] = getter.get_history(
         endpoint_name="taker_buy_sell_volume",
-        api_key=api_key,
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
     )
     
     # Bitcoin Long-Term Holder Supply (Index)
-    features["bitcoin_lth_supply"] = get_bitcoin_lth_supply(
-        api_key=api_key,
+    features["bitcoin_lth_supply"] = getter.get_bitcoin_lth_supply(
         pct_window=30,
         z_window=180,
         slope_window=14,
@@ -237,9 +220,12 @@ if __name__ == "__main__":
     if not API_KEY:
         raise ValueError("COINGLASS_API_KEY not found in dev.env")
     
+    # Создаём экземпляр FeaturesGetter
+    getter = FeaturesGetter(api_key=API_KEY)
+    
     # Загружаем все фичи
     print("Загрузка фичей с CoinGlass...")
-    features = fetch_all_coinglass_features(API_KEY)
+    features = fetch_all_coinglass_features(getter)
     
     # Выводим сводку
     print_features_summary(features)

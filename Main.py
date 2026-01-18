@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 
+from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from Getting_and_preprocessing_features import (
     fetch_all_coinglass_features,
     merge_all_features,
@@ -19,9 +20,12 @@ if not API_KEY:
 
 
 if __name__ == "__main__":
+    # Создаём экземпляр FeaturesGetter
+    getter = FeaturesGetter(api_key=API_KEY)
+    
     # Загружаем все фичи с CoinGlass
     print("Загрузка фичей с CoinGlass API...")
-    features = fetch_all_coinglass_features(API_KEY)
+    features = fetch_all_coinglass_features(getter)
     
     # Выводим сводку
     print_features_summary(features)

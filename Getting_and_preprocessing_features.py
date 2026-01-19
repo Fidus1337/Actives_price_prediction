@@ -48,6 +48,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "open_interest_history"
     )
     
     # Open Interest Aggregated
@@ -55,6 +56,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         endpoint_name="open_interest_aggregated",
         symbol="BTC",
         interval="1d",
+        prefix = "feature_" + "open_interest_aggregated"
     )
     
     # Open Interest Stablecoin
@@ -63,6 +65,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange_list="Binance",
         symbol="BTC",
         interval="1d",
+        prefix = "feature_" + "open_interest_stablecoin"
     )
     
     # Open Interest Coin Margin
@@ -71,6 +74,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange_list="Binance",
         symbol="BTC",
         interval="1d",
+        prefix = "feature_" + "open_interest_coin_margin"
     )
     
     # Funding Rate History
@@ -79,6 +83,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "funding_rate_history"
     )
     
     # Funding Rate OI-Weighted
@@ -86,6 +91,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         endpoint_name="funding_rate_oi_weight",
         symbol="BTC",
         interval="1d",
+        prefix = "feature_" + "funding_rate_oi_weight"
     )
     
     # Funding Rate Volume-Weighted
@@ -93,6 +99,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         endpoint_name="funding_rate_vol_weight",
         symbol="BTC",
         interval="1d",
+        prefix = "feature_" + "funding_rate_vol_weight"
     )
     
     # Global Long/Short Account Ratio
@@ -101,6 +108,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "global_long_short_account_ratio"
     )
     
     # Top Traders Long/Short Account Ratio
@@ -109,6 +117,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "top_long_short_account_ratio"
     )
     
     # Top Traders Long/Short Position Ratio
@@ -117,6 +126,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "top_long_short_position_ratio"
     )
     
     # Net Position History
@@ -125,6 +135,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "net_position"
     )
     
     # Liquidation History
@@ -133,6 +144,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "liquidation_history"
     )
     
     # Liquidation Aggregated
@@ -141,6 +153,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange_list="Binance",
         symbol="BTC",
         interval="1d",
+        prefix = "feature_" + "liquidation_aggregated"
     )
     
     # Orderbook Ask/Bids History
@@ -149,6 +162,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "orderbook_ask_bids"
     )
     
     # Orderbook Aggregated
@@ -157,6 +171,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange_list="Binance",
         symbol="BTC",
         interval="1d",
+        prefix = "feature_" + "orderbook_aggregated"
     )
     
     # Taker Buy/Sell Volume
@@ -165,6 +180,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "taker_buy_sell_volume"
     )
     
     # Taker Buy/Sell Volume Aggregated
@@ -173,6 +189,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange_list="Binance",
         symbol="BTC",
         interval="1d",
+        prefix = "feature_" + "taker_buy_sell_volume_aggregated"
     )
     
     # =========================================================================
@@ -185,6 +202,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
+        prefix = "feature_" + "spot_price_history"
     )
     
     # =========================================================================
@@ -196,6 +214,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         pct_window=30,
         z_window=180,
         slope_window=14,
+        prefix = "feature_" + "bitcoin_lth_supply"
     )
     
     # Bitcoin Active Addresses
@@ -203,6 +222,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         pct_window=7,
         z_window=180,
         slope_window=14,
+        prefix = "feature_" + "bitcoin_active_addresses"
     )
     
     # Bitcoin Short-Term Holder Supply
@@ -210,12 +230,14 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
         pct_window=30,
         z_window=180,
         slope_window=14,
+        prefix = "feature_" + "bitcoin_sth_supply"
     )
     
     # Bitcoin Reserve Risk
     features["bitcoin_reserve_risk"] = getter.get_bitcoin_reserve_risk(
         z_window=180,
         slope_window=14,
+        prefix = "feature_" + "bitcoin_reserve_risk"
     )
     
     # =========================================================================
@@ -226,11 +248,13 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
     features["bitfinex_margin_long_short"] = getter.get_bitfinex_margin_long_short(
         symbol="BTC",
         interval="1d",
+        prefix = "feature_" + "bitfinex_margin_long_short"
     )
     
     # Coinbase Premium Index
     features["coinbase_premium_index"] = getter.get_coinbase_premium_index(
         interval="1d",
+        prefix = "feature_" + "coinbase_premium_index"
     )
     
     # =========================================================================
@@ -240,6 +264,7 @@ def fetch_all_coinglass_features(getter: FeaturesGetter) -> dict[str, pd.DataFra
     # CoinGlass Derivatives Index (CGDI)
     features["cgdi_index"] = getter.get_cgdi_index(
         interval="1d",
+        prefix = "feature_" + "cgdi_index"
     )
     
     return features

@@ -38,9 +38,7 @@ if not API_KEY:
 N_DAYS = 1
 TARGET_COLUMN_NAME = f"y_up_{N_DAYS}d"
 
-
-
-if __name__ == "__main__":
+def main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY):
 
     getter = FeaturesGetter(api_key=API_KEY)
     features_engineer = FeaturesEngineer()
@@ -48,26 +46,34 @@ if __name__ == "__main__":
 
     ## DATA GATHERING / PREPROCESSING
     # Собираем фичи в один датасет    
+    print("Gathering features from API...")
     dfs = get_features(getter, API_KEY)
     df_all = merge_by_date(dfs, how="outer", dedupe="last")
+    print(f"Features gathered. Shape: {df_all.shape}")
 
     ## FEATURE ENGINEERING
     # Нормализация спот-колонок
+    print("Normalizing spot columns...")
     df0 = features_engineer.ensure_spot_prefix(df_all)
     # Добавляем целевую колонку
+    print(f"Adding target column (horizon={N_DAYS}d)...")
     df1 = features_engineer.add_y_up_custom(df0, horizon=N_DAYS, close_col="spot_price_history__close")
     # Добавляем инженерные фичи 
+    print("Adding engineered features...")
     df2 = features_engineer.add_engineered_features(df1)
     # Удаляем строки с NA
     df1 = df1.dropna(subset=[TARGET_COLUMN_NAME, "spot_price_history__close"]).reset_index(drop=True)
     
     ## Calculating diff/pct + imbalance for every features
     df2 = features_engineer.add_engineered_features(df1, horizon=N_DAYS)
+    print(f"Feature engineering complete. Shape: {df2.shape}")
 
     ## CORRELATIONS ANALYSIS
+    print("Calculating correlations...")
     correlations_analyzer = CorrelationsAnalyzer()
     pear = correlations_analyzer.corr_report(df2, method="pearson", min_n=60, target_column_name=TARGET_COLUMN_NAME)
     spear = correlations_analyzer.corr_report(df2, method="spearman", min_n=60, target_column_name=TARGET_COLUMN_NAME)
+    print("Correlations calculated.")
 
     # filtering nan values at traget column
     df_ml = df_all.copy()
@@ -80,13 +86,17 @@ if __name__ == "__main__":
     corr_p = correlations_analyzer.corr_table_with_pvalues(df_ml, method="pearson", target=TARGET_COLUMN_NAME)
     corr_s = correlations_analyzer.corr_table_with_pvalues(df_ml, method="spearman",target=TARGET_COLUMN_NAME)
 
+    print("Calculating group effect report...")
     effect_tbl = correlations_analyzer.group_effect_report(df2, target=TARGET_COLUMN_NAME, top_n=30)
 
     ## FILTERING FEATURES BY COVERAGE
+    print("Filtering features by coverage...")
     effect_tbl_cov = add_coverage(effect_tbl, df2)   # df2 = датафрейм с y_up_1d и engineered features
     good_features = effect_tbl_cov.query("coverage >= 0.85")["feature"].tolist()
+    print(f"Features filtered. {len(good_features)} good features found.")
 
     ## TRAINING LOGISTIC REGRESSION MODEL
+    print("Training Logistic Regression (Range Target)...")
     HIGH_COL  = "spot_price_history__high"
     LOW_COL   = "spot_price_history__low"
     CLOSE_COL = "spot_price_history__close"
@@ -130,17 +140,24 @@ if __name__ == "__main__":
     # Оставляем только те, что реально создались
     lag_feats = [c for c in lag_feats if c in df_lag.columns]
 
+    print("Training Logistic Regression (BASE)...")
     res_base = walk_forward_logreg(df2, base_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
+    print("Training Logistic Regression (LAG)...")
     res_lag  = walk_forward_logreg(df_lag, lag_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
 
+    print("Tuning Logistic Regression (BASE)...")
     top_base, all_base = tune_logreg_timecv(df2, base_feats, target=TARGET_COLUMN_NAME, n_splits=5, score="auc", topk=10)
+    print("Tuning Logistic Regression (LAG)...")
     top_lag,  all_lag  = tune_logreg_timecv(df_lag, lag_feats, target=TARGET_COLUMN_NAME, n_splits=5, score="auc", topk=10)
 
     # если хочешь сохранить лучшую конфигурацию:
     best = top_lag.iloc[0].to_dict() if len(top_lag) else top_base.iloc[0].to_dict()
+    print("Best config found.")
 
         # ----- run -----
+    print("Running OOS predictions...")
     oos, auc, acc = oos_predictions_logreg(df2, features=base_feats, n_splits=5, target=TARGET_COLUMN_NAME)
+    print(f"OOS predictions complete. AUC: {auc:.4f}, ACC: {acc:.4f}")
 
     # можно посмотреть по фолдам
     by_fold = oos.groupby("fold").apply(lambda g: pd.Series({
@@ -166,9 +183,6 @@ if __name__ == "__main__":
     print("AUC BASE:", auc_b)
     print("AUC LAG :", auc_l)
 
-
-    
-
-
-
+if __name__ == "__main__":
+    main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY)
 

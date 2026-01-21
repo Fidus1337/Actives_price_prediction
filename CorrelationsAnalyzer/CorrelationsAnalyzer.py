@@ -20,27 +20,27 @@ class CorrelationsAnalyzer:
         out.loc[p.index[order]] = np.clip(q, 0, 1)
         return out
 
-    def corr_report(self, df: pd.DataFrame, method: str = "pearson", min_n: int = 60) -> pd.DataFrame:
+    def corr_report(self, df: pd.DataFrame, method: str = "pearson", min_n: int = 60, target_column_name = "y_up_1d") -> pd.DataFrame:
         """
-        Расчёт корреляции всех числовых фичей с y_up_1d.
+        Расчёт корреляции всех числовых фичей с y_up_Nd.
         Возвращает DataFrame с колонками: feature, corr, abs_corr, n, p_value, q_value_fdr.
         """
         tmp = df.copy()
-        tmp["y_up_1d"] = pd.to_numeric(tmp["y_up_1d"], errors="coerce")
+        tmp[target_column_name] = pd.to_numeric(tmp[target_column_name], errors="coerce")
 
         features = [
             c for c in tmp.columns
-            if c not in {"date", "y_up_1d"}
+            if c not in {"date", target_column_name}
             and pd.api.types.is_numeric_dtype(tmp[c])
         ]
 
         # быстрый corr (без p-values)
-        corr = tmp[features].corrwith(tmp["y_up_1d"], method=method)
+        corr = tmp[features].corrwith(tmp[target_column_name], method=method)
         res = corr.rename("corr").to_frame()
         res["abs_corr"] = res["corr"].abs()
 
         # n по каждой фиче
-        y = tmp["y_up_1d"]
+        y = tmp[target_column_name]
         n_list = []
         for c in features:
             m = tmp[c].notna() & y.notna()
@@ -55,7 +55,7 @@ class CorrelationsAnalyzer:
                 pvals.append(np.nan)
                 continue
             x = pd.to_numeric(tmp.loc[m, c], errors="coerce")
-            yy = tmp.loc[m, "y_up_1d"]
+            yy = tmp.loc[m, target_column_name]
             if method == "pearson":
                 _, p = pearsonr(x, yy)
             else:

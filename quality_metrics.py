@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score, precision_score, recall_score, f1_score
 from sklearn.model_selection import TimeSeriesSplit
 import numpy as np
+import os
 
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
@@ -10,7 +11,53 @@ from sklearn.linear_model import LogisticRegression
 
 import pandas as pd
 
+# Папка для сохранения графиков
+GRAPHICS_DIR = "graphics"
+
+
+def ensure_graphics_dir(config_name: str = None) -> str:
+    """
+    Создает папку для графиков если её нет.
+    
+    Parameters:
+    -----------
+    config_name : str, optional
+        Имя конфигурации для создания подпапки
+        
+    Returns:
+    --------
+    str : Путь к созданной директории
+    """
+    if config_name:
+        path = os.path.join(GRAPHICS_DIR, config_name)
+    else:
+        path = GRAPHICS_DIR
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    return path
+
+
 def oos_proba_logreg(df: pd.DataFrame, features: list[str], target: str = "y_up_1d", n_splits: int = 5):
+    """
+    Вычисляет out-of-sample вероятности с помощью логистической регрессии.
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Датафрейм с данными
+    features : list[str]
+        Список фичей
+    target : str
+        Целевая колонка
+    n_splits : int
+        Количество фолдов для TimeSeriesSplit
+        
+    Returns:
+    --------
+    tuple : (y_true, y_proba) массивы истинных меток и вероятностей
+    """
     d = df.copy()
     d["date"] = pd.to_datetime(d["date"], errors="coerce")
     d = d.sort_values("date", kind="stable").reset_index(drop=True)
@@ -38,22 +85,58 @@ def oos_proba_logreg(df: pd.DataFrame, features: list[str], target: str = "y_up_
     return out["y"].values, out["p"].values
 
 
-def plot_roc(y, p, title="ROC"):
+def plot_roc(y, p, title="ROC", save_path=None, config_name: str = "BASE"):
+    """
+    Строит ROC-кривую и сохраняет в файл.
+    
+    Parameters:
+    -----------
+    y : array-like
+        Истинные метки
+    p : array-like
+        Вероятности
+    title : str
+        Заголовок графика
+    save_path : str, optional
+        Путь для сохранения графика. Если None, сохраняет в папку graphics/config_name с автоименем.
+    config_name : str
+        Имя конфигурации для подпапки
+        
+    Returns:
+    --------
+    float : AUC score
+    """
     auc = roc_auc_score(y, p)
     fpr, tpr, _ = roc_curve(y, p)
-    plt.figure()
-    plt.plot(fpr, tpr, label=f"AUC={auc:.4f}")
-    plt.plot([0, 1], [0, 1], linestyle="--", label="random")
+    
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label=f"AUC={auc:.4f}", linewidth=2)
+    plt.plot([0, 1], [0, 1], linestyle="--", label="random", alpha=0.7)
     plt.xlabel("FPR")
     plt.ylabel("TPR")
     plt.title(title)
     plt.legend()
-    plt.show()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    
+    # Создаём директорию с учётом config_name
+    graphics_path = ensure_graphics_dir(config_name)
+    
+    if save_path is None:
+        # Генерируем имя файла из заголовка
+        filename = title.replace(" ", "_").replace("(", "").replace(")", "").replace(",", "") + ".png"
+        save_path = os.path.join(graphics_path, filename)
+    
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    print(f"ROC saved to: {save_path}")
+    plt.close()
+    
     return auc
 
 
 def plot_metrics_vs_threshold(y_true, y_proba, title="Metrics vs threshold (OOF)", 
-                               thresholds=None, figsize=(10, 6), show_best_f1=True):
+                               thresholds=None, figsize=(10, 6), show_best_f1=True, 
+                               config_name: str = "BASE"):
     """
     Строит график зависимости метрик (Accuracy, Precision, Recall, F1) от порога.
     
@@ -71,6 +154,8 @@ def plot_metrics_vs_threshold(y_true, y_proba, title="Metrics vs threshold (OOF)
         Размер графика
     show_best_f1 : bool
         Показывать вертикальную линию на лучшем F1
+    config_name : str
+        Имя конфигурации для подпапки
         
     Returns:
     --------
@@ -142,7 +227,21 @@ def plot_metrics_vs_threshold(y_true, y_proba, title="Metrics vs threshold (OOF)
     plt.xlim(0, 1)
     plt.ylim(0, 1)
     plt.tight_layout()
-    plt.show()
+    
+    # Создаём директорию с учётом config_name
+    graphics_path = ensure_graphics_dir(config_name)
+    
+    # Генерируем безопасное имя файла
+    filename = (title.replace(" ", "_")
+                     .replace("(", "")
+                     .replace(")", "")
+                     .replace(",", "")
+                     .replace("-", "_") + ".png")
+    save_path = os.path.join(graphics_path, filename)
+    
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    print(f"Metrics plot saved to: {save_path}")
+    plt.close()
     
     # Возвращаем результаты
     results = {
@@ -161,7 +260,16 @@ def plot_metrics_vs_threshold(y_true, y_proba, title="Metrics vs threshold (OOF)
 
 
 def print_threshold_analysis(results: dict, model_name: str = "Model"):
-    """Печатает результаты анализа порогов в читаемом формате."""
+    """
+    Печатает результаты анализа порогов в читаемом формате.
+    
+    Parameters:
+    -----------
+    results : dict
+        Результаты из plot_metrics_vs_threshold
+    model_name : str
+        Название модели для заголовка
+    """
     print(f"\n{'='*50}")
     print(f"Threshold Analysis: {model_name}")
     print(f"{'='*50}")

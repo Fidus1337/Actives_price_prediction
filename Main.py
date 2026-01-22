@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 import os
+import json
+import numpy as np
 from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
@@ -10,18 +12,14 @@ from logistic_reg_model_train import walk_forward_logreg, add_range_target, add_
 from sklearn.metrics import confusion_matrix, roc_auc_score, accuracy_score
 from sklearn.metrics import brier_score_loss
 from tqdm import tqdm
-from quality_metrics import oos_proba_logreg, plot_roc
+from quality_metrics import oos_proba_logreg, plot_roc, plot_metrics_vs_threshold, print_threshold_analysis
 
-base_feats = [
-    "spot_price_history__close__pct1",
-    "spot_price_history__close__diff1",
-    "futures_open_interest_aggregated_history__close__pct1",
-    "futures_liquidation_aggregated_history__aggregated_short_liquidation_usd__diff1",
-    "futures_global_long_short_account_ratio_history__global_account_long_percent__pct1"
-    "futures_top_long_short_account_ratio_history__top_account_long_short_ratio__pct1"
-    "premium__diff1",
-    "cb_premium_abs"
-]
+
+def load_config(config_path: str = "config.json") -> list:
+    """Загружает конфигурации из JSON файла."""
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = json.load(f)
+    return config.get("runs", [])
 
 def add_coverage(effect_tbl: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     eff = effect_tbl.copy()
@@ -33,10 +31,6 @@ API_KEY = os.getenv("COINGLASS_API_KEY")
 
 if not API_KEY:
     raise ValueError("COINGLASS_API_KEY not found in dev.env")
-
-# HORIZON
-N_DAYS = 1
-TARGET_COLUMN_NAME = f"y_up_{N_DAYS}d"
 
 def main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY):
 
@@ -176,13 +170,65 @@ def main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY):
 
     y_b, p_b = oos_proba_logreg(df2, base_feats, target=TARGET_COLUMN_NAME, n_splits=5)
     auc_b = plot_roc(y_b, p_b, title="ROC (BASE, OOS)")
+    
+    # Анализ метрик по порогам для BASE модели
+    results_base = plot_metrics_vs_threshold(
+        y_b, p_b, 
+        title=f"Metrics vs threshold (BASE, OOF) - {TARGET_COLUMN_NAME}"
+    )
+    print_threshold_analysis(results_base, model_name=f"BASE ({TARGET_COLUMN_NAME})")
 
     y_l, p_l = oos_proba_logreg(df_lag, lag_feats, target=TARGET_COLUMN_NAME, n_splits=5)
     auc_l = plot_roc(y_l, p_l, title="ROC (LAG, OOS)")
+    
+    # Анализ метрик по порогам для LAG модели
+    results_lag = plot_metrics_vs_threshold(
+        y_l, p_l, 
+        title=f"Metrics vs threshold (LAG, OOF) - {TARGET_COLUMN_NAME}"
+    )
+    print_threshold_analysis(results_lag, model_name=f"LAG ({TARGET_COLUMN_NAME})")
 
     print("AUC BASE:", auc_b)
     print("AUC LAG :", auc_l)
 
+def run_all_configs(config_path: str = "config.json"):
+    """Запускает main() для каждой конфигурации из config.json."""
+    configs = load_config(config_path)
+    
+    if not configs:
+        print("No configurations found in config.json")
+        return
+    
+    print(f"Found {len(configs)} configurations to run")
+    print("=" * 60)
+    
+    results = {}
+    for i, cfg in enumerate(configs, 1):
+        run_name = cfg.get("name", f"run_{i}")
+        n_days = cfg["N_DAYS"]
+        base_feats = cfg["base_feats"]
+        target_column_name = f"y_up_{n_days}d"
+        
+        print(f"\n{'='*60}")
+        print(f"Running config [{i}/{len(configs)}]: {run_name}")
+        print(f"N_DAYS: {n_days}, TARGET: {target_column_name}")
+        print(f"Features count: {len(base_feats)}")
+        print("=" * 60)
+        
+        try:
+            main(base_feats, n_days, target_column_name, API_KEY)
+            results[run_name] = "SUCCESS"
+        except Exception as e:
+            print(f"ERROR in {run_name}: {e}")
+            results[run_name] = f"FAILED: {e}"
+    
+    print("\n" + "=" * 60)
+    print("SUMMARY:")
+    for name, status in results.items():
+        print(f"  {name}: {status}")
+    print("=" * 60)
+
+
 if __name__ == "__main__":
-    main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY)
+    run_all_configs("config.json")
 

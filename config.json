@@ -1,0 +1,46 @@
+{
+    "runs": [
+        {
+            "name": "baseline_1d",
+            "N_DAYS": 1,
+            "base_feats": [
+                "spot_price_history__close__pct1",
+                "spot_price_history__close__diff1",
+                "futures_open_interest_aggregated_history__close__pct1",
+                "futures_liquidation_aggregated_history__aggregated_short_liquidation_usd__diff1",
+                "futures_global_long_short_account_ratio_history__global_account_long_percent__pct1",
+                "futures_top_long_short_account_ratio_history__top_account_long_short_ratio__pct1",
+                "premium__diff1",
+                "cb_premium_abs"
+            ]
+        },
+        {
+            "name": "baseline_3d",
+            "N_DAYS": 3,
+            "base_feats": [
+                "spot_price_history__close__pct1",
+                "spot_price_history__close__diff1",
+                "futures_open_interest_aggregated_history__close__pct1",
+                "futures_liquidation_aggregated_history__aggregated_short_liquidation_usd__diff1",
+                "futures_global_long_short_account_ratio_history__global_account_long_percent__pct1",
+                "futures_top_long_short_account_ratio_history__top_account_long_short_ratio__pct1",
+                "premium__diff1",
+                "cb_premium_abs"
+            ]
+        },
+        {
+            "name": "baseline_7d",
+            "N_DAYS": 7,
+            "base_feats": [
+                "spot_price_history__close__pct1",
+                "spot_price_history__close__diff1",
+                "futures_open_interest_aggregated_history__close__pct1",
+                "futures_liquidation_aggregated_history__aggregated_short_liquidation_usd__diff1",
+                "futures_global_long_short_account_ratio_history__global_account_long_percent__pct1",
+                "futures_top_long_short_account_ratio_history__top_account_long_short_ratio__pct1",
+                "premium__diff1",
+                "cb_premium_abs"
+            ]
+        }
+    ]
+}

@@ -301,7 +301,7 @@ def add_range_target(
 
     hi = pd.to_numeric(d[high_col], errors="coerce")
     lo = pd.to_numeric(d[low_col], errors="coerce")
-    rng = hi - lo
+    rng = hi-lo
 
     d["range_abs"] = rng
 

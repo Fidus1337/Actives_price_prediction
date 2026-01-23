@@ -1,7 +1,9 @@
 from dotenv import load_dotenv
 import os
+import sys
 import json
 import numpy as np
+from LoggingSystem import LoggingSystem
 from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
@@ -125,7 +127,7 @@ def main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY, CONFIG_NAME):
     deriv = [c for c in base_feats if not c.startswith("spot_price_history__")]
 
     # Просто поменяй список цифр здесь
-    my_lags = (1, 2, 3, 5, 10, 15)
+    my_lags = (1, 2, 3, 5, 10)
 
     df_lag = add_lags(df2, cols=deriv, lags=my_lags)
 
@@ -237,4 +239,10 @@ def run_all_configs(config_path: str = "config.json"):
 
 
 if __name__ == "__main__":
-    run_all_configs("config.json")
+    # Перенаправляем вывод в файл logs.log и консоль
+    sys.stdout = LoggingSystem("logs.log")
+    try:
+        run_all_configs("config.json")
+    finally:
+        sys.stdout.close()
+        sys.stdout = sys.__stdout__

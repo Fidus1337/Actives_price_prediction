@@ -3,7 +3,7 @@ import os
 import sys
 import json
 import numpy as np
-from LoggingSystem import LoggingSystem
+from LoggingSystem.LoggingSystem import LoggingSystem
 from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date

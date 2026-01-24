@@ -1,6 +1,7 @@
 import warnings
 warnings.filterwarnings("ignore")
 
+import copy
 import numpy as np
 import pandas as pd
 
@@ -84,7 +85,15 @@ def walk_forward_logreg(
     target: str = "y_up_1d",
     n_splits: int = 5,
     thr: float = 0.5,
+    best_metric: str = "auc",
 ):
+    """
+    Walk-forward cross-validation for Logistic Regression.
+
+    Returns:
+        tuple: (results_dict, best_model) where best_model is the pipeline
+               from the fold with the best score according to best_metric.
+    """
     d = df.copy()
     d["date"] = pd.to_datetime(d["date"], errors="coerce")
     d = d.sort_values("date", kind="stable").reset_index(drop=True)
@@ -104,11 +113,15 @@ def walk_forward_logreg(
     ])
 
     accs, aucs, precs, recs = [], [], [], []
+    models = []
+
     for train_idx, test_idx in tscv.split(X):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
         pipe.fit(X_train, y_train)
+        models.append(copy.deepcopy(pipe))
+
         proba = pipe.predict_proba(X_test)[:, 1]
         pred = (proba >= thr).astype(int)
 
@@ -122,7 +135,18 @@ def walk_forward_logreg(
         else:
             aucs.append(np.nan)
 
-    return {
+    # Select best model by metric
+    metric_map = {
+        "auc": aucs,
+        "acc": accs,
+        "precision": precs,
+        "recall": recs,
+    }
+    scores = metric_map.get(best_metric, aucs)
+    best_idx = int(np.nanargmax(scores))
+    best_model = models[best_idx]
+
+    results = {
         "n_features": len(features),
         "thr": thr,
         "acc_mean": float(np.nanmean(accs)),
@@ -134,6 +158,8 @@ def walk_forward_logreg(
         "auc_mean": float(np.nanmean(aucs)),
         "auc_splits": aucs,
     }
+
+    return results, best_model
 
 # --------- CV eval (one config) ----------
 def walk_forward_logreg_cfg(

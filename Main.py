@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import numpy as np
+import joblib
 from LoggingSystem.LoggingSystem import LoggingSystem
 from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from get_features_from_API import get_features
@@ -122,7 +123,15 @@ def main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY, CONFIG_NAME):
     feat_set = [c for c in (base_feats + range_feats) if c in d_rngp.columns]
 
     # Model for prediction trend
-    res_rngp = walk_forward_logreg(d_rngp, features=feat_set, target=target_col, n_splits=5, thr=0.5)
+    res_rngp, model_rngp = walk_forward_logreg(d_rngp, features=feat_set, target=target_col, n_splits=5, thr=0.5)
+    print(f"Range model AUC: {res_rngp['auc_mean']:.4f}")
+
+    # Save range model
+    models_folder = os.path.join("Models", CONFIG_NAME)
+    os.makedirs(models_folder, exist_ok=True)
+    model_path = os.path.join(models_folder, f"model_range_{CONFIG_NAME}.joblib")
+    joblib.dump(model_rngp, model_path)
+    print(f"Range model saved to {model_path}")
     
     ###################################################
     
@@ -145,7 +154,12 @@ def main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY, CONFIG_NAME):
     lag_feats = [c for c in lag_feats if c in df_lag.columns]
 
     print("Training Logistic Regression (BASE)...")
-    res_base = walk_forward_logreg(df2, base_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
+    res_base, model_base = walk_forward_logreg(df2, base_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
+
+    # Save base model
+    model_path = os.path.join(models_folder, f"model_base_{CONFIG_NAME}.joblib")
+    joblib.dump(model_base, model_path)
+    print(f"Base model saved to {model_path}")
     # print("Training Logistic Regression (LAG)...")
     # res_lag = walk_forward_logreg(df_lag, lag_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
 

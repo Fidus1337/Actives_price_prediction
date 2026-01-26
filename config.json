@@ -3,6 +3,8 @@
         {
             "name": "baseline_1d",
             "N_DAYS": 1,
+            "ma_window": 14,
+            "range_feats": ["range_pct", "range_pct_ma14"],
             "base_feats": [
                 "spot_price_history__close__pct1",
                 "spot_price_history__close__diff1",
@@ -17,6 +19,8 @@
         {
             "name": "baseline_3d",
             "N_DAYS": 3,
+            "ma_window": 14,
+            "range_feats": ["range_pct", "range_pct_ma14"],
             "base_feats": [
                 "spot_price_history__close__pct1",
                 "spot_price_history__close__diff1",
@@ -33,6 +37,8 @@
         {
             "name": "baseline_5d",
             "N_DAYS": 5,
+            "ma_window": 14,
+            "range_feats": ["range_pct", "range_pct_ma14"],
             "base_feats": [
                 "cgdi_dev_from_base",
                 "cgdi_index_value",
@@ -49,6 +55,8 @@
         {
             "name": "baseline_7d",
             "N_DAYS": 7,
+            "ma_window": 14,
+            "range_feats": ["range_pct", "range_pct_ma14"],
             "base_feats": [
                 "cgdi_dev_from_base",
                 "cgdi_index_value",

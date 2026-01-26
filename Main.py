@@ -32,17 +32,30 @@ def add_coverage(effect_tbl: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
 
 
 load_dotenv("dev.env")
-API_KEY = os.getenv("COINGLASS_API_KEY")
+_api_key = os.getenv("COINGLASS_API_KEY")
 
-if not API_KEY:
+if not _api_key:
     raise ValueError("COINGLASS_API_KEY not found in dev.env")
 
+API_KEY: str = _api_key
 
-def main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY, CONFIG_NAME):
 
-    getter = FeaturesGetter(api_key=API_KEY)
+def main(cfg: dict, api_key: str):
+    """Основной пайплайн для одной конфигурации."""
+    # Извлекаем параметры из конфига
+    N_DAYS = cfg["N_DAYS"]
+    base_feats = cfg["base_feats"]
+    CONFIG_NAME = cfg["name"]
+    TARGET_COLUMN_NAME = f"y_up_{N_DAYS}d"
+    ma_window = cfg.get("ma_window", 14)
+    range_feats = cfg.get("range_feats", None)
+
+    # Чтобы получать с апишки 
+    getter = FeaturesGetter(api_key=api_key)
+    # Для формирования новых фичей
     features_engineer = FeaturesEngineer()
-    analyzer = CorrelationsAnalyzer()
+    # Для анализа корреляций признаков с целевым параметром
+    # analyzer = CorrelationsAnalyzer()
 
     ## DATA GATHERING / PREPROCESSING
     # Собираем фичи в один датасет    
@@ -108,23 +121,24 @@ def main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY, CONFIG_NAME):
         high_col=HIGH_COL,
         low_col=LOW_COL,
         close_col=CLOSE_COL,
-        ma_window=14,
+        ma_window=ma_window,
         horizon=N_DAYS,
         use_pct=True,      # (high-low)/close
         baseline_shift=1,
     )
 
-    target_col = f"y_range_up_range_pct_N{N_DAYS}_ma14"
+    target_col = f"y_range_up_range_pct_N{N_DAYS}_ma{ma_window}"
 
-    range_feats = [
-        "range_pct",
-        "range_pct_ma14",
-    ]
+    # Использовать range_feats из параметра или дефолтные
+    if range_feats is None:
+        range_feats = [
+            "range_pct",
+            f"range_pct_ma{ma_window}",
+        ]
     feat_set = [c for c in (base_feats + range_feats) if c in d_rngp.columns]
 
     # Model for prediction trend
     res_rngp, model_rngp = walk_forward_logreg(d_rngp, features=feat_set, target=target_col, n_splits=5, thr=0.5)
-    print(f"Range model AUC: {res_rngp['auc_mean']:.4f}")
 
     # Save range model
     models_folder = os.path.join("Models", CONFIG_NAME)
@@ -215,6 +229,7 @@ def main(base_feats, N_DAYS, TARGET_COLUMN_NAME, API_KEY, CONFIG_NAME):
     # print_threshold_analysis(results_lag, model_name=f"LAG ({TARGET_COLUMN_NAME})")
 
     print("AUC BASE:", auc_b)
+    print(f"Range model AUC: {res_rngp['auc_mean']:.4f}")
     # print("AUC LAG :", auc_l)
 
 
@@ -232,19 +247,15 @@ def run_all_configs(config_path: str = "config.json"):
     results = {}
     for i, cfg in enumerate(configs, 1):
         run_name = cfg.get("name", f"run_{i}")
-        n_days = cfg["N_DAYS"]
-        base_feats = cfg["base_feats"]
-        config_name = cfg["name"]
-        target_column_name = f"y_up_{n_days}d"
-        
+
         print(f"\n{'='*60}")
         print(f"Running config [{i}/{len(configs)}]: {run_name}")
-        print(f"N_DAYS: {n_days}, TARGET: {target_column_name}")
-        print(f"Features count: {len(base_feats)}")
+        print(f"N_DAYS: {cfg['N_DAYS']}, MA_WINDOW: {cfg.get('ma_window', 14)}")
+        print(f"Features count: {len(cfg['base_feats'])}")
         print("=" * 60)
-        
+
         try:
-            main(base_feats, n_days, target_column_name, API_KEY, config_name)
+            main(cfg, API_KEY)
             results[run_name] = "SUCCESS"
         except Exception as e:
             print(f"ERROR in {run_name}: {e}")

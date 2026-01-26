@@ -31,6 +31,89 @@ def add_coverage(effect_tbl: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     return eff.sort_values(["abs_cohen_d", "coverage"], ascending=[False, False]).reset_index(drop=True)
 
 
+def train_estimate_range_model(
+    df: pd.DataFrame,
+    base_feats: list[str],
+    cfg: dict,
+    n_splits: int = 5,
+    thr: float = 0.5,
+) -> tuple[dict, object]:
+    """
+    Тренирует и сохраняет Range модель.
+
+    Модель предсказывает: будет ли range (high-low)/close через N дней
+    выше текущей скользящей средней MA(ma_window).
+
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        DataFrame с подготовленными фичами
+    base_feats : list[str]
+        Список базовых фичей
+    cfg : dict
+        Конфигурация с ключами: name, N_DAYS, ma_window, range_feats
+    n_splits : int
+        Количество фолдов для walk-forward валидации
+    thr : float
+        Порог классификации
+
+    Returns:
+    --------
+    tuple : (results_dict, trained_model)
+    """
+    N_DAYS = cfg["N_DAYS"]
+    ma_window = cfg.get("ma_window", 14)
+    range_feats = cfg.get("range_feats", None)
+    CONFIG_NAME = cfg["name"]
+
+    HIGH_COL = "spot_price_history__high"
+    LOW_COL = "spot_price_history__low"
+    CLOSE_COL = "spot_price_history__close"
+
+    # Добавляем range target
+    df_range = add_range_target(
+        df,
+        high_col=HIGH_COL,
+        low_col=LOW_COL,
+        close_col=CLOSE_COL,
+        ma_window=ma_window,
+        horizon=N_DAYS,
+        use_pct=True,
+        baseline_shift=1,
+    )
+
+    target_col = f"y_range_up_range_pct_N{N_DAYS}_ma{ma_window}"
+
+    # Дефолтные range фичи если не указаны
+    if range_feats is None:
+        range_feats = [
+            "range_pct",
+            f"range_pct_ma{ma_window}",
+        ]
+
+    # Собираем финальный набор фичей
+    feat_set = [c for c in (base_feats + range_feats) if c in df_range.columns]
+
+    # Обучаем модель
+    results, model = walk_forward_logreg(
+        df_range,
+        features=feat_set,
+        target=target_col,
+        n_splits=n_splits,
+        thr=thr
+    )
+
+    # Сохраняем модель
+    models_folder = os.path.join("Models", CONFIG_NAME)
+    os.makedirs(models_folder, exist_ok=True)
+    model_path = os.path.join(models_folder, f"model_range_{CONFIG_NAME}.joblib")
+    joblib.dump(model, model_path)
+    print(f"Range model saved to {model_path}")
+    print(f"Range model AUC: {results['auc_mean']:.4f}")
+
+    return results, model
+
+
 load_dotenv("dev.env")
 _api_key = os.getenv("COINGLASS_API_KEY")
 
@@ -39,9 +122,9 @@ if not _api_key:
 
 API_KEY: str = _api_key
 
-
-def main(cfg: dict, api_key: str):
+def main_pipeline(cfg: dict, api_key: str):
     """Основной пайплайн для одной конфигурации."""
+    
     # Извлекаем параметры из конфига
     N_DAYS = cfg["N_DAYS"]
     base_feats = cfg["base_feats"]
@@ -80,131 +163,32 @@ def main(cfg: dict, api_key: str):
     print("Adding engineered features...")
     df2 = features_engineer.add_engineered_features(df1, horizon=N_DAYS)
     print(f"Feature engineering complete. Shape: {df2.shape}")
-
-    ## CORRELATIONS ANALYSIS
-    # print("Calculating correlations...")
-    # correlations_analyzer = CorrelationsAnalyzer()
-    # pear = correlations_analyzer.corr_report(df2, method="pearson", min_n=60, target_column_name=TARGET_COLUMN_NAME)
-    # spear = correlations_analyzer.corr_report(df2, method="spearman", min_n=60, target_column_name=TARGET_COLUMN_NAME)
-    # print("Correlations calculated.")
-
-    # filtering nan values at target column
-    # df_ml = df_all.copy()
-    # df_ml["date"] = pd.to_datetime(df_ml["date"], errors="coerce")
-    # df_ml = df_ml.sort_values("date").reset_index(drop=True)
-    # close = pd.to_numeric(df_ml["close"], errors="coerce")
-    # df_ml[TARGET_COLUMN_NAME] = (close.shift(-1 * N_DAYS) > close).astype("Int64")
-    # df_ml = df_ml.dropna(subset=[TARGET_COLUMN_NAME, "close"]).reset_index(drop=True)
-
-    # corr_p = correlations_analyzer.corr_table_with_pvalues(df_ml, method="pearson", target=TARGET_COLUMN_NAME)
-    # corr_s = correlations_analyzer.corr_table_with_pvalues(df_ml, method="spearman", target=TARGET_COLUMN_NAME)
-
-    # print("Calculating group effect report...")
-    # effect_tbl = correlations_analyzer.group_effect_report(df2, target=TARGET_COLUMN_NAME, top_n=30)
-
-    ## FILTERING FEATURES BY COVERAGE
-    # print("Filtering features by coverage...")
-    # effect_tbl_cov = add_coverage(effect_tbl, df2)
-    # good_features = effect_tbl_cov.query("coverage >= 0.85")["feature"].tolist()
-    # print(f"Features filtered. {len(good_features)} good features found.")
-
-    ## TRAINING LOGISTIC REGRESSION MODEL ################
-    ## Предсказывает будет ли range через N дней выше текущего MA?
     
-    print("Training Logistic Regression (Range Target)...")
-    HIGH_COL = "spot_price_history__high"
-    LOW_COL = "spot_price_history__low"
-    CLOSE_COL = "spot_price_history__close"
-
-    d_rngp = add_range_target(
-        df2,
-        high_col=HIGH_COL,
-        low_col=LOW_COL,
-        close_col=CLOSE_COL,
-        ma_window=ma_window,
-        horizon=N_DAYS,
-        use_pct=True,      # (high-low)/close
-        baseline_shift=1,
-    )
-
-    target_col = f"y_range_up_range_pct_N{N_DAYS}_ma{ma_window}"
-
-    # Использовать range_feats из параметра или дефолтные
-    if range_feats is None:
-        range_feats = [
-            "range_pct",
-            f"range_pct_ma{ma_window}",
-        ]
-    feat_set = [c for c in (base_feats + range_feats) if c in d_rngp.columns]
-
-    # Model for prediction trend
-    res_rngp, model_rngp = walk_forward_logreg(d_rngp, features=feat_set, target=target_col, n_splits=5, thr=0.5)
-
-    # Save range model
+    ### ТРЕНИРОВКА МОДЕЛЕЙ 
+    # Создаём папку для моделей
     models_folder = os.path.join("Models", CONFIG_NAME)
     os.makedirs(models_folder, exist_ok=True)
-    model_path = os.path.join(models_folder, f"model_range_{CONFIG_NAME}.joblib")
-    joblib.dump(model_rngp, model_path)
-    print(f"Range model saved to {model_path}")
     
-    ###################################################
-    
-    base_feats = [c for c in base_feats if c in df2.columns]
+    ## ТРЕНИРОВКА RANGE МОДЕЛИ
+    print("Training Logistic Regression (Range Target)...")
+    res_rngp, model_rngp = train_estimate_range_model(df2, base_feats, cfg, n_splits=5, thr=0.5)
+    print(f"Range model AUC: {res_rngp['auc_mean']:.4f}")
 
-    # какие из них деривативные (кроме спота) — на них делаем лаги
-    deriv = [c for c in base_feats if not c.startswith("spot_price_history__")]
-
-    # Просто поменяй список цифр здесь
-    my_lags = (1, 2, 3, 5, 10)
-
-    df_lag = add_lags(df2, cols=deriv, lags=my_lags)
-
-    # Генератор списка фичей (чтобы не писать руками 100 строк)
-    lag_feats = base_feats.copy()
-    for lag in my_lags:
-        lag_feats += [f"{c}__lag{lag}" for c in deriv]
-
-    # Оставляем только те, что реально создались
-    lag_feats = [c for c in lag_feats if c in df_lag.columns]
-
+    ## ТРЕНИРОВКА BASE МОДЕЛИ
     print("Training Logistic Regression (BASE)...")
+    # Сохраняем фичи с конфига
+    base_feats = [c for c in base_feats if c in df2.columns]
     res_base, model_base = walk_forward_logreg(df2, base_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
 
-    # Save base model
+    # Сохраняем BASE модель
     model_path = os.path.join(models_folder, f"model_base_{CONFIG_NAME}.joblib")
     joblib.dump(model_base, model_path)
     print(f"Base model saved to {model_path}")
-    # print("Training Logistic Regression (LAG)...")
-    # res_lag = walk_forward_logreg(df_lag, lag_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
 
-    print("Tuning Logistic Regression (BASE)...")
-    top_base, all_base = tune_logreg_timecv(df2, base_feats, target=TARGET_COLUMN_NAME, n_splits=5, score="auc", topk=10)
-    # print("Tuning Logistic Regression (LAG)...")
-    # top_lag, all_lag = tune_logreg_timecv(df_lag, lag_feats, target=TARGET_COLUMN_NAME, n_splits=5, score="auc", topk=10)
-
-    # если хочешь сохранить лучшую конфигурацию:
-    # best = top_lag.iloc[0].to_dict() if len(top_lag) else top_base.iloc[0].to_dict()
-    # print("Best config found.")
-
-    # ----- run -----
+    # Оцениваем качество BASE модели
     print("Running OOS predictions...")
     oos, auc, acc = oos_predictions_logreg(df2, features=base_feats, n_splits=5, target=TARGET_COLUMN_NAME)
     print(f"OOS predictions complete. AUC: {auc:.4f}, ACC: {acc:.4f}")
-
-    # можно посмотреть по фолдам
-    by_fold = oos.groupby("fold").apply(lambda g: pd.Series({
-        "auc": roc_auc_score(g["y"], g["p_up"]) if g["y"].nunique() == 2 else np.nan,
-        "acc": accuracy_score(g["y"], (g["p_up"] >= 0.5).astype(int)),
-        "n": len(g)
-    })).reset_index()
-
-    tmp = oos.copy()
-    tmp["bin"] = pd.qcut(tmp["p_up"], q=10, duplicates="drop")
-    lift = tmp.groupby("bin").apply(lambda g: pd.Series({
-        "n": len(g),
-        "avg_p": g["p_up"].mean(),
-        "win_if_long": float((g["y"] == 1).mean()),
-    })).reset_index()
 
     y_b, p_b = oos_proba_logreg(df2, base_feats, target=TARGET_COLUMN_NAME, n_splits=5)
     auc_b = plot_roc(y_b, p_b, title="ROC (BASE, OOS)", config_name=CONFIG_NAME)
@@ -217,20 +201,7 @@ def main(cfg: dict, api_key: str):
     )
     print_threshold_analysis(results_base, model_name=f"BASE ({TARGET_COLUMN_NAME})")
 
-    # y_l, p_l = oos_proba_logreg(df_lag, lag_feats, target=TARGET_COLUMN_NAME, n_splits=5)
-    # auc_l = plot_roc(y_l, p_l, title="ROC (LAG, OOS)", config_name=CONFIG_NAME)
-    
-    # Анализ метрик по порогам для LAG модели
-    # results_lag = plot_metrics_vs_threshold(
-    #     y_l, p_l, 
-    #     title=f"Metrics vs threshold (LAG, OOF) - {TARGET_COLUMN_NAME}",
-    #     config_name=CONFIG_NAME
-    # )
-    # print_threshold_analysis(results_lag, model_name=f"LAG ({TARGET_COLUMN_NAME})")
-
     print("AUC BASE:", auc_b)
-    print(f"Range model AUC: {res_rngp['auc_mean']:.4f}")
-    # print("AUC LAG :", auc_l)
 
 
 def run_all_configs(config_path: str = "config.json"):
@@ -255,7 +226,7 @@ def run_all_configs(config_path: str = "config.json"):
         print("=" * 60)
 
         try:
-            main(cfg, API_KEY)
+            main_pipeline(cfg, API_KEY)
             results[run_name] = "SUCCESS"
         except Exception as e:
             print(f"ERROR in {run_name}: {e}")

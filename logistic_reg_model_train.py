@@ -105,10 +105,10 @@ def walk_forward_logreg(
     Walk-forward cross-validation for Logistic Regression.
 
     Returns:
-        tuple: (results_dict, best_model, test_df) where:
+        tuple: (results_dict, best_model, oos_df) where:
             - results_dict: metrics from CV
             - best_model: pipeline from the fold with the best score
-            - test_df: DataFrame with test data from the best fold (date, features, target)
+            - oos_df: DataFrame with OOS predictions from ALL folds (date, y, p_up, fold)
     """
     d = df.copy()
     d["date"] = pd.to_datetime(d["date"], errors="coerce")
@@ -131,18 +131,24 @@ def walk_forward_logreg(
 
     accs, aucs, precs, recs = [], [], [], []
     models = []
-    test_indices = []  # сохраняем тестовые индексы каждого фолда
 
-    for train_idx, test_idx in tscv.split(X):
+    # Собираем OOS-предсказания со всех фолдов
+    proba_oos = np.full(len(X), np.nan)
+    fold_id = np.full(len(X), -1, dtype=int)
+
+    for fold_i, (train_idx, test_idx) in enumerate(tscv.split(X), start=1):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
         pipe.fit(X_train, y_train)
         models.append(copy.deepcopy(pipe))
-        test_indices.append(test_idx)
 
         proba = pipe.predict_proba(X_test)[:, 1]
         pred = (proba >= thr).astype(int)
+
+        # Сохраняем OOS-предсказания
+        proba_oos[test_idx] = proba
+        fold_id[test_idx] = fold_i
 
         accs.append(accuracy_score(y_test, pred))
         precs.append(precision_score(y_test, pred, zero_division=0))
@@ -165,13 +171,13 @@ def walk_forward_logreg(
     best_idx = int(np.nanargmax(scores))
     best_model = models[best_idx]
 
-    # Формируем тестовый DataFrame для лучшего фолда
-    best_test_idx = test_indices[best_idx]
-    test_df = pd.DataFrame({
-        "date": dates.iloc[best_test_idx].values,
-        target: y.iloc[best_test_idx].values,
-        **{col: X[col].iloc[best_test_idx].values for col in features}
-    })
+    # Формируем OOS DataFrame со всех фолдов
+    oos_df = pd.DataFrame({
+        "date": dates,
+        "y": y,
+        "p_up": proba_oos,
+        "fold": fold_id,
+    }).dropna(subset=["p_up"]).reset_index(drop=True)
 
     results = {
         "n_features": len(features),
@@ -186,7 +192,7 @@ def walk_forward_logreg(
         "auc_splits": aucs,
     }
 
-    return results, best_model, test_df
+    return results, best_model, oos_df
 
 # --------- CV eval (one config) ----------
 def walk_forward_logreg_cfg(

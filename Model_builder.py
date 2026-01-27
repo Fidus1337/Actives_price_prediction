@@ -9,7 +9,8 @@ from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 import pandas as pd
-from logistic_reg_model_train import walk_forward_logreg, add_range_target,oos_predictions_logreg
+from sklearn.metrics import roc_auc_score
+from logistic_reg_model_train import walk_forward_logreg, add_range_target
 from quality_metrics import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis
 
 
@@ -173,21 +174,19 @@ def main_pipeline(cfg: dict, api_key: str):
     print("Training Logistic Regression (BASE)...")
     # Сохраняем фичи с конфига
     base_feats = [c for c in base_feats if c in df2.columns]
-    # Обучаем модель и возвращаем тестовую выборку по наилучшему фолду
-    res_base, model_base, test_df = walk_forward_logreg(df2, base_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
+    # Обучаем модель и возвращаем OOS-предсказания со всех фолдов
+    res_base, model_base, oos_df = walk_forward_logreg(df2, base_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
 
     # Сохраняем BASE модель
     model_path = os.path.join(models_folder, f"model_base_{CONFIG_NAME}.joblib")
     joblib.dump(model_base, model_path)
     print(f"Base model saved to {model_path}")
 
-    # Оцениваем качество BASE модели на тестовой выборке лучшего фолда
-    print("Running OOS predictions...")
-    oos, auc, acc = oos_predictions_logreg(test_df, features=base_feats, target=TARGET_COLUMN_NAME, model=model_base)
+    # OOS метрики (уже посчитаны в walk_forward_logreg, используем oos_df напрямую)
+    y_b, p_b = oos_df["y"].values, oos_df["p_up"].values
+    auc = roc_auc_score(y_b, p_b)
+    acc = (y_b == (p_b >= 0.5).astype(int)).mean()
     print(f"OOS predictions complete. AUC: {auc:.4f}, ACC: {acc:.4f}")
-
-    # Используем результаты из oos для графиков (без повторного walk-forward CV)
-    y_b, p_b = oos["y"].values, oos["p_up"].values
     plot_roc(y_b, p_b, title="ROC (BASE, OOS)", config_name=CONFIG_NAME)
     
     # Анализ метрик по порогам для BASE модели

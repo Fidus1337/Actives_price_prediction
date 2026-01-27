@@ -12,7 +12,34 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score
 
-def oos_predictions_logreg(df: pd.DataFrame, features: list[str], target="y_up_1d", n_splits=5):
+def oos_predictions_logreg(
+    df: pd.DataFrame,
+    features: list[str],
+    target: str = "y_up_1d",
+    n_splits: int = 5,
+    model=None,
+):
+    """
+    Out-of-sample predictions for Logistic Regression.
+
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        DataFrame with features and target
+    features : list[str]
+        List of feature column names
+    target : str
+        Target column name
+    n_splits : int
+        Number of splits for TimeSeriesSplit (used only if model is None)
+    model : Pipeline or None
+        Pre-trained model. If provided, predictions are made on the entire dataset
+        without retraining. If None, walk-forward CV is performed.
+
+    Returns:
+    --------
+    tuple : (out_df, auc, acc)
+    """
     d = df.copy()
     d["date"] = pd.to_datetime(d["date"], errors="coerce")
     d = d.sort_values("date", kind="stable").reset_index(drop=True)
@@ -25,22 +52,9 @@ def oos_predictions_logreg(df: pd.DataFrame, features: list[str], target="y_up_1
     y = y.loc[m].astype(int).reset_index(drop=True)
     dates = d.loc[m, "date"].reset_index(drop=True)
 
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-
-    pipe = Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", StandardScaler()),
-        ("clf", LogisticRegression(max_iter=3000, class_weight="balanced")),
-    ])
-
-    proba_oos = np.full(len(X), np.nan)
-    fold_id = np.full(len(X), -1, dtype=int)
-
-    for i, (tr, te) in enumerate(tscv.split(X), start=1):
-        pipe.fit(X.iloc[tr], y.iloc[tr])
-        p = pipe.predict_proba(X.iloc[te])[:, 1]
-        proba_oos[te] = p
-        fold_id[te] = i
+    # Use pre-trained model for predictions on entire dataset
+    proba_oos = model.predict_proba(X)[:, 1]
+    fold_id = np.zeros(len(X), dtype=int)  # all same fold when using pre-trained model
 
     out = pd.DataFrame({
         "date": dates,
@@ -91,8 +105,10 @@ def walk_forward_logreg(
     Walk-forward cross-validation for Logistic Regression.
 
     Returns:
-        tuple: (results_dict, best_model) where best_model is the pipeline
-               from the fold with the best score according to best_metric.
+        tuple: (results_dict, best_model, test_df) where:
+            - results_dict: metrics from CV
+            - best_model: pipeline from the fold with the best score
+            - test_df: DataFrame with test data from the best fold (date, features, target)
     """
     d = df.copy()
     d["date"] = pd.to_datetime(d["date"], errors="coerce")
@@ -103,6 +119,7 @@ def walk_forward_logreg(
 
     m = y.notna() & X.notna().any(axis=1)
     X, y = X.loc[m].reset_index(drop=True), y.loc[m].astype(int).reset_index(drop=True)
+    dates = d.loc[m, "date"].reset_index(drop=True)
 
     tscv = TimeSeriesSplit(n_splits=n_splits)
 
@@ -114,6 +131,7 @@ def walk_forward_logreg(
 
     accs, aucs, precs, recs = [], [], [], []
     models = []
+    test_indices = []  # сохраняем тестовые индексы каждого фолда
 
     for train_idx, test_idx in tscv.split(X):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -121,6 +139,7 @@ def walk_forward_logreg(
 
         pipe.fit(X_train, y_train)
         models.append(copy.deepcopy(pipe))
+        test_indices.append(test_idx)
 
         proba = pipe.predict_proba(X_test)[:, 1]
         pred = (proba >= thr).astype(int)
@@ -146,6 +165,14 @@ def walk_forward_logreg(
     best_idx = int(np.nanargmax(scores))
     best_model = models[best_idx]
 
+    # Формируем тестовый DataFrame для лучшего фолда
+    best_test_idx = test_indices[best_idx]
+    test_df = pd.DataFrame({
+        "date": dates.iloc[best_test_idx].values,
+        target: y.iloc[best_test_idx].values,
+        **{col: X[col].iloc[best_test_idx].values for col in features}
+    })
+
     results = {
         "n_features": len(features),
         "thr": thr,
@@ -159,7 +186,7 @@ def walk_forward_logreg(
         "auc_splits": aucs,
     }
 
-    return results, best_model
+    return results, best_model, test_df
 
 # --------- CV eval (one config) ----------
 def walk_forward_logreg_cfg(

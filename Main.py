@@ -2,20 +2,15 @@ from dotenv import load_dotenv
 import os
 import sys
 import json
-import numpy as np
 import joblib
 from LoggingSystem.LoggingSystem import LoggingSystem
 from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-from CorrelationsAnalyzer.CorrelationsAnalyzer import CorrelationsAnalyzer
 import pandas as pd
-from logistic_reg_model_train import walk_forward_logreg, add_range_target, add_lags, tune_logreg_timecv, print_metrics, oos_predictions_logreg, threshold_report
-from sklearn.metrics import confusion_matrix, roc_auc_score, accuracy_score
-from sklearn.metrics import brier_score_loss
-from tqdm import tqdm
-from quality_metrics import oos_proba_logreg, plot_roc, plot_metrics_vs_threshold, print_threshold_analysis
+from logistic_reg_model_train import walk_forward_logreg, add_range_target,oos_predictions_logreg
+from quality_metrics import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis
 
 
 def load_config(config_path: str = "config.json") -> list:
@@ -95,7 +90,7 @@ def train_estimate_range_model(
     feat_set = [c for c in (base_feats + range_feats) if c in df_range.columns]
 
     # Обучаем модель
-    results, model = walk_forward_logreg(
+    results, model, _ = walk_forward_logreg(
         df_range,
         features=feat_set,
         target=target_col,
@@ -133,7 +128,7 @@ def main_pipeline(cfg: dict, api_key: str):
     ma_window = cfg.get("ma_window", 14)
     range_feats = cfg.get("range_feats", None)
 
-    # Чтобы получать с апишки 
+    # Чтобы получать с апишки фичи
     getter = FeaturesGetter(api_key=api_key)
     # Для формирования новых фичей
     features_engineer = FeaturesEngineer()
@@ -178,20 +173,22 @@ def main_pipeline(cfg: dict, api_key: str):
     print("Training Logistic Regression (BASE)...")
     # Сохраняем фичи с конфига
     base_feats = [c for c in base_feats if c in df2.columns]
-    res_base, model_base = walk_forward_logreg(df2, base_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
+    # Обучаем модель и возвращаем тестовую выборку по наилучшему фолду
+    res_base, model_base, test_df = walk_forward_logreg(df2, base_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
 
     # Сохраняем BASE модель
     model_path = os.path.join(models_folder, f"model_base_{CONFIG_NAME}.joblib")
     joblib.dump(model_base, model_path)
     print(f"Base model saved to {model_path}")
 
-    # Оцениваем качество BASE модели
+    # Оцениваем качество BASE модели на тестовой выборке лучшего фолда
     print("Running OOS predictions...")
-    oos, auc, acc = oos_predictions_logreg(df2, features=base_feats, n_splits=5, target=TARGET_COLUMN_NAME)
+    oos, auc, acc = oos_predictions_logreg(test_df, features=base_feats, target=TARGET_COLUMN_NAME, model=model_base)
     print(f"OOS predictions complete. AUC: {auc:.4f}, ACC: {acc:.4f}")
 
-    y_b, p_b = oos_proba_logreg(df2, base_feats, target=TARGET_COLUMN_NAME, n_splits=5)
-    auc_b = plot_roc(y_b, p_b, title="ROC (BASE, OOS)", config_name=CONFIG_NAME)
+    # Используем результаты из oos для графиков (без повторного walk-forward CV)
+    y_b, p_b = oos["y"].values, oos["p_up"].values
+    plot_roc(y_b, p_b, title="ROC (BASE, OOS)", config_name=CONFIG_NAME)
     
     # Анализ метрик по порогам для BASE модели
     results_base = plot_metrics_vs_threshold(
@@ -201,7 +198,7 @@ def main_pipeline(cfg: dict, api_key: str):
     )
     print_threshold_analysis(results_base, model_name=f"BASE ({TARGET_COLUMN_NAME})")
 
-    print("AUC BASE:", auc_b)
+    print("AUC BASE:", auc)
 
 
 def run_all_configs(config_path: str = "config.json"):

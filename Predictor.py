@@ -2,14 +2,15 @@
 Predictor module for making predictions using pre-trained models.
 
 Usage:
-    # Single config
+    # Last N dates
     predictor = Predictor("baseline_1d")
-    results = predictor.predict()
+    results = predictor.predict(n_dates=10)
     predictor.save_predictions()
 
-    # CLI
-    python Predictor.py --config baseline_1d
-    python Predictor.py  # all configs
+    # Specific dates
+    predictor = Predictor("baseline_1d")
+    results = predictor.predict_by_dates(["2024-01-15", "2024-01-16", "2024-01-17"])
+    predictor.save_predictions(results)
 """
 
 import os
@@ -193,6 +194,32 @@ class Predictor:
 
         return df.reset_index(drop=True)
 
+    def _filter_by_dates(self, df: pd.DataFrame, dates: list[str]) -> pd.DataFrame:
+        """
+        Filter DataFrame to specific dates.
+
+        Args:
+            df: DataFrame with 'date' column
+            dates: List of date strings (e.g., ["2024-01-15", "2024-01-16"])
+
+        Returns:
+            Filtered DataFrame sorted by date.
+        """
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+        # Convert input dates to timestamps
+        target_dates = pd.to_datetime(dates, errors="coerce").dropna().tolist()
+
+        if len(target_dates) == 0:
+            raise ValueError("No valid dates provided")
+
+        # Filter to requested dates
+        mask = df["date"].isin(target_dates)
+        df = df.loc[mask].sort_values("date", kind="stable").reset_index(drop=True)
+
+        return df
+
     def predict(self, n_dates: int = 10) -> list[PredictionResult]:
         """
         Generate predictions for the last n_dates excluding today.
@@ -242,6 +269,77 @@ class Predictor:
         dates = df_pred["date"].values
 
         for i, date in enumerate(dates):
+            result = PredictionResult(
+                date=pd.Timestamp(date).strftime("%Y-%m-%d"),
+                base_model_pred=int(base_pred[i]),
+                base_model_proba=float(base_proba[i]),
+                range_model_pred=int(range_pred[i]),
+                range_model_proba=float(range_proba[i]),
+            )
+            results.append(result)
+
+        print(f"Generated {len(results)} predictions")
+        return results
+
+    def predict_by_dates(self, dates: list[str]) -> list[PredictionResult]:
+        """
+        Generate predictions for specific dates.
+
+        Args:
+            dates: List of date strings (e.g., ["2024-01-15", "2024-01-16"])
+
+        Returns:
+            List of PredictionResult objects with predictions from both models.
+            Only dates that exist in the data will be returned.
+        """
+        # Fetch and prepare data if not cached
+        if self._prepared_df is None:
+            self._prepared_df = self._fetch_and_prepare_data()
+            self._prepared_df_range = self._prepare_range_features(self._prepared_df)
+
+        assert self._prepared_df_range is not None
+
+        # Filter to requested dates
+        df_pred = self._filter_by_dates(self._prepared_df, dates)
+        df_pred_range = self._filter_by_dates(self._prepared_df_range, dates)
+
+        if len(df_pred) == 0:
+            print(f"Warning: None of the requested dates found in data: {dates}")
+            return []
+
+        # Report which dates were found
+        found_dates = df_pred["date"].dt.strftime("%Y-%m-%d").tolist()
+        missing_dates = set(dates) - set(found_dates)
+        if missing_dates:
+            print(f"Warning: Dates not found in data: {missing_dates}")
+        print(f"Found {len(found_dates)} dates: {found_dates}")
+
+        # Prepare features for base model
+        base_feats_available = [c for c in self.base_feats if c in df_pred.columns]
+        missing_base = set(self.base_feats) - set(base_feats_available)
+        if missing_base:
+            print(f"Warning: Missing base features: {missing_base}")
+
+        X_base = df_pred[base_feats_available]
+
+        # Prepare features for range model
+        range_feat_set = [c for c in (self.base_feats + self.range_feats)
+                         if c in df_pred_range.columns]
+        X_range = df_pred_range[range_feat_set]
+
+        # Generate predictions
+        print(f"Generating predictions for {len(df_pred)} dates...")
+        base_proba = self.model_base.predict_proba(X_base)[:, 1]
+        base_pred = self.model_base.predict(X_base)
+
+        range_proba = self.model_range.predict_proba(X_range)[:, 1]
+        range_pred = self.model_range.predict(X_range)
+
+        # Build results
+        results = []
+        result_dates = df_pred["date"].values
+
+        for i, date in enumerate(result_dates):
             result = PredictionResult(
                 date=pd.Timestamp(date).strftime("%Y-%m-%d"),
                 base_model_pred=int(base_pred[i]),
@@ -307,18 +405,27 @@ class Predictor:
         return output_path
 
 
-def run_predictor(config_name: Optional[str] = None, n_dates: int = 10):
+def run_predictor(
+    config_name: Optional[str] = None,
+    n_dates: int = 10,
+    dates: Optional[list[str]] = None,
+    save_locally: bool = False
+):
     """
     Run predictor for one or all configs.
 
     Args:
         config_name: Config name or None for all configs
-        n_dates: Number of dates to predict
+        n_dates: Number of dates to predict (ignored if dates is provided)
+        dates: List of specific dates to predict (e.g., ["2024-01-15", "2024-01-16"])
     """
     if config_name:
         # Single config
         predictor = Predictor(config_name)
-        results = predictor.predict(n_dates=n_dates)
+        if dates:
+            results = predictor.predict_by_dates(dates)
+        else:
+            results = predictor.predict(n_dates=n_dates)
         output_path = predictor.save_predictions(results)
         print(f"[{config_name}] Saved {len(results)} predictions to: {output_path}")
     else:
@@ -334,32 +441,26 @@ def run_predictor(config_name: Optional[str] = None, n_dates: int = 10):
             print(f"\n--- Processing: {name} ---")
             try:
                 predictor = Predictor(name)
-                results = predictor.predict(n_dates=n_dates)
-                output_path = predictor.save_predictions(results)
-                print(f"[{name}] SUCCESS: {len(results)} predictions saved")
+                if dates:
+                    results = predictor.predict_by_dates(dates)
+                else:
+                    results = predictor.predict(n_dates=n_dates)
+                    
+                if save_locally:
+                    output_path = predictor.save_predictions(results)
+                    print(f"[{name}] SUCCESS: {len(results)} predictions saved")
+                    
             except Exception as e:
                 print(f"[{name}] ERROR: {e}")
 
         print("\n" + "=" * 60)
         print("All predictions complete")
 
-
 if __name__ == "__main__":
-    import argparse
+    predictor = Predictor("baseline_1d")
 
-    parser = argparse.ArgumentParser(description="Generate predictions using trained models")
-    parser.add_argument(
-        "--config", "-c",
-        type=str,
-        default=None,
-        help="Config name (e.g., 'baseline_1d'). If not specified, runs all configs."
-    )
-    parser.add_argument(
-        "--n-dates", "-n",
-        type=int,
-        default=10,
-        help="Number of dates to predict (default: 10)"
-    )
-    args = parser.parse_args()
-
-    run_predictor(config_name=args.config, n_dates=args.n_dates)
+    # По конкретным датам
+    results = predictor.predict_by_dates(["2025-01-20", "2025-01-21", "2025-01-22"])
+    for r in results:
+        print(f"{r.date}: base={r.base_model_pred} ({r.base_model_proba:.3f}), "
+              f"range={r.range_model_pred} ({r.range_model_proba:.3f})")

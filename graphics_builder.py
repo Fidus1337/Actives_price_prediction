@@ -39,52 +39,6 @@ def ensure_graphics_dir(config_name: str = None) -> str:
     return path
 
 
-def oos_proba_logreg(df: pd.DataFrame, features: list[str], target: str = "y_up_1d", n_splits: int = 5):
-    """
-    Вычисляет out-of-sample вероятности с помощью логистической регрессии.
-    
-    Parameters:
-    -----------
-    df : pd.DataFrame
-        Датафрейм с данными
-    features : list[str]
-        Список фичей
-    target : str
-        Целевая колонка
-    n_splits : int
-        Количество фолдов для TimeSeriesSplit
-        
-    Returns:
-    --------
-    tuple : (y_true, y_proba) массивы истинных меток и вероятностей
-    """
-    d = df.copy()
-    d["date"] = pd.to_datetime(d["date"], errors="coerce")
-    d = d.sort_values("date", kind="stable").reset_index(drop=True)
-
-    X = d[features].copy()
-    y = pd.to_numeric(d[target], errors="coerce")
-
-    m = y.notna() & X.notna().any(axis=1)
-    X, y = X.loc[m].reset_index(drop=True), y.loc[m].astype(int).reset_index(drop=True)
-
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-
-    pipe = Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", StandardScaler()),
-        ("clf", LogisticRegression(max_iter=3000, class_weight="balanced")),
-    ])
-
-    proba_oos = np.full(len(X), np.nan)
-    for train_idx, test_idx in tscv.split(X):
-        pipe.fit(X.iloc[train_idx], y.iloc[train_idx])
-        proba_oos[test_idx] = pipe.predict_proba(X.iloc[test_idx])[:, 1]
-
-    out = pd.DataFrame({"y": y, "p": proba_oos}).dropna()
-    return out["y"].values, out["p"].values
-
-
 def plot_roc(y, p, title="ROC", save_path=None, config_name: str = "BASE"):
     """
     Строит ROC-кривую и сохраняет в файл.

@@ -10,7 +10,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, f1_score
 
 def oos_predictions_logreg(
     df: pd.DataFrame,
@@ -129,7 +129,7 @@ def walk_forward_logreg(
         ("clf", LogisticRegression(max_iter=3000, class_weight="balanced")),
     ])
 
-    accs, aucs, precs, recs = [], [], [], []
+    accs, aucs, precs, recs, f1s = [], [], [], [], []
     models = []
 
     # Собираем OOS-предсказания со всех фолдов
@@ -153,6 +153,7 @@ def walk_forward_logreg(
         accs.append(accuracy_score(y_test, pred))
         precs.append(precision_score(y_test, pred, zero_division=0))
         recs.append(recall_score(y_test, pred, zero_division=0))
+        f1s.append(f1_score(y_test, pred, zero_division=0))
 
         # ROC AUC: если один класс — ставим nan, но длину сохраняем
         if len(np.unique(y_test)) == 2:
@@ -166,6 +167,7 @@ def walk_forward_logreg(
         "acc": accs,
         "precision": precs,
         "recall": recs,
+        "f1": f1s,
     }
     scores = metric_map.get(best_metric, aucs)
     best_idx = int(np.nanargmax(scores))
@@ -182,14 +184,13 @@ def walk_forward_logreg(
     results = {
         "n_features": len(features),
         "thr": thr,
-        "acc_mean": float(np.nanmean(accs)),
-        "acc_splits": accs,
-        "precision_mean": float(np.nanmean(precs)),
-        "precision_splits": precs,
-        "recall_mean": float(np.nanmean(recs)),
-        "recall_splits": recs,
-        "auc_mean": float(np.nanmean(aucs)),
-        "auc_splits": aucs,
+        "best_metric": best_metric,
+        "best_fold_idx": best_idx + 1,  # +1 т.к. fold_i начинается с 1
+        "auc": float(aucs[best_idx]) if not np.isnan(aucs[best_idx]) else None,
+        "acc": float(accs[best_idx]),
+        "precision": float(precs[best_idx]),
+        "recall": float(recs[best_idx]),
+        "f1": float(f1s[best_idx]),
     }
 
     return results, best_model, oos_df

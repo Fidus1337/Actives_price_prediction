@@ -2,17 +2,23 @@ from dotenv import load_dotenv
 import os
 import sys
 import json
-import joblib
 from LoggingSystem.LoggingSystem import LoggingSystem
 from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 import pandas as pd
-from sklearn.metrics import roc_auc_score
-from logistic_reg_model_train import walk_forward_logreg, add_range_target
-from quality_metrics import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis
+from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis
+from ModelsTrainer.range_model_trainer import range_model_train_pipeline
+from ModelsTrainer.base_model_trainer import base_model_train_pipeline
 
+load_dotenv("dev.env")
+_api_key = os.getenv("COINGLASS_API_KEY")
+
+if not _api_key:
+    raise ValueError("COINGLASS_API_KEY not found in dev.env")
+
+API_KEY: str = _api_key
 
 def load_config(config_path: str = "config.json") -> list:
     """Загружает конфигурации из JSON файла."""
@@ -26,98 +32,6 @@ def add_coverage(effect_tbl: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     eff["coverage"] = eff["feature"].apply(lambda c: float(df[c].notna().mean()) if c in df.columns else 0.0)
     return eff.sort_values(["abs_cohen_d", "coverage"], ascending=[False, False]).reset_index(drop=True)
 
-
-def train_estimate_range_model(
-    df: pd.DataFrame,
-    base_feats: list[str],
-    cfg: dict,
-    n_splits: int = 5,
-    thr: float = 0.5,
-) -> tuple[dict, object]:
-    """
-    Тренирует и сохраняет Range модель.
-
-    Модель предсказывает: будет ли range (high-low)/close через N дней
-    выше текущей скользящей средней MA(ma_window).
-
-    Parameters:
-    -----------
-    df : pd.DataFrame
-        DataFrame с подготовленными фичами
-    base_feats : list[str]
-        Список базовых фичей
-    cfg : dict
-        Конфигурация с ключами: name, N_DAYS, ma_window, range_feats
-    n_splits : int
-        Количество фолдов для walk-forward валидации
-    thr : float
-        Порог классификации
-
-    Returns:
-    --------
-    tuple : (results_dict, trained_model)
-    """
-    N_DAYS = cfg["N_DAYS"]
-    ma_window = cfg.get("ma_window", 14)
-    range_feats = cfg.get("range_feats", None)
-    CONFIG_NAME = cfg["name"]
-
-    HIGH_COL = "spot_price_history__high"
-    LOW_COL = "spot_price_history__low"
-    CLOSE_COL = "spot_price_history__close"
-
-    # Добавляем range target
-    df_range = add_range_target(
-        df,
-        high_col=HIGH_COL,
-        low_col=LOW_COL,
-        close_col=CLOSE_COL,
-        ma_window=ma_window,
-        horizon=N_DAYS,
-        use_pct=True,
-        baseline_shift=1,
-    )
-
-    target_col = f"y_range_up_range_pct_N{N_DAYS}_ma{ma_window}"
-
-    # Дефолтные range фичи если не указаны
-    if range_feats is None:
-        range_feats = [
-            "range_pct",
-            f"range_pct_ma{ma_window}",
-        ]
-
-    # Собираем финальный набор фичей
-    feat_set = [c for c in (base_feats + range_feats) if c in df_range.columns]
-
-    # Обучаем модель
-    results, model, _ = walk_forward_logreg(
-        df_range,
-        features=feat_set,
-        target=target_col,
-        n_splits=n_splits,
-        thr=thr
-    )
-
-    # Сохраняем модель
-    models_folder = os.path.join("Models", CONFIG_NAME)
-    os.makedirs(models_folder, exist_ok=True)
-    model_path = os.path.join(models_folder, f"model_range_{CONFIG_NAME}.joblib")
-    joblib.dump(model, model_path)
-    print(f"Range model saved to {model_path}")
-    print(f"Range model AUC: {results['auc_mean']:.4f}")
-
-    return results, model
-
-
-load_dotenv("dev.env")
-_api_key = os.getenv("COINGLASS_API_KEY")
-
-if not _api_key:
-    raise ValueError("COINGLASS_API_KEY not found in dev.env")
-
-API_KEY: str = _api_key
-
 def main_pipeline(cfg: dict, api_key: str):
     """Основной пайплайн для одной конфигурации."""
     
@@ -126,7 +40,6 @@ def main_pipeline(cfg: dict, api_key: str):
     base_feats = cfg["base_feats"]
     CONFIG_NAME = cfg["name"]
     TARGET_COLUMN_NAME = f"y_up_{N_DAYS}d"
-    ma_window = cfg.get("ma_window", 14)
     range_feats = cfg.get("range_feats", None)
 
     # Чтобы получать с апишки фичи
@@ -160,44 +73,54 @@ def main_pipeline(cfg: dict, api_key: str):
     df2 = features_engineer.add_engineered_features(df1, horizon=N_DAYS)
     print(f"Feature engineering complete. Shape: {df2.shape}")
     
+    print("DF2:", df2.shape)
+    
     ### ТРЕНИРОВКА МОДЕЛЕЙ 
     # Создаём папку для моделей
     models_folder = os.path.join("Models", CONFIG_NAME)
     os.makedirs(models_folder, exist_ok=True)
     
     ## ТРЕНИРОВКА RANGE МОДЕЛИ
-    print("Training Logistic Regression (Range Target)...")
-    res_rngp, model_rngp = train_estimate_range_model(df2, base_feats, cfg, n_splits=5, thr=0.5)
-    print(f"Range model AUC: {res_rngp['auc_mean']:.4f}")
+    if "range_model" in CONFIG_NAME:
+        
+        ma_window = cfg.get("ma_window", 14)
+        
+        print("Training Logistic Regression (Range Target)...")
+        res_rngp, model_rngp, oos_rngp = range_model_train_pipeline(df2, base_feats, cfg, n_splits=5, thr=0.55)
+        print(f"Range model metrics (fold {res_rngp['best_fold_idx']}, by {res_rngp['best_metric']}): "
+            f"AUC={res_rngp['auc']:.4f}, "
+            f"Precision={res_rngp['precision']:.4f}, "
+            f"Recall={res_rngp['recall']:.4f}, "
+            f"F1={res_rngp['f1']:.4f}")
 
+        # # Анализ метрик по порогам для RANGE модели
+        y_rng, p_rng = oos_rngp["y"].values, oos_rngp["p_up"].values
+        results_range = plot_metrics_vs_threshold(
+            y_rng, p_rng,
+            title=f"Metrics vs threshold (RANGE, OOF) - N{N_DAYS}_ma{ma_window}",
+            config_name=CONFIG_NAME
+        )
+        print_threshold_analysis(results_range, model_name=f"RANGE (N{N_DAYS}_ma{ma_window})")
+        
     ## ТРЕНИРОВКА BASE МОДЕЛИ
-    print("Training Logistic Regression (BASE)...")
-    # Сохраняем фичи с конфига
-    base_feats = [c for c in base_feats if c in df2.columns]
-    # Обучаем модель и возвращаем OOS-предсказания со всех фолдов
-    res_base, model_base, oos_df = walk_forward_logreg(df2, base_feats, n_splits=5, thr=0.5, target=TARGET_COLUMN_NAME)
+    elif "base_model" in CONFIG_NAME:
 
-    # Сохраняем BASE модель
-    model_path = os.path.join(models_folder, f"model_base_{CONFIG_NAME}.joblib")
-    joblib.dump(model_base, model_path)
-    print(f"Base model saved to {model_path}")
+        print("Training Logistic Regression (BASE)...")
+        res_base, model_base, oos_df = base_model_train_pipeline(
+            df2, base_feats, cfg, n_splits=5, thr=0.5
+        )
 
-    # OOS метрики (уже посчитаны в walk_forward_logreg, используем oos_df напрямую)
-    y_b, p_b = oos_df["y"].values, oos_df["p_up"].values
-    auc = roc_auc_score(y_b, p_b)
-    acc = (y_b == (p_b >= 0.5).astype(int)).mean()
-    print(f"OOS predictions complete. AUC: {auc:.4f}, ACC: {acc:.4f}")
-    plot_roc(y_b, p_b, title="ROC (BASE, OOS)", config_name=CONFIG_NAME)
-    
-    # Анализ метрик по порогам для BASE модели
-    results_base = plot_metrics_vs_threshold(
-        y_b, p_b, 
-        title=f"Metrics vs threshold (BASE, OOF) - {TARGET_COLUMN_NAME}",
-        config_name=CONFIG_NAME
-    )
-    print_threshold_analysis(results_base, model_name=f"BASE ({TARGET_COLUMN_NAME})")
+        # Графики
+        y_b, p_b = oos_df["y"].values, oos_df["p_up"].values
+        plot_roc(y_b, p_b, title="ROC (BASE, OOS)", config_name=CONFIG_NAME)
 
-    print("AUC BASE:", auc)
+        # Анализ метрик по порогам для BASE модели
+        results_base = plot_metrics_vs_threshold(
+            y_b, p_b,
+            title=f"Metrics vs threshold (BASE, OOF) - {TARGET_COLUMN_NAME}",
+            config_name=CONFIG_NAME
+        )
+        print_threshold_analysis(results_base, model_name=f"BASE ({TARGET_COLUMN_NAME})")
 
 
 def run_all_configs(config_path: str = "config.json"):

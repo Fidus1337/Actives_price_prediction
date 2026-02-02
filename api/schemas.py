@@ -1,23 +1,23 @@
 """Pydantic models for API request/response validation."""
 
 import re
-from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 
 class PredictionRequest(BaseModel):
     """Request body for prediction endpoint."""
 
+    model_name: str = Field(
+        ...,
+        description="Model name from Models folder (e.g., 'base_model_1d', 'range_model_3d')",
+        examples=["base_model_1d", "range_model_1d"]
+    )
     dates: list[str] = Field(
         ...,
         min_length=1,
         max_length=100,
         description="List of dates in YYYY-MM-DD format",
         examples=[["2025-01-20", "2025-01-21"]]
-    )
-    config_name: Literal["baseline_1d", "baseline_3d", "baseline_5d", "baseline_7d"] = Field(
-        ...,
-        description="Configuration name for prediction horizon"
     )
 
     @field_validator("dates")
@@ -30,25 +30,19 @@ class PredictionRequest(BaseModel):
         return v
 
 
-class ModelPrediction(BaseModel):
-    """Single model's prediction output."""
-
-    prediction: int = Field(..., ge=0, le=1, description="Binary prediction (0 or 1)")
-    probability: float = Field(..., ge=0.0, le=1.0, description="Probability of price increase")
-
-
 class SinglePrediction(BaseModel):
     """Prediction result for a single date."""
 
     date: str = Field(..., description="Date in YYYY-MM-DD format")
-    base_model: ModelPrediction = Field(..., description="Base model prediction")
-    range_model: ModelPrediction = Field(..., description="Range model prediction")
+    prediction: int = Field(..., ge=0, le=1, description="Binary prediction (0=down, 1=up)")
+    probability: float = Field(..., ge=0.0, le=1.0, description="Probability of price increase")
 
 
 class PredictionResponse(BaseModel):
     """Response schema for predictions endpoint."""
 
-    config_name: str = Field(..., description="Configuration used")
+    model_name: str = Field(..., description="Model used for predictions")
+    model_type: str = Field(..., description="Model type (base or range)")
     horizon_days: int = Field(..., description="Prediction horizon in days")
     requested_dates: list[str] = Field(..., description="Dates requested")
     found_dates: list[str] = Field(..., description="Dates found in data")
@@ -56,19 +50,31 @@ class PredictionResponse(BaseModel):
     predictions: list[SinglePrediction] = Field(..., description="List of predictions")
 
 
-class ConfigInfo(BaseModel):
-    """Information about a single configuration."""
+class ModelMetrics(BaseModel):
+    """Quality metrics for a model."""
 
-    name: str
-    horizon_days: int
-    ma_window: int
-    feature_count: int
+    auc: float = Field(..., description="Area Under ROC Curve")
+    accuracy: float = Field(..., description="Accuracy score")
+    precision: float = Field(..., description="Precision score")
+    recall: float = Field(..., description="Recall score")
+    f1: float = Field(..., description="F1 score")
+    threshold: float = Field(default=0.5, description="Classification threshold")
 
 
-class ConfigsResponse(BaseModel):
-    """Response schema for configs endpoint."""
+class ModelInfo(BaseModel):
+    """Information about a single model."""
 
-    available_configs: list[ConfigInfo]
+    name: str = Field(..., description="Model name")
+    model_type: str = Field(..., description="Model type (base or range)")
+    horizon_days: int = Field(..., description="Prediction horizon in days")
+    feature_count: int = Field(..., description="Number of features used")
+    metrics: ModelMetrics | None = Field(None, description="Model quality metrics")
+
+
+class ModelsResponse(BaseModel):
+    """Response schema for models endpoint."""
+
+    available_models: list[ModelInfo]
 
 
 class HealthResponse(BaseModel):
@@ -77,5 +83,5 @@ class HealthResponse(BaseModel):
     status: str = "healthy"
     models_loaded: dict[str, bool] = Field(
         default_factory=dict,
-        description="Status of loaded models per config"
+        description="Status of loaded models"
     )

@@ -29,22 +29,36 @@ app = FastAPI(
     description="""
 API for predicting Bitcoin price direction using machine learning models.
 
-## Features
-- Predict if BTC price will be higher after N days (1, 3, 5, or 7 days)
-- Multiple model types: base model and range model
-- Historical date predictions based on CoinGlass data
+## Endpoints
+
+### POST /api/v1/predictions
+Get predictions for specific dates using a selected model.
+
+### GET /api/v1/models
+List all available models with their quality metrics (AUC, accuracy, precision, recall, F1).
 
 ## Models
-- **base_model**: Uses standard market features
-- **range_model**: Includes volatility/range features for enhanced prediction
+Models are stored in the `Models/` folder:
+- **base_model_Xd**: Uses standard market features
+- **range_model_Xd**: Includes volatility/range features
 
-## Configurations
-- `baseline_1d`: 1-day prediction horizon
-- `baseline_3d`: 3-day prediction horizon
-- `baseline_5d`: 5-day prediction horizon
-- `baseline_7d`: 7-day prediction horizon
+Where X is the prediction horizon (1, 3, 5, or 7 days).
+
+## Example
+```python
+import requests
+
+# Get predictions
+response = requests.post(
+    "http://localhost:8000/api/v1/predictions",
+    json={
+        "model_name": "base_model_1d",
+        "dates": ["2025-01-20", "2025-01-21"]
+    }
+)
+```
 """,
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -66,4 +80,4 @@ app.include_router(predictions.router)
 @app.get("/", include_in_schema=False)
 async def root():
     """Redirect to documentation."""
-    return {"message": "BTC Price Prediction API", "docs": "/docs"}
+    return {"message": "BTC Price Prediction API v2.0", "docs": "/docs"}

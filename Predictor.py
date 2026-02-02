@@ -84,8 +84,9 @@ class Predictor:
         self.base_feats = self.config["base_feats"]
         self.range_feats = self.config.get("range_feats", [])
 
-        # Load model
+        # Load model and model features
         self.model = self._load_model()
+        self.model_features = self._load_model_features()
 
         # Initialize helpers
         self.getter = FeaturesGetter(api_key=self.api_key)
@@ -120,6 +121,32 @@ class Predictor:
         model = joblib.load(model_path)
         print(f"Loaded {self.model_type} model from {model_path}")
         return model
+
+    def _load_model_features(self) -> list[str]:
+        """Load feature list from metrics JSON or model's feature_names_in_."""
+        # Try to get features from metrics JSON first
+        models_folder = os.path.join("Models", self.config_name)
+        metrics_path = os.path.join(
+            models_folder, f"metrics_{self.model_type}_{self.config_name}.json"
+        )
+
+        if os.path.exists(metrics_path):
+            with open(metrics_path, "r", encoding="utf-8") as f:
+                metrics = json.load(f)
+
+            features = metrics.get("features", [])
+            if features:
+                print(f"Loaded {len(features)} features from {metrics_path}")
+                return features
+
+        # Fallback: get feature names from sklearn model
+        if hasattr(self.model, "feature_names_in_"):
+            features = list(self.model.feature_names_in_)
+            print(f"Loaded {len(features)} features from model.feature_names_in_")
+            return features
+
+        print("Warning: Could not determine features, falling back to config")
+        return []
 
     def _fetch_and_prepare_data(self) -> pd.DataFrame:
         """Fetch fresh data from API and apply feature engineering."""
@@ -187,7 +214,13 @@ class Predictor:
         return df
 
     def _get_features(self) -> list[str]:
-        """Get feature list based on model type."""
+        """Get feature list from saved metrics (preferred) or config (fallback)."""
+        # Prefer features saved during training (avoids mismatch)
+        if self.model_features:
+            return self.model_features
+
+        # Fallback to config features (for backward compatibility)
+        print("Warning: Using features from config (may cause mismatch)")
         if self.model_type == "range":
             return self.base_feats + self.range_feats
         return self.base_feats

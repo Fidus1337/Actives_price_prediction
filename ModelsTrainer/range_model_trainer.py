@@ -89,6 +89,8 @@ def range_model_train_pipeline(
     metrics = {
         "config_name": CONFIG_NAME,
         "model_path": model_path,
+        "target": target_col,
+        "features": feat_set,  # Список фичей, на которых обучалась модель
         "n_features": results["n_features"],
         "thr": results["thr"],
         "best_metric": results["best_metric"],

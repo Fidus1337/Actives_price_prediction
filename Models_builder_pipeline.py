@@ -72,21 +72,54 @@ def main_pipeline(cfg: dict, api_key: str):
     print("Adding engineered features...")
     df2 = features_engineer.add_engineered_features(df1, horizon=N_DAYS)
     print(f"Feature engineering complete. Shape: {df2.shape}")
+
+    # Удаляем колонки с >30% NaN значений (исключая target-колонки)
+    # nan_threshold = 0.4
+    # nan_ratio = df2.isna().mean()
+    # cols_to_drop = [
+    #     c for c in nan_ratio[nan_ratio > nan_threshold].index
+    #     if not c.startswith("y_up_")
+    # ]
+    
+    df2 = df2.sort_values('date')
+
+    # Forward fill для заполнения пропущенных значений предыдущими
+    print("Applying forward fill...")
+    target_cols = [c for c in df2.columns if c.startswith("y_up_")]
+    feature_cols = [c for c in df2.columns if c not in target_cols and c != "date"]
+    df2[feature_cols] = df2[feature_cols].ffill()
+    print(f"Forward fill complete. Remaining NaN count: {df2[feature_cols].isna().sum().sum()}")
+    
+    # if cols_to_drop:
+    #     print(f"Dropping {len(cols_to_drop)} columns with >{nan_threshold*100:.0f}% NaN values:")
+    #     for col in cols_to_drop:
+    #         print(f"  - {col}: {nan_ratio[col]*100:.1f}% NaN")
+    #     df2 = df2.drop(columns=cols_to_drop)
+
+    # Удаляем строки с NaN в целевой колонке
+    rows_before = len(df2)
+    df2 = df2.dropna(subset=[TARGET_COLUMN_NAME]).reset_index(drop=True)
+    rows_dropped = rows_before - len(df2)
+    if rows_dropped > 0:
+        print(f"Dropped {rows_dropped} rows with NaN in {TARGET_COLUMN_NAME}")
+
+    print("NAN-values::")
+    print(df2.isna().sum())
     
     print("DF2:", df2.shape)
     
-    ### ТРЕНИРОВКА МОДЕЛЕЙ 
+    ### ТРЕНИРОВКА МОДЕЛЕЙ
     # Создаём папку для моделей
     models_folder = os.path.join("Models", CONFIG_NAME)
     os.makedirs(models_folder, exist_ok=True)
-    
+
     ## ТРЕНИРОВКА RANGE МОДЕЛИ
     if "range_model" in CONFIG_NAME:
-        
-        ma_window = cfg.get("ma_window", 14)
-        
+
+        ma_window = cfg.get("ma_window")
+
         print("Training Logistic Regression (Range Target)...")
-        res_rngp, model_rngp, oos_rngp = range_model_train_pipeline(df2, base_feats, cfg, n_splits=5, thr=0.55)
+        res_rngp, model_rngp, oos_rngp = range_model_train_pipeline(df2, base_feats, cfg, n_splits=5, thr=0.5, choose_model_by_metric="auc")
         print(f"Range model metrics (fold {res_rngp['best_fold_idx']}, by {res_rngp['best_metric']}): "
             f"AUC={res_rngp['auc']:.4f}, "
             f"Precision={res_rngp['precision']:.4f}, "
@@ -101,13 +134,13 @@ def main_pipeline(cfg: dict, api_key: str):
             config_name=CONFIG_NAME
         )
         print_threshold_analysis(results_range, model_name=f"RANGE (N{N_DAYS}_ma{ma_window})")
-        
+
     ## ТРЕНИРОВКА BASE МОДЕЛИ
     elif "base_model" in CONFIG_NAME:
 
         print("Training Logistic Regression (BASE)...")
         res_base, model_base, oos_df = base_model_train_pipeline(
-            df2, base_feats, cfg, n_splits=5, thr=0.5
+            df2, base_feats, cfg, n_splits=5, thr=0.5, best_metric="auc"
         )
 
         # Графики

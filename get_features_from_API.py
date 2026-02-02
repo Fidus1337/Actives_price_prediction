@@ -231,8 +231,7 @@ def get_features(getter: FeaturesGetter, API_KEY: str):
         exchange="Binance",
         symbol="BTCUSDT",
         interval="1d",
-        prefix="",
-        limit=4500
+        prefix=""
     )
     df_spot.columns = df_spot.columns.str.lstrip("_")
 

@@ -46,24 +46,27 @@ class FeaturesGetter:
         self,
         endpoint_name: str,
         prefix: str | None = None,
+        limit: int = 1250,
         **params,
     ) -> pd.DataFrame:
         """
         Получает исторические данные с CoinGlass API.
-        
+
         Args:
             endpoint_name: Имя эндпоинта из ENDPOINTS (например, "open_interest_history")
             prefix: Префикс для колонок (по умолчанию = endpoint_name)
+            limit: Максимальное количество записей (по умолчанию 1250)
             **params: Параметры запроса (exchange, symbol, interval и т.д.)
                       Если не указаны, используются default_params из конфига.
-        
+
         Returns:
             DataFrame с колонкой date и данными с префиксами.
-        
+
         Raises:
             ValueError: Если endpoint_name не найден в ENDPOINTS
             CoinGlassError: При ошибках API
         """
+        params["limit"] = limit
         if endpoint_name not in ENDPOINTS:
             available = ", ".join(sorted(ENDPOINTS.keys()))
             raise ValueError(f"Unknown endpoint: '{endpoint_name}'. Available: {available}")

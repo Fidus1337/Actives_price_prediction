@@ -44,6 +44,16 @@ def base_model_train_pipeline(
     # Фильтруем фичи по наличию в df
     feat_set = [c for c in base_feats if c in df.columns]
 
+    # Проверяем наличие фичей
+    if not feat_set:
+        missing = [c for c in base_feats if c not in df.columns]
+        raise ValueError(
+            f"No features available for {CONFIG_NAME}. "
+            f"Missing features (removed by NaN filter?): {missing[:5]}..."
+        )
+
+    print(f"Using {len(feat_set)}/{len(base_feats)} features: {feat_set[:3]}...")
+
     # Обучаем модель
     results, model, oos_df = walk_forward_logreg(
         df,

@@ -11,6 +11,7 @@ def range_model_train_pipeline(
     cfg: dict,
     n_splits: int = 5,
     thr: float = 0.5,
+    choose_model_by_metric = "f1"
 ) -> tuple[dict, object, pd.DataFrame]:
     """
     Тренирует и сохраняет Range модель.
@@ -75,7 +76,7 @@ def range_model_train_pipeline(
         target=target_col,
         n_splits=n_splits,
         thr=thr,
-        best_metric="auc"
+        best_metric=choose_model_by_metric
     )
 
     # Сохраняем модель

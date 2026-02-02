@@ -52,7 +52,7 @@ def main_pipeline(cfg: dict, api_key: str):
     ## DATA GATHERING / PREPROCESSING
     # Собираем фичи в один датасет    
     print("Gathering features from API...")
-    dfs = get_features(getter, API_KEY)
+    dfs = get_features(getter, api_key)
     df_all = merge_by_date(dfs, how="outer", dedupe="last")
     print(f"Features gathered. Shape: {df_all.shape}")
 
@@ -60,26 +60,17 @@ def main_pipeline(cfg: dict, api_key: str):
     # Нормализация спот-колонок
     print("Normalizing spot columns...")
     df0 = features_engineer.ensure_spot_prefix(df_all)
-    
+
     # Добавляем целевую колонку
     print(f"Adding target column (horizon={N_DAYS}d)...")
     df1 = features_engineer.add_y_up_custom(df0, horizon=N_DAYS, close_col="spot_price_history__close")
-    
+
     # Удаляем строки с NA в целевой колонке и close
-    df1 = df1.dropna(subset=[TARGET_COLUMN_NAME, "spot_price_history__close"]).reset_index(drop=True)
-    
+    df1 = df1.dropna(subset=[TARGET_COLUMN_NAME, "spot_price_history__close"]).reset_index(drop=True)       
     # Добавляем инженерные фичи (один раз)
     print("Adding engineered features...")
     df2 = features_engineer.add_engineered_features(df1, horizon=N_DAYS)
     print(f"Feature engineering complete. Shape: {df2.shape}")
-
-    # Удаляем колонки с >30% NaN значений (исключая target-колонки)
-    # nan_threshold = 0.4
-    # nan_ratio = df2.isna().mean()
-    # cols_to_drop = [
-    #     c for c in nan_ratio[nan_ratio > nan_threshold].index
-    #     if not c.startswith("y_up_")
-    # ]
     
     df2 = df2.sort_values('date')
 
@@ -90,11 +81,18 @@ def main_pipeline(cfg: dict, api_key: str):
     df2[feature_cols] = df2[feature_cols].ffill()
     print(f"Forward fill complete. Remaining NaN count: {df2[feature_cols].isna().sum().sum()}")
     
-    # if cols_to_drop:
-    #     print(f"Dropping {len(cols_to_drop)} columns with >{nan_threshold*100:.0f}% NaN values:")
-    #     for col in cols_to_drop:
-    #         print(f"  - {col}: {nan_ratio[col]*100:.1f}% NaN")
-    #     df2 = df2.drop(columns=cols_to_drop)
+    # Удаляем колонки с >30% NaN значений (исключая target-колонки)
+    nan_threshold = 0.3
+    nan_ratio = df2.isna().mean()
+    cols_to_drop = [
+        c for c in nan_ratio[nan_ratio > nan_threshold].index
+        if not c.startswith("y_up_")
+    ]
+    if cols_to_drop:
+        print(f"Dropping {len(cols_to_drop)} columns with >{nan_threshold*100:.0f}% NaN values:")
+        for col in cols_to_drop:
+            print(f"  - {col}: {nan_ratio[col]*100:.1f}% NaN")
+        df2 = df2.drop(columns=cols_to_drop)
 
     # Удаляем строки с NaN в целевой колонке
     rows_before = len(df2)
@@ -102,6 +100,8 @@ def main_pipeline(cfg: dict, api_key: str):
     rows_dropped = rows_before - len(df2)
     if rows_dropped > 0:
         print(f"Dropped {rows_dropped} rows with NaN in {TARGET_COLUMN_NAME}")
+    
+    df2 = df2.dropna()
 
     print("NAN-values::")
     print(df2.isna().sum())

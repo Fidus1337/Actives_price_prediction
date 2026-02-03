@@ -3,6 +3,7 @@
         {
             "name": "base_model_1d",
             "N_DAYS": 1,
+            "threshold": 0.5,
             "base_feats": [
                 "spot_price_history__close__pct1",
                 "spot_price_history__close__diff1",
@@ -17,6 +18,7 @@
         {
             "name": "range_model_1d",
             "N_DAYS": 1,
+            "threshold": 0.4,
             "ma_window": 14,
             "range_feats": [
                 "range_pct",
@@ -36,6 +38,7 @@
         {
             "name": "base_model_3d",
             "N_DAYS": 3,
+            "threshold": 0.5,
             "base_feats": [
                 "spot_price_history__close__pct1",
                 "spot_price_history__close__diff1",
@@ -52,6 +55,7 @@
         {
             "name": "range_model_3d",
             "N_DAYS": 3,
+            "threshold": 0.5,
             "ma_window": 14,
             "range_feats": [
                 "range_pct",
@@ -73,6 +77,7 @@
         {
             "name": "base_model_5d",
             "N_DAYS": 5,
+            "threshold": 0.5,
             "base_feats": [
                 "cgdi_dev_from_base",
                 "cgdi_index_value",
@@ -89,6 +94,7 @@
         {
             "name": "range_model_5d",
             "N_DAYS": 5,
+            "threshold": 0.5,
             "ma_window": 14,
             "range_feats": [
                 "range_pct",
@@ -110,6 +116,7 @@
         {
             "name": "base_model_7d",
             "N_DAYS": 7,
+            "threshold": 0.6,
             "base_feats": [
                 "cgdi_dev_from_base",
                 "cgdi_index_value",
@@ -126,6 +133,7 @@
         {
             "name": "range_model_7d",
             "N_DAYS": 7,
+            "threshold": 0.5,
             "ma_window": 14,
             "range_feats": [
                 "range_pct",

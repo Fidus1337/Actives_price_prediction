@@ -8,7 +8,7 @@ from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 import pandas as pd
-from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis
+from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis, plot_confusion_matrix
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
 
@@ -41,6 +41,7 @@ def main_pipeline(cfg: dict, api_key: str):
     CONFIG_NAME = cfg["name"]
     TARGET_COLUMN_NAME = f"y_up_{N_DAYS}d"
     range_feats = cfg.get("range_feats", None)
+    threshold = cfg.get("threshold", 0.5)
 
     # Чтобы получать с апишки фичи
     getter = FeaturesGetter(api_key=api_key)
@@ -119,7 +120,7 @@ def main_pipeline(cfg: dict, api_key: str):
         ma_window = cfg.get("ma_window")
 
         print("Training Logistic Regression (Range Target)...")
-        res_rngp, model_rngp, oos_rngp = range_model_train_pipeline(df2, base_feats, cfg, n_splits=5, thr=0.5, choose_model_by_metric="auc")
+        res_rngp, model_rngp, oos_rngp = range_model_train_pipeline(df2, base_feats, cfg, n_splits=4, thr=threshold, choose_model_by_metric="f1")
         print(f"Range model metrics (fold {res_rngp['best_fold_idx']}, by {res_rngp['best_metric']}): "
             f"AUC={res_rngp['auc']:.4f}, "
             f"Precision={res_rngp['precision']:.4f}, "
@@ -135,12 +136,22 @@ def main_pipeline(cfg: dict, api_key: str):
         )
         print_threshold_analysis(results_range, model_name=f"RANGE (N{N_DAYS}_ma{ma_window})")
 
+        # Confusion matrix для RANGE модели (только лучший фолд)
+        best_fold_rng = res_rngp["best_fold_idx"]
+        oos_best_rng = oos_rngp[oos_rngp["fold"] == best_fold_rng]
+        plot_confusion_matrix(
+            oos_best_rng["y"].values, oos_best_rng["p_up"].values,
+            threshold=threshold,
+            title=f"Confusion Matrix (RANGE) - N{N_DAYS}_ma{ma_window} (fold {best_fold_rng})",
+            config_name=CONFIG_NAME
+        )
+
     ## ТРЕНИРОВКА BASE МОДЕЛИ
     elif "base_model" in CONFIG_NAME:
 
         print("Training Logistic Regression (BASE)...")
         res_base, model_base, oos_df = base_model_train_pipeline(
-            df2, base_feats, cfg, n_splits=5, thr=0.5, best_metric="auc"
+            df2, base_feats, cfg, n_splits=4, thr=threshold, best_metric="f1"
         )
 
         # Графики
@@ -154,6 +165,16 @@ def main_pipeline(cfg: dict, api_key: str):
             config_name=CONFIG_NAME
         )
         print_threshold_analysis(results_base, model_name=f"BASE ({TARGET_COLUMN_NAME})")
+
+        # Confusion matrix для BASE модели (только лучший фолд)
+        best_fold_base = res_base["best_fold_idx"]
+        oos_best_base = oos_df[oos_df["fold"] == best_fold_base]
+        plot_confusion_matrix(
+            oos_best_base["y"].values, oos_best_base["p_up"].values,
+            threshold=threshold,
+            title=f"Confusion Matrix (BASE) - {TARGET_COLUMN_NAME} (fold {best_fold_base})",
+            config_name=CONFIG_NAME
+        )
 
 
 def run_all_configs(config_path: str = "config.json"):

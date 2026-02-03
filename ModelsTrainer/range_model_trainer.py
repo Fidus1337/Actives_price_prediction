@@ -105,12 +105,12 @@ def range_model_train_pipeline(
     with open(metrics_path, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2, ensure_ascii=False)
 
-    print(f"Range model saved to {model_path}")
-    print(f"Metrics saved to {metrics_path}")
-    print(f"Best model metrics (fold {results['best_fold_idx']}, by {results['best_metric']}):")
-    print(f"  AUC:       {results['auc']:.4f}" if results['auc'] else "  AUC:       N/A")
-    print(f"  Precision: {results['precision']:.4f}")
-    print(f"  Recall:    {results['recall']:.4f}")
-    print(f"  F1:        {results['f1']:.4f}")
+    # print(f"Range model saved to {model_path}")
+    # print(f"Metrics saved to {metrics_path}")
+    # print(f"Best model metrics (fold {results['best_fold_idx']}, by {results['best_metric']}):")
+    # print(f"  AUC:       {results['auc']:.4f}" if results['auc'] else "  AUC:       N/A")
+    # print(f"  Precision: {results['precision']:.4f}")
+    # print(f"  Recall:    {results['recall']:.4f}")
+    # print(f"  F1:        {results['f1']:.4f}")
 
     return results, model, oos_df

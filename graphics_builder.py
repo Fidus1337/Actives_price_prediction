@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import TimeSeriesSplit
 import numpy as np
 import os
@@ -234,3 +234,47 @@ def print_threshold_analysis(results: dict, model_name: str = "Model"):
     for metric, value in results['metrics_at_best_f1'].items():
         print(f"  {metric.capitalize()}: {value:.4f}")
     print(f"{'='*50}")
+
+
+def plot_confusion_matrix(y_true, y_proba, threshold=0.5,
+                          title="Confusion Matrix", config_name="BASE"):
+    """
+    Строит и сохраняет confusion matrix.
+
+    Parameters:
+    -----------
+    y_true : array-like
+        Истинные метки классов (0 или 1)
+    y_proba : array-like
+        Вероятности положительного класса
+    threshold : float
+        Порог классификации
+    title : str
+        Заголовок графика
+    config_name : str
+        Имя конфигурации для подпапки
+
+    Returns:
+    --------
+    np.ndarray : Confusion matrix
+    """
+    y_true = np.asarray(y_true)
+    y_proba = np.asarray(y_proba)
+    y_pred = (y_proba >= threshold).astype(int)
+
+    cm = confusion_matrix(y_true, y_pred)
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+    disp = ConfusionMatrixDisplay(cm, display_labels=["Down (0)", "Up (1)"])
+    disp.plot(ax=ax, cmap="Blues", values_format="d")
+    ax.set_title(f"{title}\nThreshold = {threshold:.2f}")
+
+    # Сохранение
+    graphics_path = ensure_graphics_dir(config_name)
+    filename = f"Confusion_Matrix_{config_name}_thr{threshold:.2f}.png"
+    save_path = os.path.join(graphics_path, filename)
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    print(f"Confusion matrix saved to: {save_path}")
+    plt.close()
+
+    return cm

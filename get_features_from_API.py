@@ -235,6 +235,12 @@ def get_features(getter: FeaturesGetter, API_KEY: str):
     )
     df_spot.columns = df_spot.columns.str.lstrip("_")
 
+    # S&P 500 Index (yfinance)
+    df_sp500 = getter.get_sp500_ohlcv(days=1250, prefix="sp500")
+
+    # Gold Futures (yfinance)
+    df_gold = getter.get_gold_ohlcv(days=1250, prefix="gold")
+
     return [
     df_oi,
     df_oi_agg,
@@ -260,7 +266,9 @@ def get_features(getter: FeaturesGetter, API_KEY: str):
     df_aa,
     df_sth_supply,
     df_rr,
-    df_spot
+    df_spot,
+    df_sp500,
+    df_gold,
     ]
 
 

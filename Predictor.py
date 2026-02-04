@@ -25,7 +25,7 @@ from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-from ModelsTrainer.logistic_reg_model_train import add_range_target
+from ModelsTrainer.logistic_reg_model_train import add_range_target, add_lags
 
 
 @dataclass
@@ -168,6 +168,16 @@ class Predictor:
         # Add engineered features
         df2 = self.features_engineer.add_engineered_features(df1, horizon=self.n_days)
 
+        # Add lag features for external market data (same as training pipeline)
+        EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
+        gold_cols = [c for c in df2.columns if c.startswith("gold__") and "__lag" not in c]
+        sp500_cols = [c for c in df2.columns if c.startswith("sp500__") and "__lag" not in c]
+        external_market_cols = gold_cols + sp500_cols
+
+        if external_market_cols:
+            print(f"Adding lag features for Gold ({len(gold_cols)}) and S&P500 ({len(sp500_cols)}) columns...")
+            df2 = add_lags(df2, cols=external_market_cols, lags=EXTERNAL_LAGS)
+
         # Add range features if needed
         if self.model_type == "range":
             df2 = add_range_target(
@@ -185,14 +195,10 @@ class Predictor:
         return df2
 
     def _get_prediction_dates(self, df: pd.DataFrame, n_dates: int = 10) -> pd.DataFrame:
-        """Filter DataFrame to last n_dates EXCLUDING today."""
+        """Filter DataFrame to last n_dates."""
         df = df.copy()
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
         df = df.sort_values("date", kind="stable").reset_index(drop=True)
-
-        # Exclude today
-        today = pd.Timestamp.now().normalize()
-        df = df[df["date"] < today]
 
         # Take last n_dates
         if len(df) > n_dates:
@@ -349,7 +355,7 @@ class Predictor:
 
 
 if __name__ == "__main__":
-    predictor = Predictor("range_model_1d")
+    predictor = Predictor("range_model_7d")
     results = predictor.predict_by_dates(["2025-02-01"])
     for r in results:
         print(f"{r.date}: pred={r.prediction} (proba={r.probability:.3f})")

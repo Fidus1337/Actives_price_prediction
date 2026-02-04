@@ -11,6 +11,7 @@ import pandas as pd
 from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis, plot_confusion_matrix
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
+from ModelsTrainer.logistic_reg_model_train import add_lags
 
 load_dotenv("dev.env")
 _api_key = os.getenv("COINGLASS_API_KEY")
@@ -72,7 +73,18 @@ def main_pipeline(cfg: dict, api_key: str):
     print("Adding engineered features...")
     df2 = features_engineer.add_engineered_features(df1, horizon=N_DAYS)
     print(f"Feature engineering complete. Shape: {df2.shape}")
-    
+
+    # Добавляем лаговые признаки для Gold и S&P500
+    EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
+    gold_cols = [c for c in df2.columns if c.startswith("gold__") and "__lag" not in c]
+    sp500_cols = [c for c in df2.columns if c.startswith("sp500__") and "__lag" not in c]
+    external_market_cols = gold_cols + sp500_cols
+
+    if external_market_cols:
+        print(f"Adding lag features for Gold ({len(gold_cols)}) and S&P500 ({len(sp500_cols)}) columns...")
+        df2 = add_lags(df2, cols=external_market_cols, lags=EXTERNAL_LAGS)
+        print(f"Added {len(external_market_cols) * len(EXTERNAL_LAGS)} lag features. New shape: {df2.shape}")
+
     df2 = df2.sort_values('date')
 
     # Forward fill для заполнения пропущенных значений предыдущими
@@ -83,17 +95,17 @@ def main_pipeline(cfg: dict, api_key: str):
     print(f"Forward fill complete. Remaining NaN count: {df2[feature_cols].isna().sum().sum()}")
     
     # Удаляем колонки с >30% NaN значений (исключая target-колонки)
-    nan_threshold = 0.3
-    nan_ratio = df2.isna().mean()
-    cols_to_drop = [
-        c for c in nan_ratio[nan_ratio > nan_threshold].index
-        if not c.startswith("y_up_")
-    ]
-    if cols_to_drop:
-        print(f"Dropping {len(cols_to_drop)} columns with >{nan_threshold*100:.0f}% NaN values:")
-        for col in cols_to_drop:
-            print(f"  - {col}: {nan_ratio[col]*100:.1f}% NaN")
-        df2 = df2.drop(columns=cols_to_drop)
+    # nan_threshold = 0.3
+    # nan_ratio = df2.isna().mean()
+    # cols_to_drop = [
+    #     c for c in nan_ratio[nan_ratio > nan_threshold].index
+    #     if not c.startswith("y_up_")
+    # ]
+    # if cols_to_drop:
+    #     print(f"Dropping {len(cols_to_drop)} columns with >{nan_threshold*100:.0f}% NaN values:")
+    #     for col in cols_to_drop:
+    #         print(f"  - {col}: {nan_ratio[col]*100:.1f}% NaN")
+    #     df2 = df2.drop(columns=cols_to_drop)
 
     # Удаляем строки с NaN в целевой колонке
     rows_before = len(df2)

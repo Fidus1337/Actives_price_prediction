@@ -18,7 +18,7 @@
         {
             "name": "range_model_1d",
             "N_DAYS": 1,
-            "threshold": 0.4,
+            "threshold": 0.55,
             "ma_window": 14,
             "range_feats": [
                 "range_pct",
@@ -133,7 +133,7 @@
         {
             "name": "range_model_7d",
             "N_DAYS": 7,
-            "threshold": 0.5,
+            "threshold": 0.6,
             "ma_window": 14,
             "range_feats": [
                 "range_pct",
@@ -149,7 +149,11 @@
                 "futures_open_interest_aggregated_stablecoin_history__high",
                 "futures_open_interest_aggregated_stablecoin_history__open",
                 "futures_orderbook_aggregated_ask_bids_history__aggregated_asks_usd__pct1",
-                "futures_orderbook_ask_bids_history__asks_usd__pct1"
+                "futures_orderbook_ask_bids_history__asks_usd__pct1",
+                "sp500__low",
+                "sp500__close",
+                "sp500__open",
+                "sp500__high"
             ]
         }
     ]

@@ -4,6 +4,7 @@ import os
 import json
 from pathlib import Path
 from dotenv import load_dotenv
+import yfinance as yf
 
 ## HELPER FUNCTIONS - support both module and direct execution
 try:
@@ -618,7 +619,94 @@ class FeaturesGetter:
         
         # Префикс
         df = _prefix_columns(df, prefix=prefix, keep=("date",))
-        
+
+        return df
+
+    def get_sp500_ohlcv(
+        self,
+        days: int = 1250,
+        prefix: str = "sp500",
+    ) -> pd.DataFrame:
+        """
+        S&P 500 Index OHLCV данные через yfinance.
+
+        Args:
+            days: Количество дней истории
+            prefix: Префикс для колонок
+
+        Returns:
+            DataFrame: date, {prefix}__open, {prefix}__close, {prefix}__high, {prefix}__low, {prefix}__volume
+        """
+        ticker = yf.Ticker("^GSPC")
+        df = ticker.history(period=f"{days}d", interval="1d")
+
+        if df.empty:
+            return df
+
+        df = df.reset_index()
+        df = df.rename(columns={"Date": "date"})
+        df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
+
+        # Оставляем только OHLCV
+        df = df[["date", "Open", "Close", "High", "Low", "Volume"]].copy()
+        df.columns = ["date", "open", "close", "high", "low", "volume"]
+
+        # Конвертация в numeric
+        for col in df.columns:
+            if col != "date":
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        # Дедупликация и сортировка
+        df = (
+            df.dropna(subset=["date"])
+            .sort_values("date", kind="stable")
+            .drop_duplicates(subset=["date"], keep="last")
+            .reset_index(drop=True)
+        )
+
+        df = _prefix_columns(df, prefix=prefix, keep=("date",))
+        return df
+
+    def get_gold_ohlcv(
+        self,
+        days: int = 1250,
+        prefix: str = "gold",
+    ) -> pd.DataFrame:
+        """
+        Gold Futures (GC=F) OHLCV данные через yfinance.
+
+        Args:
+            days: Количество дней истории
+            prefix: Префикс для колонок
+
+        Returns:
+            DataFrame: date, {prefix}__open, {prefix}__close, {prefix}__high, {prefix}__low, {prefix}__volume
+        """
+        ticker = yf.Ticker("GC=F")
+        df = ticker.history(period=f"{days}d", interval="1d")
+
+        if df.empty:
+            return df
+
+        df = df.reset_index()
+        df = df.rename(columns={"Date": "date"})
+        df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
+
+        df = df[["date", "Open", "Close", "High", "Low", "Volume"]].copy()
+        df.columns = ["date", "open", "close", "high", "low", "volume"]
+
+        for col in df.columns:
+            if col != "date":
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        df = (
+            df.dropna(subset=["date"])
+            .sort_values("date", kind="stable")
+            .drop_duplicates(subset=["date"], keep="last")
+            .reset_index(drop=True)
+        )
+
+        df = _prefix_columns(df, prefix=prefix, keep=("date",))
         return df
 
 

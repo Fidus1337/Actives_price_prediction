@@ -52,11 +52,18 @@ def main_pipeline(cfg: dict, api_key: str):
     # analyzer = CorrelationsAnalyzer()
 
     ## DATA GATHERING / PREPROCESSING
-    # Собираем фичи в один датасет    
+    # Собираем фичи в один датасет
     print("Gathering features from API...")
     dfs = get_features(getter, api_key)
     df_all = merge_by_date(dfs, how="outer", dedupe="last")
+    df_all = df_all.sort_values('date')
     print(f"Features gathered. Shape: {df_all.shape}")
+    
+    # Forward fill для заполнения пропущенных значений предыдущими
+    print("Applying forward fill...")
+    feature_cols = [c for c in df_all.columns if c != "date"]
+    df_all[feature_cols] = df_all[feature_cols].ffill()
+    print(f"Forward fill complete. Remaining NaN count: {df_all[feature_cols].isna().sum().sum()}")
 
     ## FEATURE ENGINEERING
     # Нормализация спот-колонок
@@ -66,9 +73,7 @@ def main_pipeline(cfg: dict, api_key: str):
     # Добавляем целевую колонку
     print(f"Adding target column (horizon={N_DAYS}d)...")
     df1 = features_engineer.add_y_up_custom(df0, horizon=N_DAYS, close_col="spot_price_history__close")
-
-    # Удаляем строки с NA в целевой колонке и close
-    df1 = df1.dropna(subset=[TARGET_COLUMN_NAME, "spot_price_history__close"]).reset_index(drop=True)       
+          
     # Добавляем инженерные фичи (один раз)
     print("Adding engineered features...")
     df2 = features_engineer.add_engineered_features(df1, horizon=N_DAYS)
@@ -86,13 +91,6 @@ def main_pipeline(cfg: dict, api_key: str):
         print(f"Added {len(external_market_cols) * len(EXTERNAL_LAGS)} lag features. New shape: {df2.shape}")
 
     df2 = df2.sort_values('date')
-
-    # Forward fill для заполнения пропущенных значений предыдущими
-    print("Applying forward fill...")
-    target_cols = [c for c in df2.columns if c.startswith("y_up_")]
-    feature_cols = [c for c in df2.columns if c not in target_cols and c != "date"]
-    df2[feature_cols] = df2[feature_cols].ffill()
-    print(f"Forward fill complete. Remaining NaN count: {df2[feature_cols].isna().sum().sum()}")
     
     # Удаляем колонки с >30% NaN значений (исключая target-колонки)
     # nan_threshold = 0.3

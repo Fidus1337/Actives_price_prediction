@@ -140,20 +140,20 @@
                 "range_pct_ma14"
             ],
             "base_feats": [
-                "cgdi_dev_from_base",
-                "cgdi_index_value",
-                "cgdi_log_level",
-                "cgdi_dev_softsign",
-                "futures_open_interest_aggregated_stablecoin_history__close",
-                "futures_open_interest_aggregated_stablecoin_history__low",
-                "futures_open_interest_aggregated_stablecoin_history__high",
-                "futures_open_interest_aggregated_stablecoin_history__open",
-                "futures_orderbook_aggregated_ask_bids_history__aggregated_asks_usd__pct1",
-                "futures_orderbook_ask_bids_history__asks_usd__pct1",
-                "sp500__low",
-                "sp500__close",
-                "sp500__open",
-                "sp500__high"
+                "index_btc_lth_supply__lth_supply",
+                "long_quantity",
+                "index_btc_sth_supply__supply_z180",
+                "index_btc_reserve_risk__reserve_risk_index",
+                "index_btc_active_addresses__aa_z180",
+                "gold__volume",
+                "index_btc_lth_supply__supply_z180__pct1",
+                "futures_liquidation_history__long_liquidation_usd",
+                "index_btc_lth_supply__supply_slope14__diff1",
+                "index_btc_sth_supply__supply_pct30__pct1",
+                "index_btc_reserve_risk__hodl_bank__pct1",
+                "futures_funding_rate_oi_weight_history__low__diff1",
+                "index_btc_reserve_risk__movcd__pct1",
+                "futures_top_long_short_account_ratio_history__top_account_long_short_ratio"
             ]
         }
     ]

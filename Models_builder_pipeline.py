@@ -98,71 +98,131 @@ def main_pipeline(cfg: dict, api_key: str):
     df_all = merge_by_date(dfs, how="outer", dedupe="last")
     df_all = df_all.sort_values('date')
     print(f"Features gathered. Shape: {df_all.shape}")
+
+    # =============================================================================
+    # Нормализация спот-колонок
+    # =============================================================================
+    print("=" * 60)
+    print("2. Normalizing spot columns...")
+    df_all = features_engineer.ensure_spot_prefix(df_all)
     
-    # Forward fill для заполнения пропущенных значений предыдущими
-    print("Applying forward fill...")
+    # =============================================================================
+    # Forward fill для заполнения пропусков
+    # =============================================================================
+    print("=" * 60)
+    print("7. Applying forward fill...")
     feature_cols = [c for c in df_all.columns if c != "date"]
     df_all[feature_cols] = df_all[feature_cols].ffill()
-    print(f"Forward fill complete. Remaining NaN count: {df_all[feature_cols].isna().sum().sum()}")
+    print(f"   Remaining NaN after ffill: {df_all[feature_cols].isna().sum().sum()}")
+    
+    # =============================================================================
+    # Сохраняем до 1250 последних дней
+    # =============================================================================
 
-    ## FEATURE ENGINEERING
-    # Нормализация спот-колонок
-    print("Normalizing spot columns...")
-    df0 = features_engineer.ensure_spot_prefix(df_all)
+    import pandas as pd
 
-    # Добавляем целевую колонку
-    print(f"Adding target column (horizon={N_DAYS}d)...")
-    df1 = features_engineer.add_y_up_custom(df0, horizon=N_DAYS, close_col="spot_price_history__close")
+    # 1. Обязательно конвертируем в формат даты
+    df_all['date'] = pd.to_datetime(df_all['date'])
+
+    # 2. Находим последнюю дату в данных
+    max_date = df_all['date'].max()
+
+    # 3. Вычисляем дату отсечения (максимум минус 1250 дней)
+    cutoff_date = max_date - pd.Timedelta(days=1250)
+
+    # 4. Оставляем только те строки, где дата больше или равна дате отсечения
+    df_all = df_all[df_all['date'] >= cutoff_date]
+
+    # Проверяем результат
+    print({len(df_all)})
+    
+    # =============================================================================
+    # 3. Добавление целевой колонки
+    # =============================================================================
+    print("=" * 60)
+    print(f"3. Adding target column (horizon={N_DAYS}d)...")
+    df_all = features_engineer.add_y_up_custom(df_all, horizon=N_DAYS, close_col="spot_price_history__close")
+    
+    # Удаляем строки, где NaN встречается в конкретной колонке
+    df_all = df_all.dropna(subset=[TARGET_COLUMN_NAME])
+
+    # Проверяем
+    print(f"Осталось строк: {len(df_all)}")
+    
+    # =============================================================================
+    # 8. Удаление колонок с >30% NaN
+    # =============================================================================
+    print("=" * 60)
+    print("8. Dropping columns with >30% NaN...")
+    nan_threshold = 0.3
+    nan_ratio = df_all.isna().mean()
+    cols_to_drop = [
+        c for c in nan_ratio[nan_ratio > nan_threshold].index
+        if not c.startswith("y_up_")
+    ]
+    if cols_to_drop:
+        print(f"   Dropping {len(cols_to_drop)} columns:")
+        for col in cols_to_drop[:10]:  # показываем первые 10
+            print(f"     - {col}: {nan_ratio[col]*100:.1f}% NaN")
+        if len(cols_to_drop) > 10:
+            print(f"     ... and {len(cols_to_drop) - 10} more")
+        df_all = df_all.drop(columns=cols_to_drop)
+    else:
+        print("   No columns to drop")
+    
+    df_all = df_all.dropna()
+    print(df_all.isna().sum())
+    print(df_all.shape)
           
-    # Добавляем инженерные фичи (один раз)
-    print("Adding engineered features...")
-    df2 = features_engineer.add_engineered_features(df1, horizon=N_DAYS)
-    print(f"Feature engineering complete. Shape: {df2.shape}")
+    # =============================================================================
+    # 5. Добавление инженерных фичей
+    # =============================================================================
+    print("=" * 60)
+    print("5. Adding engineered features...")
+    print(f"   Shape before feature engineering: {df_all.shape}")
+    df_all = features_engineer.add_engineered_features(df_all, horizon=N_DAYS)
+    print(f"   Shape after feature engineering: {df_all.shape}")
 
-    # Добавляем лаговые признаки для Gold и S&P500
-    EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
-    gold_cols = [c for c in df2.columns if c.startswith("gold__") and "__lag" not in c]
-    sp500_cols = [c for c in df2.columns if c.startswith("sp500__") and "__lag" not in c]
+    # =============================================================================
+    # 6. Добавление лаговых признаков для Gold и S&P500
+    # =============================================================================
+    print("=" * 60)
+    print("6. Adding lag features for external markets...")
+
+    gold_cols = [c for c in df_all.columns if c.startswith("gold__") and "__lag" not in c]
+    sp500_cols = [c for c in df_all.columns if c.startswith("sp500__") and "__lag" not in c]
     external_market_cols = gold_cols + sp500_cols
 
+    EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
+    
     if external_market_cols:
-        print(f"Adding lag features for Gold ({len(gold_cols)}) and S&P500 ({len(sp500_cols)}) columns...")
-        df2 = add_lags(df2, cols=external_market_cols, lags=EXTERNAL_LAGS)
-        print(f"Added {len(external_market_cols) * len(EXTERNAL_LAGS)} lag features. New shape: {df2.shape}")
+        print(f"   Gold columns: {len(gold_cols)}, S&P500 columns: {len(sp500_cols)}")
+        d_all = add_lags(df_all, cols=external_market_cols, lags=EXTERNAL_LAGS)
+        print(f"   Added {len(external_market_cols) * len(EXTERNAL_LAGS)} lag features")
+    else:
+        print("   No external market columns found for lag features")
 
-    df2 = df2.sort_values('date')
+    print(f"   Shape after lags: {df_all.shape}")
     
-    # Удаляем колонки с >30% NaN значений (исключая target-колонки)
-    # nan_threshold = 0.3
-    # nan_ratio = df2.isna().mean()
-    # cols_to_drop = [
-    #     c for c in nan_ratio[nan_ratio > nan_threshold].index
-    #     if not c.startswith("y_up_")
-    # ]
-    # if cols_to_drop:
-    #     print(f"Dropping {len(cols_to_drop)} columns with >{nan_threshold*100:.0f}% NaN values:")
-    #     for col in cols_to_drop:
-    #         print(f"  - {col}: {nan_ratio[col]*100:.1f}% NaN")
-    #     df2 = df2.drop(columns=cols_to_drop)
+    # =============================================================================
+    # 9. Удаление строк с NaN в target и финальная очистка
+    # =============================================================================
+    print("=" * 60)
+    print("9. Final cleanup...")
+    rows_before = len(df_all)
+    df_all = df_all.dropna(subset=[TARGET_COLUMN_NAME])
+    print(f"   Dropped {rows_before - len(df_all)} rows with NaN in {TARGET_COLUMN_NAME}")
 
-    # Удаляем строки с NaN в целевой колонке
-    rows_before = len(df2)
-    df2 = df2.dropna(subset=[TARGET_COLUMN_NAME]).reset_index(drop=True)
-    rows_dropped = rows_before - len(df2)
-    if rows_dropped > 0:
-        print(f"Dropped {rows_dropped} rows with NaN in {TARGET_COLUMN_NAME}")
-    
-    df2 = df2.dropna()
-
-    print("NAN-values::")
-    print(df2.isna().sum())
-    
-    print("DF2:", df2.shape)
+    rows_before = len(df_all)
+    df_all = df_all.dropna().reset_index(drop=True)
+    print(f"   Dropped {rows_before - len(df_all)} rows with any remaining NaN")
     
     ### ТРЕНИРОВКА МОДЕЛЕЙ
     # Создаём папку для моделей
     models_folder = os.path.join("Models", CONFIG_NAME)
     os.makedirs(models_folder, exist_ok=True)
+    
+    df2 = df_all
 
     ## ТРЕНИРОВКА RANGE МОДЕЛИ
     if "range_model" in CONFIG_NAME:

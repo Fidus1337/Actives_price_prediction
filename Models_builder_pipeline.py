@@ -12,6 +12,7 @@ from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshol
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
 from ModelsTrainer.logistic_reg_model_train import add_lags
+import ta
 
 load_dotenv("dev.env")
 _api_key = os.getenv("COINGLASS_API_KEY")
@@ -32,6 +33,45 @@ def add_coverage(effect_tbl: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     eff = effect_tbl.copy()
     eff["coverage"] = eff["feature"].apply(lambda c: float(df[c].notna().mean()) if c in df.columns else 0.0)
     return eff.sort_values(["abs_cohen_d", "coverage"], ascending=[False, False]).reset_index(drop=True)
+
+def add_ta_features_for_asset(df: pd.DataFrame, prefix: str) -> pd.DataFrame:
+    """Добавляет TA-индикаторы для актива с заданным префиксом."""
+    df = df.copy()  # Работаем с копией
+    
+    required = ['open', 'close', 'high', 'low', 'volume']
+    col_map = {col: f"{prefix}__{col}" for col in required}
+
+    missing = [col_map[c] for c in required if col_map[c] not in df.columns]
+    if missing:
+        print(f"  Пропущены колонки для {prefix}: {missing}")
+        return df
+
+    # Создаём временный DataFrame с reset индексом
+    temp_df = pd.DataFrame({
+        'open': df[col_map['open']].values,
+        'high': df[col_map['high']].values,
+        'low': df[col_map['low']].values,
+        'close': df[col_map['close']].values,
+        'volume': df[col_map['volume']].values
+    })
+
+    # Добавляем TA-индикаторы
+    temp_with_ta = ta.add_all_ta_features(
+        temp_df,
+        open="open", high="high", low="low", close="close", volume="volume",
+        fillna=False
+    )
+
+    original_cols = {'open', 'high', 'low', 'close', 'volume'}
+    ta_cols = [c for c in temp_with_ta.columns if c not in original_cols]
+
+    # Присваиваем через .values с явным reset_index
+    for col in ta_cols:
+        df.loc[df.index, f"{prefix}__{col}"] = temp_with_ta[col].values
+
+    print(f"  Добавлено {len(ta_cols)} TA-фичей для {prefix}")
+    
+    return df
 
 def main_pipeline(cfg: dict, api_key: str):
     """Основной пайплайн для одной конфигурации."""

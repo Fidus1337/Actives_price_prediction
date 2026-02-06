@@ -197,7 +197,7 @@ def main_pipeline(cfg: dict, api_key: str):
     
     if external_market_cols:
         print(f"   Gold columns: {len(gold_cols)}, S&P500 columns: {len(sp500_cols)}")
-        d_all = add_lags(df_all, cols=external_market_cols, lags=EXTERNAL_LAGS)
+        df_all = add_lags(df_all, cols=external_market_cols, lags=EXTERNAL_LAGS)
         print(f"   Added {len(external_market_cols) * len(EXTERNAL_LAGS)} lag features")
     else:
         print("   No external market columns found for lag features")

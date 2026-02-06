@@ -1,19 +1,27 @@
-from dotenv import load_dotenv
+import warnings
+# Отключаем предупреждения, чтобы не засорять вывод
+warnings.filterwarnings('ignore')
+import pandas as pd
+pd.options.mode.chained_assignment = None  # Отключаем SettingWithCopyWarning
+
 import os
 import sys
 import json
+import ta
+from dotenv import load_dotenv
+
+# Ваши кастомные модули
 from LoggingSystem.LoggingSystem import LoggingSystem
 from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-import pandas as pd
 from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis, plot_confusion_matrix
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
 from ModelsTrainer.logistic_reg_model_train import add_lags
-import ta
 
+# Загрузка переменных окружения
 load_dotenv("dev.env")
 _api_key = os.getenv("COINGLASS_API_KEY")
 
@@ -28,7 +36,6 @@ def load_config(config_path: str = "config.json") -> list:
         config = json.load(f)
     return config.get("runs", [])
 
-
 def add_coverage(effect_tbl: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     eff = effect_tbl.copy()
     eff["coverage"] = eff["feature"].apply(lambda c: float(df[c].notna().mean()) if c in df.columns else 0.0)
@@ -36,7 +43,8 @@ def add_coverage(effect_tbl: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
 
 def add_ta_features_for_asset(df: pd.DataFrame, prefix: str) -> pd.DataFrame:
     """Добавляет TA-индикаторы для актива с заданным префиксом."""
-    df = df.copy()  # Работаем с копией
+    # Примечание: Функция оставлена как утилита, даже если не вызывается явно в main
+    df = df.copy()
     
     required = ['open', 'close', 'high', 'low', 'volume']
     col_map = {col: f"{prefix}__{col}" for col in required}
@@ -46,7 +54,6 @@ def add_ta_features_for_asset(df: pd.DataFrame, prefix: str) -> pd.DataFrame:
         print(f"  Пропущены колонки для {prefix}: {missing}")
         return df
 
-    # Создаём временный DataFrame с reset индексом
     temp_df = pd.DataFrame({
         'open': df[col_map['open']].values,
         'high': df[col_map['high']].values,
@@ -55,7 +62,6 @@ def add_ta_features_for_asset(df: pd.DataFrame, prefix: str) -> pd.DataFrame:
         'volume': df[col_map['volume']].values
     })
 
-    # Добавляем TA-индикаторы
     temp_with_ta = ta.add_all_ta_features(
         temp_df,
         open="open", high="high", low="low", close="close", volume="volume",
@@ -65,95 +71,92 @@ def add_ta_features_for_asset(df: pd.DataFrame, prefix: str) -> pd.DataFrame:
     original_cols = {'open', 'high', 'low', 'close', 'volume'}
     ta_cols = [c for c in temp_with_ta.columns if c not in original_cols]
 
-    # Присваиваем через .values с явным reset_index
     for col in ta_cols:
         df.loc[df.index, f"{prefix}__{col}"] = temp_with_ta[col].values
 
     print(f"  Добавлено {len(ta_cols)} TA-фичей для {prefix}")
-    
     return df
 
 def main_pipeline(cfg: dict, api_key: str):
     """Основной пайплайн для одной конфигурации."""
     
-    # Извлекаем параметры из конфига
+    # 1. Распаковка конфига
     N_DAYS = cfg["N_DAYS"]
     base_feats = cfg["base_feats"]
     CONFIG_NAME = cfg["name"]
     TARGET_COLUMN_NAME = f"y_up_{N_DAYS}d"
-    range_feats = cfg.get("range_feats", None)
     threshold = cfg.get("threshold", 0.5)
 
-    # Чтобы получать с апишки фичи
     getter = FeaturesGetter(api_key=api_key)
-    # Для формирования новых фичей
     features_engineer = FeaturesEngineer()
-    # Для анализа корреляций признаков с целевым параметром
-    # analyzer = CorrelationsAnalyzer()
 
-    ## DATA GATHERING / PREPROCESSING
-    # Собираем фичи в один датасет
+    # =============================================================================
+    # 2. Сбор данных
+    # =============================================================================
     print("Gathering features from API...")
     dfs = get_features(getter, api_key)
     df_all = merge_by_date(dfs, how="outer", dedupe="last")
-    df_all = df_all.sort_values('date')
+    df_all = df_all.sort_values('date').reset_index(drop=True)
     print(f"Features gathered. Shape: {df_all.shape}")
 
     # =============================================================================
-    # Нормализация спот-колонок
+    # 3. Нормализация и первичное заполнение (ffill)
     # =============================================================================
     print("=" * 60)
-    print("2. Normalizing spot columns...")
+    print("Normalizing spot columns & Applying ffill...")
     df_all = features_engineer.ensure_spot_prefix(df_all)
     
-    # =============================================================================
-    # Forward fill для заполнения пропусков
-    # =============================================================================
-    print("=" * 60)
-    print("7. Applying forward fill...")
     feature_cols = [c for c in df_all.columns if c != "date"]
     df_all[feature_cols] = df_all[feature_cols].ffill()
-    print(f"   Remaining NaN after ffill: {df_all[feature_cols].isna().sum().sum()}")
-    
+    print(f"  Remaining NaN after ffill: {df_all[feature_cols].isna().sum().sum()}")
+
     # =============================================================================
-    # Сохраняем до 1250 последних дней
-    # =============================================================================
-
-    import pandas as pd
-
-    # 1. Обязательно конвертируем в формат даты
-    df_all['date'] = pd.to_datetime(df_all['date'])
-
-    # 2. Находим последнюю дату в данных
-    max_date = df_all['date'].max()
-
-    # 3. Вычисляем дату отсечения (максимум минус 1250 дней)
-    cutoff_date = max_date - pd.Timedelta(days=1250)
-
-    # 4. Оставляем только те строки, где дата больше или равна дате отсечения
-    df_all = df_all[df_all['date'] >= cutoff_date]
-
-    # Проверяем результат
-    print({len(df_all)})
-    
-    # =============================================================================
-    # 3. Добавление целевой колонки
+    # 4. Генерация фичей и лагов (ВАЖНО: До обрезки даты!)
     # =============================================================================
     print("=" * 60)
-    print(f"3. Adding target column (horizon={N_DAYS}d)...")
+    print("Engineering features & Adding lags...")
+    
+    # Инженерные фичи
+    print(f"  Shape before feature engineering: {df_all.shape}")
+    df_all = features_engineer.add_engineered_features(df_all, horizon=N_DAYS)
+    
+    # Лаги
+    gold_cols = [c for c in df_all.columns if c.startswith("gold__") and "__lag" not in c]
+    sp500_cols = [c for c in df_all.columns if c.startswith("sp500__") and "__lag" not in c]
+    external_market_cols = gold_cols + sp500_cols
+    EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
+    
+    if external_market_cols:
+        df_all = add_lags(df_all, cols=external_market_cols, lags=EXTERNAL_LAGS)
+        print(f"  Added {len(external_market_cols) * len(EXTERNAL_LAGS)} lag features")
+    
+    # Целевая колонка
     df_all = features_engineer.add_y_up_custom(df_all, horizon=N_DAYS, close_col="spot_price_history__close")
-    
-    # Удаляем строки, где NaN встречается в конкретной колонке
-    df_all = df_all.dropna(subset=[TARGET_COLUMN_NAME])
 
-    # Проверяем
-    print(f"Осталось строк: {len(df_all)}")
-    
     # =============================================================================
-    # 8. Удаление колонок с >30% NaN
+    # 5. Фильтрация по дате (1250 дней)
     # =============================================================================
     print("=" * 60)
-    print("8. Dropping columns with >30% NaN...")
+    print("Filtering last 1250 days...")
+    
+    df_all['date'] = pd.to_datetime(df_all['date'])
+    max_date = df_all['date'].max()
+    cutoff_date = max_date - pd.Timedelta(days=1250)
+    
+    rows_total = len(df_all)
+    df_all = df_all[df_all['date'] >= cutoff_date]
+    print(f"  Rows kept: {len(df_all)} (from {rows_total})")
+
+    # =============================================================================
+    # 6. Очистка колонок и строк
+    # =============================================================================
+    print("=" * 60)
+    print("Cleaning up columns and rows...")
+
+    # Удаляем строки, где нет таргета (это последние N дней будущего)
+    df_all = df_all.dropna(subset=[TARGET_COLUMN_NAME])
+    
+    # Удаляем колонки с >30% NaN
     nan_threshold = 0.3
     nan_ratio = df_all.isna().mean()
     cols_to_drop = [
@@ -161,83 +164,38 @@ def main_pipeline(cfg: dict, api_key: str):
         if not c.startswith("y_up_")
     ]
     if cols_to_drop:
-        print(f"   Dropping {len(cols_to_drop)} columns:")
-        for col in cols_to_drop[:10]:  # показываем первые 10
-            print(f"     - {col}: {nan_ratio[col]*100:.1f}% NaN")
-        if len(cols_to_drop) > 10:
-            print(f"     ... and {len(cols_to_drop) - 10} more")
+        print(f"  Dropping {len(cols_to_drop)} columns with >30% NaN")
         df_all = df_all.drop(columns=cols_to_drop)
-    else:
-        print("   No columns to drop")
     
-    df_all = df_all.dropna()
-    print(df_all.isna().sum())
-    print(df_all.shape)
-          
-    # =============================================================================
-    # 5. Добавление инженерных фичей
-    # =============================================================================
-    print("=" * 60)
-    print("5. Adding engineered features...")
-    print(f"   Shape before feature engineering: {df_all.shape}")
-    df_all = features_engineer.add_engineered_features(df_all, horizon=N_DAYS)
-    print(f"   Shape after feature engineering: {df_all.shape}")
-
-    # =============================================================================
-    # 6. Добавление лаговых признаков для Gold и S&P500
-    # =============================================================================
-    print("=" * 60)
-    print("6. Adding lag features for external markets...")
-
-    gold_cols = [c for c in df_all.columns if c.startswith("gold__") and "__lag" not in c]
-    sp500_cols = [c for c in df_all.columns if c.startswith("sp500__") and "__lag" not in c]
-    external_market_cols = gold_cols + sp500_cols
-
-    EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
-    
-    if external_market_cols:
-        print(f"   Gold columns: {len(gold_cols)}, S&P500 columns: {len(sp500_cols)}")
-        df_all = add_lags(df_all, cols=external_market_cols, lags=EXTERNAL_LAGS)
-        print(f"   Added {len(external_market_cols) * len(EXTERNAL_LAGS)} lag features")
-    else:
-        print("   No external market columns found for lag features")
-
-    print(f"   Shape after lags: {df_all.shape}")
-    
-    # =============================================================================
-    # 9. Удаление строк с NaN в target и финальная очистка
-    # =============================================================================
-    print("=" * 60)
-    print("9. Final cleanup...")
-    rows_before = len(df_all)
-    df_all = df_all.dropna(subset=[TARGET_COLUMN_NAME])
-    print(f"   Dropped {rows_before - len(df_all)} rows with NaN in {TARGET_COLUMN_NAME}")
-
-    rows_before = len(df_all)
+    # Финальная очистка оставшихся NaN
+    rows_before_final = len(df_all)
     df_all = df_all.dropna().reset_index(drop=True)
-    print(f"   Dropped {rows_before - len(df_all)} rows with any remaining NaN")
-    
-    ### ТРЕНИРОВКА МОДЕЛЕЙ
-    # Создаём папку для моделей
+    print(f"  Final Dropna: removed {rows_before_final - len(df_all)} rows. Final shape: {df_all.shape}")
+
+    # =============================================================================
+    # 7. Тренировка моделей
+    # =============================================================================
     models_folder = os.path.join("Models", CONFIG_NAME)
     os.makedirs(models_folder, exist_ok=True)
     
-    df2 = df_all
+    df2 = df_all  # Используем подготовленный датафрейм
 
-    ## ТРЕНИРОВКА RANGE МОДЕЛИ
+    # --- RANGE MODEL ---
     if "range_model" in CONFIG_NAME:
-
         ma_window = cfg.get("ma_window")
-
-        print("Training Logistic Regression (Range Target)...")
-        res_rngp, model_rngp, oos_rngp = range_model_train_pipeline(df2, base_feats, cfg, n_splits=4, thr=threshold, choose_model_by_metric="f1")
+        print(f"\nTraining Logistic Regression (Range Target, MA={ma_window})...")
+        
+        res_rngp, model_rngp, oos_rngp = range_model_train_pipeline(
+            df2, base_feats, cfg, n_splits=4, thr=threshold, choose_model_by_metric="f1"
+        )
+        
         print(f"Range model metrics (fold {res_rngp['best_fold_idx']}, by {res_rngp['best_metric']}): "
-            f"AUC={res_rngp['auc']:.4f}, "
-            f"Precision={res_rngp['precision']:.4f}, "
-            f"Recall={res_rngp['recall']:.4f}, "
-            f"F1={res_rngp['f1']:.4f}")
+              f"AUC={res_rngp['auc']:.4f}, "
+              f"Precision={res_rngp['precision']:.4f}, "
+              f"Recall={res_rngp['recall']:.4f}, "
+              f"F1={res_rngp['f1']:.4f}")
 
-        # # Анализ метрик по порогам для RANGE модели
+        # Графики Range
         y_rng, p_rng = oos_rngp["y"].values, oos_rngp["p_up"].values
         results_range = plot_metrics_vs_threshold(
             y_rng, p_rng,
@@ -246,7 +204,6 @@ def main_pipeline(cfg: dict, api_key: str):
         )
         print_threshold_analysis(results_range, model_name=f"RANGE (N{N_DAYS}_ma{ma_window})")
 
-        # Confusion matrix для RANGE модели (только лучший фолд)
         best_fold_rng = res_rngp["best_fold_idx"]
         oos_best_rng = oos_rngp[oos_rngp["fold"] == best_fold_rng]
         plot_confusion_matrix(
@@ -256,19 +213,17 @@ def main_pipeline(cfg: dict, api_key: str):
             config_name=CONFIG_NAME
         )
 
-    ## ТРЕНИРОВКА BASE МОДЕЛИ
+    # --- BASE MODEL ---
     elif "base_model" in CONFIG_NAME:
-
-        print("Training Logistic Regression (BASE)...")
+        print(f"\nTraining Logistic Regression (BASE: {TARGET_COLUMN_NAME})...")
         res_base, model_base, oos_df = base_model_train_pipeline(
             df2, base_feats, cfg, n_splits=4, thr=threshold, best_metric="f1"
         )
 
-        # Графики
+        # Графики Base
         y_b, p_b = oos_df["y"].values, oos_df["p_up"].values
         plot_roc(y_b, p_b, title="ROC (BASE, OOS)", config_name=CONFIG_NAME)
 
-        # Анализ метрик по порогам для BASE модели
         results_base = plot_metrics_vs_threshold(
             y_b, p_b,
             title=f"Metrics vs threshold (BASE, OOF) - {TARGET_COLUMN_NAME}",
@@ -276,7 +231,6 @@ def main_pipeline(cfg: dict, api_key: str):
         )
         print_threshold_analysis(results_base, model_name=f"BASE ({TARGET_COLUMN_NAME})")
 
-        # Confusion matrix для BASE модели (только лучший фолд)
         best_fold_base = res_base["best_fold_idx"]
         oos_best_base = oos_df[oos_df["fold"] == best_fold_base]
         plot_confusion_matrix(
@@ -285,7 +239,6 @@ def main_pipeline(cfg: dict, api_key: str):
             title=f"Confusion Matrix (BASE) - {TARGET_COLUMN_NAME} (fold {best_fold_base})",
             config_name=CONFIG_NAME
         )
-
 
 def run_all_configs(config_path: str = "config.json"):
     """Запускает main() для каждой конфигурации из config.json."""
@@ -313,6 +266,8 @@ def run_all_configs(config_path: str = "config.json"):
             results[run_name] = "SUCCESS"
         except Exception as e:
             print(f"ERROR in {run_name}: {e}")
+            import traceback
+            traceback.print_exc() # Полезно для отладки
             results[run_name] = f"FAILED: {e}"
     
     print("\n" + "=" * 60)
@@ -323,7 +278,7 @@ def run_all_configs(config_path: str = "config.json"):
 
 
 if __name__ == "__main__":
-    # Перенаправляем вывод в файл logs.log и консоль
+    # Логирование
     sys.stdout = LoggingSystem("logs.log")
     try:
         run_all_configs("config.json")

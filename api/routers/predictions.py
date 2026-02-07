@@ -8,6 +8,13 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
+from typing import Any, Dict, List, Optional  # <--- Нужно для аннотации типов
+from pydantic import BaseModel                # <--- Нужно для Pydantic моделей
+
+# Добавляем Body в этот список:
+from fastapi import APIRouter, HTTPException, Body 
+from fastapi.concurrency import run_in_threadpool
+
 # Add project root to path for imports
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -27,9 +34,11 @@ from api.schemas import (
     ModelInfo,
     ModelMetrics,
     HealthResponse,
+    TrainConfigRequest,
+    TrainConfigResponse
 )
 
-router = APIRouter(prefix="/api/v1", tags=["predictions"])
+router = APIRouter(prefix="/api", tags=["predictions"])
 
 # Cache for Predictor instances (one per model)
 _predictor_cache: dict[str, Predictor] = {}
@@ -216,31 +225,54 @@ async def list_models() -> ModelsResponse:
     return ModelsResponse(available_models=models)
 
 @router.post(
-    "/system/run-configs",
-    summary="Run all configs and reload models",
-    description="Clears model cache and triggers run_all_configs('config.json'). Warning: This is a blocking operation.",
+    "/system/train_models",
+    summary="Run configs and reload models",
+    description="Clears models cache -> Trains models. If JSON body is provided, uses it. Otherwise, loads from config.json.",
+    response_model=TrainConfigResponse  # <--- ВОТ ГЛАВНОЕ ИЗМЕНЕНИЕ
 )
-async def trigger_run_configs():
+async def train_models(
+    # Body(None) делает тело запроса необязательным.
+    # Если JSON пришел, он попадет в переменную config_payload.
+    config_payload: Optional[TrainConfigRequest] = Body(None)
+):
     """
     1. Очищает кеш загруженных моделей.
-    2. Запускает переобучение/прогон конфигов.
+    2. Если передан JSON, берет конфиги из него.
+    3. Если JSON нет, берет конфиги из файла config.json.
+    4. Запускает обучение.
     """
     global _predictor_cache
     
+    # Подготовка конфига
+    custom_runs = None
+    if config_payload:
+        custom_runs = config_payload.runs
+        print(f"Received custom config with {len(custom_runs)} runs.")
+    else:
+        print("No custom config provided, using default 'config.json'.")
+
     # 1. Очищаем кеш
     print("Clearing model cache...")
     _predictor_cache.clear()
     
-    # 2. Запускаем тяжелую функцию в отдельном потоке, чтобы не блокировать API
+    # 2. Запускаем тяжелую функцию
     try:
-        print("Starting run_all_configs...")
-        # run_in_threadpool позволяет FastAPI выполнять синхронный код (CPU heavy) 
-        # в отдельном потоке, не замораживая остальные эндпоинты
-        await run_in_threadpool(run_all_configs, "config.json")
+        print("Starting train_models...")
         
+        # run_in_threadpool принимает аргументы: (функция, *args).
+        # Мы передаем "config.json" как первый аргумент (config_in_project)
+        # И custom_runs как второй аргумент (your_config)
+        await run_in_threadpool(
+            run_all_configs, 
+            "config.json", 
+            custom_runs
+        )
+        
+        # FastAPI автоматически преобразует этот словарь в Pydantic-модель TrainConfigResponse
         return {
             "status": "success", 
-            "message": "Configs executed successfully and cache cleared."
+            "message": "Training executed successfully.",
+            "source": "custom_json" if custom_runs else "file_config"
         }
     except Exception as e:
         tb = traceback.format_exc()

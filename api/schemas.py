@@ -2,7 +2,8 @@
 
 import re
 from pydantic import BaseModel, Field, field_validator
-
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel
 
 class PredictionRequest(BaseModel):
     """Request body for prediction endpoint."""
@@ -95,3 +96,64 @@ class HealthResponse(BaseModel):
         default_factory=dict,
         description="Status of loaded models"
     )
+
+# Схема ожидаемого JSON. 
+# Мы повторяем структуру config.json, где есть ключ "runs", содержащий список конфигов.
+class TrainConfigRequest(BaseModel):
+    runs: List[Dict[str, Any]]
+
+    # Добавляем конфигурацию с примером
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "runs": [
+                        {
+                            "name": "base_model_1d",
+                            "N_DAYS": 1,
+                            "threshold": 0.5,
+                            "ma_window": 14,
+                            "range_feats": [
+                                "range_pct",
+                                "range_pct_ma14"
+                            ],
+                            "base_feats": [
+                                "sp500__open__diff1__lag15",
+                                "futures_open_interest_aggregated_history__close__pct1",
+                                "gold__high__diff1",
+                                "futures_open_interest_aggregated_history__close__diff1",
+                                "futures_funding_rate_history__open__pct1",
+                                "futures_top_long_short_position_ratio_history__top_position_long_percent",
+                                "gold__volume__diff1__lag1",
+                                "gold__low__diff1__lag1",
+                                "sp500__open__diff1__lag5",
+                                "futures_open_interest_aggregated_stablecoin_history__high__diff1",
+                                "gold__open__diff1__lag7",
+                                "index_btc_active_addresses__active_address_count",
+                                "sp500__close__diff1__lag3",
+                                "gold__open__diff1__lag15"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    
+class TrainConfigResponse(BaseModel):
+    status: str
+    message: str
+    source: str
+
+    # Опционально: пример, который будет показан в документации
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "status": "success",
+                    "message": "Training executed successfully.",
+                    "source": "custom_json"
+                }
+            ]
+        }
+    }

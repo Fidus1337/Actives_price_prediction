@@ -9,6 +9,7 @@ import sys
 import json
 import ta
 from dotenv import load_dotenv
+from fastapi import Body
 
 # Ваши кастомные модули
 from LoggingSystem.LoggingSystem import LoggingSystem
@@ -240,9 +241,13 @@ def main_pipeline(cfg: dict, api_key: str):
             config_name=CONFIG_NAME
         )
 
-def run_all_configs(config_path: str = "config.json"):
+def run_all_configs(config_in_project: str = "config.json", your_config = None):
     """Запускает main() для каждой конфигурации из config.json."""
-    configs = load_config(config_path)
+    
+    if your_config is not None:
+        configs = your_config
+    else:
+        configs = load_config(config_in_project)
     
     if not configs:
         print("No configurations found in config.json")

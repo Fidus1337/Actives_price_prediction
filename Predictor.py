@@ -13,6 +13,7 @@ Usage:
 """
 
 import os
+import re
 import json
 import joblib
 import pandas as pd
@@ -63,11 +64,9 @@ class Predictor:
         self.config_path = config_path
         self.env_path = env_path
 
-        # Determine model type from config name
-        if "range" in config_name:
-            self.model_type = "range"
-        else:
-            self.model_type = "base"
+        # Parse model type and horizon from name (always works)
+        self.model_type, self.n_days = self._parse_name()
+        self.ma_window = 14
 
         # Load environment variables (API key)
         load_dotenv(env_path)
@@ -75,14 +74,16 @@ class Predictor:
         if not self.api_key:
             raise ValueError(f"COINGLASS_API_KEY not found in {env_path}")
 
-        # Load configuration
-        self.config = self._load_config()
-
-        # Extract key parameters from config
-        self.n_days = self.config["N_DAYS"]
-        self.ma_window = self.config.get("ma_window", 14)
-        self.base_feats = self.config["base_feats"]
-        self.range_feats = self.config.get("range_feats", [])
+        # Config is optional — override defaults if found
+        self.config = self._load_config_optional()
+        if self.config:
+            self.n_days = self.config["N_DAYS"]
+            self.ma_window = self.config.get("ma_window", 14)
+            self.base_feats = self.config["base_feats"]
+            self.range_feats = self.config.get("range_feats", [])
+        else:
+            self.base_feats = []
+            self.range_feats = []
 
         # Load model and model features
         self.model = self._load_model()
@@ -95,20 +96,28 @@ class Predictor:
         # Cache for prepared data
         self._prepared_df: Optional[pd.DataFrame] = None
 
-    def _load_config(self) -> dict:
-        """Load and return the specific run config from config.json."""
-        with open(self.config_path, "r", encoding="utf-8") as f:
-            config = json.load(f)
+    def _parse_name(self) -> tuple[str, int]:
+        """Extract model_type and n_days from config_name like 'base_model_1d'."""
+        model_type = "range" if "range" in self.config_name else "base"
+        match = re.search(r"(\d+)d$", self.config_name)
+        if not match:
+            raise ValueError(
+                f"Cannot parse N_DAYS from name '{self.config_name}'. "
+                f"Expected pattern like 'base_model_1d'"
+            )
+        return model_type, int(match.group(1))
 
-        runs = config.get("runs", [])
-        for run in runs:
-            if run.get("name") == self.config_name:
-                return run
-
-        available = [r.get("name") for r in runs]
-        raise ValueError(
-            f"Config '{self.config_name}' not found. Available: {available}"
-        )
+    def _load_config_optional(self) -> dict | None:
+        """Try to load run config from config.json. Returns None if not found."""
+        try:
+            with open(self.config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+            for run in config.get("runs", []):
+                if run.get("name") == self.config_name:
+                    return run
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        return None
 
     def _load_model(self):
         """Load model from Models/{config_name}/."""

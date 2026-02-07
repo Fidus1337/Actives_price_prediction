@@ -19,6 +19,7 @@ from Predictor import Predictor
 from api.schemas import (
     PredictionRequest,
     PredictionResponse,
+    ModelPredictionResult,
     SinglePrediction,
     ModelsResponse,
     ModelInfo,
@@ -97,64 +98,74 @@ def validate_model_name(model_name: str) -> bool:
     "/predictions",
     response_model=PredictionResponse,
     summary="Get BTC price direction predictions",
-    description="Returns predictions for specified dates using the selected model",
+    description="Returns predictions for specified dates using the selected models",
 )
 async def get_predictions(request: PredictionRequest) -> PredictionResponse:
     """
-    Get predictions for specified dates using the selected model.
+    Get predictions for specified dates using the selected models.
 
-    The prediction indicates whether BTC price will be higher after N days.
+    Each model predicts whether BTC price will be higher after N days
+    for every requested date.
     """
-    # Validate model_name
-    if not validate_model_name(request.model_name):
-        available = get_available_models()
-        raise HTTPException(
-            status_code=404,
-            detail=f"Model '{request.model_name}' not found. "
-            f"Available models: {available}",
-        )
+    available = get_available_models()
+    results: list[ModelPredictionResult] = []
 
-    try:
-        # Get or create Predictor
-        predictor = get_predictor(request.model_name)
+    for model_name in request.models:
+        if not validate_model_name(model_name):
+            results.append(ModelPredictionResult(
+                model_name=model_name,
+                model_type="unknown",
+                horizon_days=0,
+                found_dates=[],
+                missing_dates=request.dates,
+                predictions=[],
+                error=f"Model '{model_name}' not found. Available: {available}",
+            ))
+            continue
 
-        # Get predictions
-        results = predictor.predict_by_dates(request.dates)
+        try:
+            predictor = get_predictor(model_name)
+            preds = predictor.predict_by_dates(request.dates)
 
-        # Build response
-        found_dates = [r.date for r in results]
-        missing_dates = list(set(request.dates) - set(found_dates))
+            found_dates = [r.date for r in preds]
+            missing_dates = list(set(request.dates) - set(found_dates))
 
-        predictions = [
-            SinglePrediction(
-                date=r.date,
-                prediction=r.prediction,
-                probability=round(r.probability, 6),
-            )
-            for r in results
-        ]
+            predictions = [
+                SinglePrediction(
+                    date=r.date,
+                    prediction=r.prediction,
+                    probability=round(r.probability, 6),
+                )
+                for r in preds
+            ]
 
-        return PredictionResponse(
-            model_name=request.model_name,
-            model_type=predictor.model_type,
-            horizon_days=predictor.n_days,
-            requested_dates=request.dates,
-            found_dates=found_dates,
-            missing_dates=missing_dates,
-            predictions=predictions,
-        )
+            results.append(ModelPredictionResult(
+                model_name=model_name,
+                model_type=predictor.model_type,
+                horizon_days=predictor.n_days,
+                found_dates=found_dates,
+                missing_dates=missing_dates,
+                predictions=predictions,
+            ))
 
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except FileNotFoundError as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Model files not found for {request.model_name}: {e}",
-        )
-    except Exception as e:
-        tb = traceback.format_exc()
-        print(f"Prediction error: {tb}")
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(f"Prediction error for {model_name}: {tb}")
+            results.append(ModelPredictionResult(
+                model_name=model_name,
+                model_type="unknown",
+                horizon_days=0,
+                found_dates=[],
+                missing_dates=request.dates,
+                predictions=[],
+                error=str(e),
+            ))
+
+    return PredictionResponse(
+        requested_models=request.models,
+        requested_dates=request.dates,
+        results=results,
+    )
 
 
 @router.get(

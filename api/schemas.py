@@ -7,10 +7,12 @@ from pydantic import BaseModel, Field, field_validator
 class PredictionRequest(BaseModel):
     """Request body for prediction endpoint."""
 
-    model_name: str = Field(
+    models: list[str] = Field(
         ...,
-        description="Model name from Models folder (e.g., 'base_model_1d', 'range_model_3d')",
-        examples=["base_model_1d", "range_model_1d"]
+        min_length=1,
+        max_length=20,
+        description="List of model names from Models folder",
+        examples=[["base_model_1d", "range_model_3d"]]
     )
     dates: list[str] = Field(
         ...,
@@ -38,16 +40,24 @@ class SinglePrediction(BaseModel):
     probability: float = Field(..., ge=0.0, le=1.0, description="Probability of price increase")
 
 
-class PredictionResponse(BaseModel):
-    """Response schema for predictions endpoint."""
+class ModelPredictionResult(BaseModel):
+    """Prediction results for a single model."""
 
     model_name: str = Field(..., description="Model used for predictions")
     model_type: str = Field(..., description="Model type (base or range)")
     horizon_days: int = Field(..., description="Prediction horizon in days")
-    requested_dates: list[str] = Field(..., description="Dates requested")
     found_dates: list[str] = Field(..., description="Dates found in data")
     missing_dates: list[str] = Field(..., description="Dates not found in data")
     predictions: list[SinglePrediction] = Field(..., description="List of predictions")
+    error: str | None = Field(None, description="Error message if model failed")
+
+
+class PredictionResponse(BaseModel):
+    """Response schema for batch predictions endpoint."""
+
+    requested_models: list[str] = Field(..., description="Models requested")
+    requested_dates: list[str] = Field(..., description="Dates requested")
+    results: list[ModelPredictionResult] = Field(..., description="Predictions per model")
 
 
 class ModelMetrics(BaseModel):

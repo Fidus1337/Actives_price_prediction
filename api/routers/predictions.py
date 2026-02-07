@@ -11,6 +11,8 @@ from fastapi import APIRouter, HTTPException
 # Add project root to path for imports
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+from fastapi.concurrency import run_in_threadpool
+from Models_builder_pipeline import run_all_configs
 
 # Set working directory to project root (Predictor uses relative paths for models)
 os.chdir(PROJECT_ROOT)
@@ -213,6 +215,40 @@ async def list_models() -> ModelsResponse:
 
     return ModelsResponse(available_models=models)
 
+@router.post(
+    "/system/run-configs",
+    summary="Run all configs and reload models",
+    description="Clears model cache and triggers run_all_configs('config.json'). Warning: This is a blocking operation.",
+)
+async def trigger_run_configs():
+    """
+    1. Очищает кеш загруженных моделей.
+    2. Запускает переобучение/прогон конфигов.
+    """
+    global _predictor_cache
+    
+    # 1. Очищаем кеш
+    print("Clearing model cache...")
+    _predictor_cache.clear()
+    
+    # 2. Запускаем тяжелую функцию в отдельном потоке, чтобы не блокировать API
+    try:
+        print("Starting run_all_configs...")
+        # run_in_threadpool позволяет FastAPI выполнять синхронный код (CPU heavy) 
+        # в отдельном потоке, не замораживая остальные эндпоинты
+        await run_in_threadpool(run_all_configs, "config.json")
+        
+        return {
+            "status": "success", 
+            "message": "Configs executed successfully and cache cleared."
+        }
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"Error running configs: {tb}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to run configs: {str(e)}"
+        )
 
 @router.get(
     "/health",
@@ -226,3 +262,4 @@ async def health_check() -> HealthResponse:
         status="healthy",
         models_loaded=get_loaded_models(),
     )
+

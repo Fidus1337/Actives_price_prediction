@@ -1,52 +1,52 @@
 # BTC Price Direction Prediction
 
-Система прогнозирования направления цены Bitcoin с использованием данных CoinGlass API и моделей машинного обучения (Logistic Regression).
+A Bitcoin price direction prediction system using CoinGlass API data and machine learning models (Logistic Regression).
 
-**Два типа моделей:**
-- **Base** — прогнозирует, вырастет ли цена BTC через N дней
-- **Range** — прогнозирует, будет ли волатильность (диапазон high−low) выше скользящей средней
-
----
-
-## Содержание
-
-1. [Установка](#установка)
-2. [config.json — Конфигурация экспериментов](#1-configjson--конфигурация-экспериментов)
-3. [Models_builder_pipeline.py — Обучение моделей](#2-models_builder_pipelinepy--обучение-моделей)
-4. [Predictor.py — Получение прогнозов](#3-predictorpy--получение-прогнозов)
-5. [API — REST-сервер](#4-api--rest-сервер)
-6. [Структура проекта](#5-структура-проекта)
-7. [Соглашения по данным](#6-соглашения-по-данным)
+**Two model types:**
+- **Base** — predicts whether BTC price will be higher after N days
+- **Range** — predicts whether volatility (high-low range) will exceed its moving average
 
 ---
 
-## Установка
+## Table of Contents
+
+1. [Installation](#installation)
+2. [config.json — Experiment Configuration](#1-configjson--experiment-configuration)
+3. [Models_builder_pipeline.py — Model Training](#2-models_builder_pipelinepy--model-training)
+4. [Predictor.py — Making Predictions](#3-predictorpy--making-predictions)
+5. [API — REST Server](#4-api--rest-server)
+6. [Project Structure](#5-project-structure)
+7. [Data Conventions](#6-data-conventions)
+
+---
+
+## Installation
 
 ```bash
-# Создание виртуального окружения
+# Create virtual environment
 python -m venv .venv
 
-# Активация (Windows)
+# Activate (Windows)
 .venv\Scripts\activate
 
-# Установка зависимостей
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-Создайте файл `dev.env` в корне проекта:
+Create a `dev.env` file in the project root:
 ```
 COINGLASS_API_KEY=your_key_here
 ```
 
-> API-ключ можно получить на [open-api-v4.coinglass.com](https://open-api-v4.coinglass.com).
+> You can get an API key at [open-api-v4.coinglass.com](https://open-api-v4.coinglass.com).
 
 ---
 
-## 1. config.json — Конфигурация экспериментов
+## 1. config.json — Experiment Configuration
 
-Файл содержит массив `runs` — список конфигураций, по которым обучаются модели. Каждая конфигурация = один эксперимент = одна обученная модель.
+The file contains a `runs` array — a list of configurations used to train models. Each configuration = one experiment = one trained model.
 
-### Полная структура
+### Full Structure
 
 ```json
 {
@@ -68,46 +68,46 @@ COINGLASS_API_KEY=your_key_here
 }
 ```
 
-### Описание параметров
+### Parameter Description
 
-| Параметр | Тип | Обязательный | Описание |
-|----------|-----|:------------:|----------|
-| `name` | string | да | Уникальное имя конфигурации. **Определяет тип модели** (см. ниже) |
-| `N_DAYS` | int | да | Горизонт прогноза в днях (1, 3, 5, 7, 20...) |
-| `threshold` | float | нет | Порог классификации (по умолчанию `0.5`). Вероятность выше порога = предсказание "рост" |
-| `base_feats` | list | да | Список признаков для обучения модели |
-| `ma_window` | int | нет | Окно скользящей средней для range-признаков (по умолчанию `14`) |
-| `range_feats` | list | нет | Дополнительные признаки волатильности (для range-моделей) |
+| Parameter | Type | Required | Description |
+|-----------|------|:--------:|-------------|
+| `name` | string | yes | Unique configuration name. **Determines the model type** (see below) |
+| `N_DAYS` | int | yes | Prediction horizon in days (1, 3, 5, 7, 20...) |
+| `threshold` | float | no | Classification threshold (default `0.5`). Probability above threshold = "up" prediction |
+| `base_feats` | list | yes | List of features for model training |
+| `ma_window` | int | no | Moving average window for range features (default `14`) |
+| `range_feats` | list | no | Additional volatility features (for range models) |
 
-### Как `name` определяет тип модели
+### How `name` Determines Model Type
 
-Пайплайн проверяет подстроку в поле `name`:
+The pipeline checks for a substring in the `name` field:
 
-| Подстрока в `name` | Тип модели | Целевая переменная | Пример имени |
-|---------------------|------------|---------------------|--------------|
+| Substring in `name` | Model Type | Target Variable | Example Name |
+|----------------------|------------|-----------------|--------------|
 | `base_model` | Base | `y_up_{N}d` | `base_model_1d` |
 | `range_model` | Range | `y_range_up_range_pct_N{N}_ma{W}` | `range_model_7d` |
 
-**Важно:** если в `name` нет ни `base_model`, ни `range_model` — модель не обучится.
+**Important:** if `name` contains neither `base_model` nor `range_model`, the model will not be trained.
 
-### Формат именования признаков
+### Feature Naming Convention
 
-Признаки следуют паттерну: `{источник}__{метрика}__{суффикс}`
+Features follow the pattern: `{source}__{metric}__{suffix}`
 
 ```
 futures_open_interest_aggregated_history__close__pct1
 │                                        │      │
-│                                        │      └── суффикс (pct1 = % изменение за 1 день)
-│                                        └── метрика из API
-└── источник данных (название эндпоинта)
+│                                        │      └── suffix (pct1 = % change over 1 day)
+│                                        └── metric from API
+└── data source (endpoint name)
 ```
 
-**Доступные суффиксы:**
-- `__diff1` — первая разность (значение − значение вчера)
-- `__pct1` — процентное изменение за 1 день
-- `__lag{N}` — лаг на N дней (для Gold и S&P500, чтобы учесть разницу в часовых поясах)
+**Available suffixes:**
+- `__diff1` — first difference (value - yesterday's value)
+- `__pct1` — percentage change over 1 day
+- `__lag{N}` — lag by N days (for Gold and S&P500, to account for timezone differences)
 
-### Пример: конфигурация с двумя моделями
+### Example: Configuration with Two Models
 
 ```json
 {
@@ -138,58 +138,58 @@ futures_open_interest_aggregated_history__close__pct1
 }
 ```
 
-При запуске пайплайна оба эксперимента выполнятся последовательно.
+When the pipeline is launched, both experiments will run sequentially.
 
 ---
 
-## 2. Models_builder_pipeline.py — Обучение моделей
+## 2. Models_builder_pipeline.py — Model Training
 
-### Запуск
+### Running
 
 ```bash
 python Models_builder_pipeline.py
 ```
 
-Скрипт последовательно обучает модели для **каждой конфигурации** из `config.json`.
+The script sequentially trains models for **each configuration** from `config.json`.
 
-### Полный пайплайн по шагам
+### Full Pipeline Steps
 
 ```
- 1. Загрузка данных из CoinGlass API (27 источников)
- 2. Объединение всех DataFrame по дате (outer join)
- 3. Нормализация OHLCV-колонок (ensure_spot_prefix)
- 4. Заполнение пропусков (forward fill)
- 5. Feature Engineering (diff1, pct1, imbalance-признаки)
- 6. Добавление лагов для Gold и S&P500 (1, 3, 5, 7, 10, 15 дней)
- 7. Создание целевой переменной (y_up_{N}d)
- 8. Фильтрация: оставляем только последние 1250 дней
- 9. Удаление колонок с > 30% пропусков
-10. Удаление строк с NaN
-11. Обучение модели (base или range в зависимости от name)
-12. Генерация графиков (ROC, метрики по порогам, confusion matrix)
+ 1. Fetch data from CoinGlass API (27 sources)
+ 2. Merge all DataFrames by date (outer join)
+ 3. Normalize OHLCV columns (ensure_spot_prefix)
+ 4. Fill missing values (forward fill)
+ 5. Feature Engineering (diff1, pct1, imbalance features)
+ 6. Add lags for Gold and S&P500 (1, 3, 5, 7, 10, 15 days)
+ 7. Create target variable (y_up_{N}d)
+ 8. Filter: keep only the last 1250 days
+ 9. Drop columns with > 30% missing values
+10. Drop rows with NaN
+11. Train model (base or range depending on name)
+12. Generate plots (ROC, metrics vs threshold, confusion matrix)
 ```
 
-### Источники данных (27 штук)
+### Data Sources (27 total)
 
-Все данные загружаются через `get_features_from_API.py`:
+All data is fetched via `get_features_from_API.py`:
 
-| Категория | Источники |
-|-----------|-----------|
-| Цена BTC | Spot OHLCV |
+| Category | Sources |
+|----------|---------|
+| BTC Price | Spot OHLCV |
 | Open Interest | OI history, OI aggregated, OI stablecoin, OI coin-margin |
 | Funding Rate | FR history, FR OI-weighted, FR volume-weighted |
 | Long/Short | Global ratio, Top accounts ratio, Top positions ratio |
-| Ликвидации | Liquidation history, Liquidation aggregated |
-| Торговля | Taker buy/sell volume, Taker buy/sell aggregated, Net position |
-| Ордербук | Orderbook ask/bids, Orderbook aggregated |
-| Индексы | CGDI index, Coinbase premium |
+| Liquidations | Liquidation history, Liquidation aggregated |
+| Trading | Taker buy/sell volume, Taker buy/sell aggregated, Net position |
+| Order Book | Orderbook ask/bids, Orderbook aggregated |
+| Indices | CGDI index, Coinbase premium |
 | On-chain | LTH supply, STH supply, Active addresses, Reserve risk |
-| Внешние рынки | S&P 500 (yfinance), Gold (yfinance) |
-| Маржинальные | Bitfinex margin long/short |
+| External Markets | S&P 500 (yfinance), Gold (yfinance) |
+| Margin | Bitfinex margin long/short |
 
 ### Walk-Forward Cross-Validation
 
-Используется `TimeSeriesSplit` — специальная кросс-валидация для временных рядов, которая **не допускает утечку данных из будущего**:
+Uses `TimeSeriesSplit` — a time-series-specific cross-validation that **prevents data leakage from the future**:
 
 ```
 Fold 1:  [===TRAIN===] [=TEST=]
@@ -198,31 +198,31 @@ Fold 3:  [========TRAIN========] [=TEST=]
 Fold 4:  [==========TRAIN==========] [=TEST=]
 ```
 
-На каждом фолде:
-1. Модель обучается на исторических данных (TRAIN)
-2. Тестируется на будущих данных (TEST) — данные, которые модель **не видела**
-3. Вычисляются метрики: AUC, Accuracy, Precision, Recall, F1
+On each fold:
+1. The model trains on historical data (TRAIN)
+2. Tests on future data (TEST) — data the model **has never seen**
+3. Metrics are computed: AUC, Accuracy, Precision, Recall, F1
 
-**Выбор лучшей модели:** из всех фолдов берётся модель с лучшим значением метрики (по умолчанию — F1).
+**Best model selection:** from all folds, the model with the best metric value is chosen (F1 by default).
 
 ### ML Pipeline (sklearn)
 
-Каждый фолд обучает pipeline из 3 шагов:
+Each fold trains a 3-step pipeline:
 
 ```
 SimpleImputer(strategy="mean")  →  StandardScaler()  →  LogisticRegression(max_iter=3000, class_weight="balanced")
 │                                  │                     │
-│ Заполняет NaN средним            │ Нормализация        │ Логистическая регрессия
-│ значением признака               │ (mean=0, std=1)     │ с балансировкой классов
+│ Fills NaN with the               │ Normalization       │ Logistic Regression
+│ feature mean                     │ (mean=0, std=1)     │ with class balancing
 ```
 
-### Обучение Base модели
+### Training a Base Model
 
-**Что предсказывает:** вырастет ли цена BTC через N дней.
-- Целевая переменная: `y_up_{N}d` (1 = цена выросла, 0 = упала)
-- Использует только `base_feats`
+**What it predicts:** whether BTC price will be higher after N days.
+- Target variable: `y_up_{N}d` (1 = price went up, 0 = went down)
+- Uses only `base_feats`
 
-**Шаг 1.** Добавьте конфигурацию в `config.json`:
+**Step 1.** Add a configuration to `config.json`:
 ```json
 {
     "name": "base_model_1d",
@@ -236,31 +236,31 @@ SimpleImputer(strategy="mean")  →  StandardScaler()  →  LogisticRegression(m
 }
 ```
 
-**Шаг 2.** Запустите:
+**Step 2.** Run:
 ```bash
 python Models_builder_pipeline.py
 ```
 
-**Результат:**
+**Output:**
 ```
 Models/base_model_1d/
-├── model_base_base_model_1d.joblib     # обученная модель
-└── metrics_base_base_model_1d.json     # метрики + список признаков
+├── model_base_base_model_1d.joblib     # trained model
+└── metrics_base_base_model_1d.json     # metrics + feature list
 
 graphics/base_model_1d/
-├── ROC_BASE_OOS.png                    # ROC-кривая
-├── Metrics_vs_threshold_BASE_OOF___y_up_1d.png  # метрики по порогам
-└── Confusion_Matrix_base_model_1d_thr0.50.png   # матрица ошибок
+├── ROC_BASE_OOS.png                    # ROC curve
+├── Metrics_vs_threshold_BASE_OOF___y_up_1d.png  # metrics vs threshold
+└── Confusion_Matrix_base_model_1d_thr0.50.png   # confusion matrix
 ```
 
-### Обучение Range модели
+### Training a Range Model
 
-**Что предсказывает:** будет ли будущая волатильность (диапазон high−low) выше текущей скользящей средней.
-- Целевая переменная: `y_range_up_range_pct_N{N}_ma{W}`
-- Использует `base_feats` + `range_feats`
-- Дополнительные признаки: `range_pct = (high - low) / close`, `range_pct_ma{W}` (скользящая средняя)
+**What it predicts:** whether future volatility (high-low range) will exceed the current moving average.
+- Target variable: `y_range_up_range_pct_N{N}_ma{W}`
+- Uses `base_feats` + `range_feats`
+- Additional features: `range_pct = (high - low) / close`, `range_pct_ma{W}` (moving average)
 
-**Шаг 1.** Добавьте конфигурацию в `config.json`:
+**Step 1.** Add a configuration to `config.json`:
 ```json
 {
     "name": "range_model_3d",
@@ -275,16 +275,16 @@ graphics/base_model_1d/
 }
 ```
 
-**Важно:**
-- `name` **должно** содержать `range_model`
-- `ma_window` — определяет окно скользящей средней (должно совпадать с числом в `range_pct_ma{W}`)
+**Important:**
+- `name` **must** contain `range_model`
+- `ma_window` — defines the moving average window (must match the number in `range_pct_ma{W}`)
 
-**Шаг 2.** Запустите:
+**Step 2.** Run:
 ```bash
 python Models_builder_pipeline.py
 ```
 
-**Результат:**
+**Output:**
 ```
 Models/range_model_3d/
 ├── model_range_range_model_3d.joblib
@@ -296,19 +296,19 @@ graphics/range_model_3d/
 └── Confusion_Matrix_range_model_3d_thr0.52.png
 ```
 
-### Сравнение типов моделей
+### Model Type Comparison
 
-| | Base модель | Range модель |
+| | Base Model | Range Model |
 |---|---|---|
-| **Вопрос** | Цена вырастет через N дней? | Волатильность будет выше средней? |
-| **Целевая переменная** | `y_up_{N}d` | `y_range_up_range_pct_N{N}_ma{W}` |
-| **Признаки** | `base_feats` | `base_feats` + `range_feats` |
-| **Доп. параметры** | — | `ma_window`, `range_feats` |
-| **Применение** | Прогноз направления (long/short) | Фильтрация по волатильности, опционные стратегии |
+| **Question** | Will price be higher in N days? | Will volatility exceed its average? |
+| **Target Variable** | `y_up_{N}d` | `y_range_up_range_pct_N{N}_ma{W}` |
+| **Features** | `base_feats` | `base_feats` + `range_feats` |
+| **Extra Parameters** | — | `ma_window`, `range_feats` |
+| **Use Case** | Directional prediction (long/short) | Volatility filtering, options strategies |
 
-### Формат metrics JSON
+### Metrics JSON Format
 
-После обучения сохраняется файл метрик:
+After training, a metrics file is saved:
 ```json
 {
     "config_name": "base_model_1d",
@@ -329,34 +329,34 @@ graphics/range_model_3d/
 
 ---
 
-## 3. Predictor.py — Получение прогнозов
+## 3. Predictor.py — Making Predictions
 
-Класс для получения предсказаний от обученных моделей. Подгружает модель, скачивает свежие данные с API, применяет тот же feature engineering что и при обучении.
+A class for getting predictions from trained models. It loads the model, fetches fresh data from the API, and applies the same feature engineering as during training.
 
-### Инициализация
+### Initialization
 
 ```python
 from Predictor import Predictor
 
 predictor = Predictor(
-    config_name="base_model_1d",    # имя конфигурации из config.json
-    config_path="config.json",      # путь к конфигу (по умолчанию)
-    env_path="dev.env"              # путь к файлу с API-ключом (по умолчанию)
+    config_name="base_model_1d",    # configuration name from config.json
+    config_path="config.json",      # path to config (default)
+    env_path="dev.env"              # path to API key file (default)
 )
 ```
 
-При инициализации:
-1. Определяет тип модели (`base` или `range`) из `config_name`
-2. Загружает конфигурацию из `config.json`
-3. Загружает обученную модель из `Models/{config_name}/`
-4. Загружает список признаков из файла метрик
-5. Инициализирует `FeaturesGetter` для работы с API
+During initialization:
+1. Determines model type (`base` or `range`) from `config_name`
+2. Loads configuration from `config.json`
+3. Loads the trained model from `Models/{config_name}/`
+4. Loads the feature list from the metrics file
+5. Initializes `FeaturesGetter` for API access
 
-### Публичные методы
+### Public Methods
 
 #### `predict(n_dates=10) -> list[PredictionResult]`
 
-Генерирует прогнозы для **последних N дат** из доступных данных.
+Generates predictions for the **last N dates** from available data.
 
 ```python
 results = predictor.predict(n_dates=10)
@@ -367,27 +367,27 @@ for r in results:
 
 #### `predict_by_dates(dates: list[str]) -> list[PredictionResult]`
 
-Генерирует прогнозы для **конкретных дат** (формат `"YYYY-MM-DD"`).
+Generates predictions for **specific dates** (format `"YYYY-MM-DD"`).
 
 ```python
 results = predictor.predict_by_dates(["2025-01-20", "2025-01-21", "2025-01-22"])
 ```
 
-Если какая-то дата отсутствует в данных — будет выведено предупреждение, но остальные даты обработаются.
+If a date is missing from the data, a warning will be printed, but the remaining dates will be processed.
 
 #### `save_predictions(predictions=None, output_path=None) -> str`
 
-Сохраняет прогнозы в JSON-файл.
+Saves predictions to a JSON file.
 
 ```python
-# Сохранить с генерацией прогнозов
+# Save with auto-generated predictions
 path = predictor.save_predictions()
 
-# Сохранить существующие прогнозы в конкретный файл
+# Save existing predictions to a specific file
 path = predictor.save_predictions(predictions=results, output_path="my_predictions.json")
 ```
 
-**Формат выходного JSON:**
+**Output JSON format:**
 ```json
 {
     "config_name": "base_model_1d",
@@ -406,36 +406,36 @@ path = predictor.save_predictions(predictions=results, output_path="my_predictio
 ```python
 @dataclass
 class PredictionResult:
-    date: str           # дата в формате "YYYY-MM-DD"
-    prediction: int     # 0 (падение) или 1 (рост)
-    probability: float  # вероятность роста (0.0 — 1.0)
+    date: str           # date in "YYYY-MM-DD" format
+    prediction: int     # 0 (down) or 1 (up)
+    probability: float  # probability of price increase (0.0 — 1.0)
 ```
 
-### Доступные конфигурации моделей
+### Available Model Configurations
 
-| Конфигурация | Тип | Горизонт |
+| Configuration | Type | Horizon |
 |---|---|---|
-| `base_model_1d` | Base | 1 день |
-| `base_model_3d` | Base | 3 дня |
-| `base_model_5d` | Base | 5 дней |
-| `base_model_7d` | Base | 7 дней |
-| `range_model_1d` | Range | 1 день |
-| `range_model_3d` | Range | 3 дня |
-| `range_model_5d` | Range | 5 дней |
-| `range_model_7d` | Range | 7 дней |
-| `range_model_20d` | Range | 20 дней |
+| `base_model_1d` | Base | 1 day |
+| `base_model_3d` | Base | 3 days |
+| `base_model_5d` | Base | 5 days |
+| `base_model_7d` | Base | 7 days |
+| `range_model_1d` | Range | 1 day |
+| `range_model_3d` | Range | 3 days |
+| `range_model_5d` | Range | 5 days |
+| `range_model_7d` | Range | 7 days |
+| `range_model_20d` | Range | 20 days |
 
-> Модели находятся в папке `Models/`. Чтобы добавить новые — обучите их через `Models_builder_pipeline.py`.
+> Models are stored in the `Models/` folder. To add new ones, train them via `Models_builder_pipeline.py`.
 
 ---
 
-## 4. API — REST-сервер
+## 4. API — REST Server
 
-REST API на FastAPI для получения прогнозов по HTTP.
+REST API built with FastAPI for getting predictions over HTTP.
 
-### Запуск
+### Running
 
-**Разработка** (с авто-перезагрузкой при изменении кода):
+**Development** (with auto-reload on code changes):
 ```bash
 uvicorn api.main:app --reload --port 8000
 ```
@@ -445,15 +445,15 @@ uvicorn api.main:app --reload --port 8000
 uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-После запуска:
-- Swagger UI (интерактивная документация): `http://localhost:8000/docs`
-- ReDoc (альтернативная документация): `http://localhost:8000/redoc`
+After launch:
+- Swagger UI (interactive docs): `http://localhost:8000/docs`
+- ReDoc (alternative docs): `http://localhost:8000/redoc`
 
-### Эндпоинты
+### Endpoints
 
-#### `POST /api/v1/predictions` — Получить прогнозы
+#### `POST /api/v1/predictions` — Get Predictions
 
-Возвращает прогнозы выбранной модели для указанных дат.
+Returns predictions from the selected model for the specified dates.
 
 **Request:**
 ```json
@@ -463,8 +463,8 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4
 }
 ```
 
-- `model_name` — имя модели (из таблицы доступных конфигураций)
-- `dates` — список дат в формате `YYYY-MM-DD` (от 1 до 100 дат)
+- `model_name` — model name (from the available configurations table)
+- `dates` — list of dates in `YYYY-MM-DD` format (1 to 100 dates)
 
 **Response (200):**
 ```json
@@ -485,19 +485,19 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4
 }
 ```
 
-- `found_dates` — даты, для которых удалось сделать прогноз
-- `missing_dates` — даты, которых нет в данных
+- `found_dates` — dates for which predictions were generated
+- `missing_dates` — dates not found in the data
 
-**Ошибки:**
-- `404` — модель не найдена
-- `400` — неверный формат дат
-- `500` — ошибка при загрузке модели или предсказании
+**Errors:**
+- `404` — model not found
+- `400` — invalid date format
+- `500` — error loading model or generating prediction
 
 ---
 
-#### `GET /api/v1/models` — Список моделей
+#### `GET /api/v1/models` — List Models
 
-Возвращает список всех доступных моделей с их метриками.
+Returns a list of all available models with their metrics.
 
 **Response (200):**
 ```json
@@ -530,7 +530,7 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4
 
 ---
 
-#### `GET /api/v1/health` — Health check
+#### `GET /api/v1/health` — Health Check
 
 **Response (200):**
 ```json
@@ -543,20 +543,20 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4
 }
 ```
 
-`models_loaded` показывает только модели, которые были загружены в кэш (после первого запроса).
+`models_loaded` only shows models that have been loaded into the cache (after the first request).
 
 ---
 
-### Примеры использования
+### Usage Examples
 
 **curl:**
 ```bash
-# Прогнозы
+# Predictions
 curl -X POST "http://localhost:8000/api/v1/predictions" \
   -H "Content-Type: application/json" \
   -d '{"model_name": "base_model_1d", "dates": ["2025-01-20"]}'
 
-# Список моделей
+# List models
 curl http://localhost:8000/api/v1/models
 
 # Health check
@@ -567,7 +567,7 @@ curl http://localhost:8000/api/v1/health
 ```python
 import requests
 
-# Прогнозы
+# Predictions
 response = requests.post(
     "http://localhost:8000/api/v1/predictions",
     json={
@@ -579,7 +579,7 @@ data = response.json()
 for pred in data["predictions"]:
     print(f"{pred['date']}: {pred['prediction']} (p={pred['probability']:.3f})")
 
-# Список моделей с метриками
+# List models with metrics
 models = requests.get("http://localhost:8000/api/v1/models").json()
 for m in models["available_models"]:
     print(f"{m['name']}: AUC={m['metrics']['auc']:.4f}, F1={m['metrics']['f1']:.4f}")
@@ -587,40 +587,40 @@ for m in models["available_models"]:
 
 ---
 
-## 5. Структура проекта
+## 5. Project Structure
 
 ```
-├── config.json                      # Конфигурация экспериментов
-├── dev.env                          # API-ключ CoinGlass
-├── Models_builder_pipeline.py       # Главный пайплайн обучения
-├── Predictor.py                     # Класс для прогнозирования
-├── get_features_from_API.py         # Сбор данных из 27 источников
-├── graphics_builder.py              # ROC-кривые, графики метрик, confusion matrix
-├── requirements.txt                 # Зависимости
+├── config.json                      # Experiment configuration
+├── dev.env                          # CoinGlass API key
+├── Models_builder_pipeline.py       # Main training pipeline
+├── Predictor.py                     # Prediction class
+├── get_features_from_API.py         # Data collection from 27 sources
+├── graphics_builder.py              # ROC curves, metric plots, confusion matrices
+├── requirements.txt                 # Dependencies
 │
-├── FeaturesGetterModule/            # Работа с CoinGlass API
-│   ├── FeaturesGetter.py            # Класс-обёртка над API
-│   ├── features_endpoints.json      # Конфигурация 20 эндпоинтов
-│   └── helpers/                     # Утилиты обработки ответов API
+├── FeaturesGetterModule/            # CoinGlass API wrapper
+│   ├── FeaturesGetter.py            # API wrapper class
+│   ├── features_endpoints.json      # Configuration for 20 endpoints
+│   └── helpers/                     # API response processing utilities
 │
 ├── FeaturesEngineer/                # Feature Engineering
 │   └── FeaturesEngineer.py          # ensure_spot_prefix, add_y_up_custom, add_engineered_features
 │
-├── CorrelationsAnalyzer/            # Статистический анализ признаков
+├── CorrelationsAnalyzer/            # Statistical feature analysis
 │   └── CorrelationsAnalyzer.py      # corr_report (FDR), group_effect_report (Cohen's d)
 │
-├── ModelsTrainer/                   # Обучение моделей
+├── ModelsTrainer/                   # Model training
 │   ├── logistic_reg_model_train.py  # Walk-forward CV, hyperparameter tuning
-│   ├── base_model_trainer.py        # Пайплайн обучения base-моделей
-│   └── range_model_trainer.py       # Пайплайн обучения range-моделей
+│   ├── base_model_trainer.py        # Base model training pipeline
+│   └── range_model_trainer.py       # Range model training pipeline
 │
 ├── api/                             # REST API (FastAPI)
-│   ├── main.py                      # Приложение FastAPI
-│   ├── schemas.py                   # Pydantic-схемы запросов/ответов
+│   ├── main.py                      # FastAPI application
+│   ├── schemas.py                   # Pydantic request/response schemas
 │   └── routers/
-│       └── predictions.py           # Эндпоинты предсказаний
+│       └── predictions.py           # Prediction endpoints
 │
-├── Models/                          # Обученные модели и метрики
+├── Models/                          # Trained models and metrics
 │   ├── base_model_1d/
 │   │   ├── model_base_base_model_1d.joblib
 │   │   └── metrics_base_base_model_1d.json
@@ -628,26 +628,26 @@ for m in models["available_models"]:
 │   │   └── ...
 │   └── ...
 │
-├── graphics/                        # Автосгенерированные графики
+├── graphics/                        # Auto-generated plots
 │   ├── base_model_1d/
 │   │   ├── ROC_BASE_OOS.png
 │   │   ├── Metrics_vs_threshold_BASE_OOF___y_up_1d.png
 │   │   └── Confusion_Matrix_base_model_1d_thr0.50.png
 │   └── ...
 │
-├── LoggingSystem/                   # Логирование в файл + консоль
-├── notebooks/                       # Jupyter notebooks для экспериментов
-└── logs.log                         # Лог последнего запуска пайплайна
+├── LoggingSystem/                   # Logging to file + console
+├── notebooks/                       # Jupyter notebooks for experiments
+└── logs.log                         # Log from the last pipeline run
 ```
 
 ---
 
-## 6. Соглашения по данным
+## 6. Data Conventions
 
-- Все DataFrame содержат колонку `date` (datetime)
-- Признаки: `{source}__{metric}` (например, `futures_open_interest_history__close`)
-- Производные: `__diff1`, `__pct1`, `__lag{N}`
-- Целевая переменная base: `y_up_{N}d` (1 если цена выросла через N дней)
-- Целевая переменная range: `y_range_up_range_pct_N{N}_ma{W}` (1 если волатильность выше MA)
-- Данные для обучения: последние **1250 дней** от максимальной даты
-- Колонки с > 30% пропусков автоматически отбрасываются
+- All DataFrames contain a `date` column (datetime)
+- Features: `{source}__{metric}` (e.g., `futures_open_interest_history__close`)
+- Derived features: `__diff1`, `__pct1`, `__lag{N}`
+- Base target variable: `y_up_{N}d` (1 if price went up after N days)
+- Range target variable: `y_range_up_range_pct_N{N}_ma{W}` (1 if volatility exceeds MA)
+- Training data: last **1250 days** from the maximum date
+- Columns with > 30% missing values are automatically dropped

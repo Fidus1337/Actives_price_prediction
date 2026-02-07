@@ -451,53 +451,79 @@ After launch:
 
 ### Endpoints
 
-#### `POST /api/v1/predictions` — Get Predictions
+#### `POST /api/predictions` — Get Predictions
 
-Returns predictions from the selected model for the specified dates.
+Returns predictions from one or more models for the specified dates. Supports batch requests across multiple models in a single call.
 
 **Request:**
 ```json
 {
-    "model_name": "base_model_1d",
+    "models": ["base_model_1d", "range_model_3d"],
     "dates": ["2025-01-20", "2025-01-21"]
 }
 ```
 
-- `model_name` — model name (from the available configurations table)
-- `dates` — list of dates in `YYYY-MM-DD` format (1 to 100 dates)
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `models` | list[str] | 1–20 items | List of model names from the `Models/` folder |
+| `dates` | list[str] | 1–100 items | List of dates in `YYYY-MM-DD` format |
 
 **Response (200):**
 ```json
 {
-    "model_name": "base_model_1d",
-    "model_type": "base",
-    "horizon_days": 1,
+    "requested_models": ["base_model_1d", "range_model_3d"],
     "requested_dates": ["2025-01-20", "2025-01-21"],
-    "found_dates": ["2025-01-20"],
-    "missing_dates": ["2025-01-21"],
-    "predictions": [
+    "results": [
         {
-            "date": "2025-01-20",
-            "prediction": 1,
-            "probability": 0.654
+            "model_name": "base_model_1d",
+            "model_type": "base",
+            "horizon_days": 1,
+            "found_dates": ["2025-01-20"],
+            "missing_dates": ["2025-01-21"],
+            "predictions": [
+                {
+                    "date": "2025-01-20",
+                    "prediction": 1,
+                    "probability": 0.654321
+                }
+            ],
+            "error": null
+        },
+        {
+            "model_name": "range_model_3d",
+            "model_type": "range",
+            "horizon_days": 3,
+            "found_dates": ["2025-01-20"],
+            "missing_dates": ["2025-01-21"],
+            "predictions": [
+                {
+                    "date": "2025-01-20",
+                    "prediction": 0,
+                    "probability": 0.421876
+                }
+            ],
+            "error": null
         }
     ]
 }
 ```
 
+- `results` — array of results, one entry per requested model
 - `found_dates` — dates for which predictions were generated
 - `missing_dates` — dates not found in the data
+- `error` — error message if the model failed to load or predict (`null` on success)
 
 **Errors:**
-- `404` — model not found
-- `400` — invalid date format
-- `500` — error loading model or generating prediction
+- `422` — invalid request body (wrong date format, empty lists, etc.)
+- `500` — internal server error
+
+> If a model is not found, it will not fail the entire request — instead, the corresponding entry in `results` will contain an `error` field with details.
 
 ---
 
-#### `GET /api/v1/models` — List Models
+#### `GET /api/models` — List Models
 
-Returns a list of all available models with their metrics.
+Returns a list of all available models with their parameters and quality metrics.
 
 **Response (200):**
 ```json
@@ -530,7 +556,55 @@ Returns a list of all available models with their metrics.
 
 ---
 
-#### `GET /api/v1/health` — Health Check
+#### `POST /api/system/train_models` — Train Models
+
+Clears the model cache and runs the training pipeline. Accepts an optional JSON body with custom configurations; if no body is provided, reads from `config.json`.
+
+**Request (optional body):**
+```json
+{
+    "runs": [
+        {
+            "name": "base_model_1d",
+            "N_DAYS": 1,
+            "threshold": 0.5,
+            "ma_window": 14,
+            "range_feats": ["range_pct", "range_pct_ma14"],
+            "base_feats": [
+                "sp500__open__diff1__lag15",
+                "futures_open_interest_aggregated_history__close__pct1",
+                "gold__high__diff1"
+            ]
+        }
+    ]
+}
+```
+
+If the request body is empty (or not sent), the pipeline uses `config.json` on the server.
+
+**Response (200):**
+```json
+{
+    "status": "success",
+    "message": "Training executed successfully.",
+    "source": "custom_json"
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `status` | `"success"` on completion |
+| `message` | Human-readable result message |
+| `source` | `"custom_json"` if body was provided, `"file_config"` if `config.json` was used |
+
+**Errors:**
+- `500` — training pipeline failed (details in `detail` field)
+
+> Training can take a significant amount of time depending on the number of configurations and data volume.
+
+---
+
+#### `GET /api/health` — Health Check
 
 **Response (200):**
 ```json
@@ -543,7 +617,7 @@ Returns a list of all available models with their metrics.
 }
 ```
 
-`models_loaded` only shows models that have been loaded into the cache (after the first request).
+`models_loaded` only shows models that have been loaded into the cache (after the first prediction request).
 
 ---
 
@@ -551,38 +625,65 @@ Returns a list of all available models with their metrics.
 
 **curl:**
 ```bash
-# Predictions
-curl -X POST "http://localhost:8000/api/v1/predictions" \
+# Predictions (single model)
+curl -X POST "http://localhost:8000/api/predictions" \
   -H "Content-Type: application/json" \
-  -d '{"model_name": "base_model_1d", "dates": ["2025-01-20"]}'
+  -d '{"models": ["base_model_1d"], "dates": ["2025-01-20"]}'
+
+# Predictions (multiple models)
+curl -X POST "http://localhost:8000/api/predictions" \
+  -H "Content-Type: application/json" \
+  -d '{"models": ["base_model_1d", "range_model_3d"], "dates": ["2025-01-20", "2025-01-21"]}'
 
 # List models
-curl http://localhost:8000/api/v1/models
+curl http://localhost:8000/api/models
 
 # Health check
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/health
+
+# Train models (from config.json)
+curl -X POST "http://localhost:8000/api/system/train_models"
+
+# Train models (custom config)
+curl -X POST "http://localhost:8000/api/system/train_models" \
+  -H "Content-Type: application/json" \
+  -d '{"runs": [{"name": "base_model_1d", "N_DAYS": 1, "threshold": 0.5, "base_feats": ["spot_price_history__close__pct1"]}]}'
 ```
 
 **Python (requests):**
 ```python
 import requests
 
-# Predictions
+BASE_URL = "http://localhost:8000"
+
+# Predictions (multiple models at once)
 response = requests.post(
-    "http://localhost:8000/api/v1/predictions",
+    f"{BASE_URL}/api/predictions",
     json={
-        "model_name": "base_model_1d",
+        "models": ["base_model_1d", "range_model_3d"],
         "dates": ["2025-01-20", "2025-01-21"]
     }
 )
 data = response.json()
-for pred in data["predictions"]:
-    print(f"{pred['date']}: {pred['prediction']} (p={pred['probability']:.3f})")
+for result in data["results"]:
+    if result["error"]:
+        print(f"{result['model_name']}: ERROR — {result['error']}")
+        continue
+    print(f"\n{result['model_name']} ({result['model_type']}, {result['horizon_days']}d):")
+    for pred in result["predictions"]:
+        direction = "UP" if pred["prediction"] == 1 else "DOWN"
+        print(f"  {pred['date']}: {direction} (p={pred['probability']:.4f})")
 
 # List models with metrics
-models = requests.get("http://localhost:8000/api/v1/models").json()
+models = requests.get(f"{BASE_URL}/api/models").json()
 for m in models["available_models"]:
-    print(f"{m['name']}: AUC={m['metrics']['auc']:.4f}, F1={m['metrics']['f1']:.4f}")
+    metrics = m.get("metrics")
+    if metrics:
+        print(f"{m['name']}: AUC={metrics['auc']:.4f}, F1={metrics['f1']:.4f}")
+
+# Train models using server's config.json
+train_resp = requests.post(f"{BASE_URL}/api/system/train_models")
+print(train_resp.json())
 ```
 
 ---

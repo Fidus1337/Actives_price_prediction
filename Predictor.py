@@ -15,6 +15,7 @@ Usage:
 import os
 import re
 import json
+import time
 import joblib
 import pandas as pd
 from datetime import datetime
@@ -93,8 +94,10 @@ class Predictor:
         self.getter = FeaturesGetter(api_key=self.api_key)
         self.features_engineer = FeaturesEngineer()
 
-        # Cache for prepared data
+        # Cache for prepared data (with TTL)
         self._prepared_df: Optional[pd.DataFrame] = None
+        self._prepared_at: float = 0.0
+        self.cache_ttl_seconds: float = 3600  # 1 hour
 
     def _parse_name(self) -> tuple[str, int]:
         """Extract model_type and n_days from config_name like 'base_model_1d'."""
@@ -157,25 +160,42 @@ class Predictor:
         print("Warning: Could not determine features, falling back to config")
         return []
 
+    def _is_cache_stale(self) -> bool:
+        """Check if cached data has expired."""
+        if self._prepared_df is None:
+            return True
+        return (time.time() - self._prepared_at) > self.cache_ttl_seconds
+
+    def _get_prepared_df(self) -> pd.DataFrame:
+        """Get prepared DataFrame, refreshing cache if stale."""
+        if self._is_cache_stale():
+            if self._prepared_df is not None:
+                print("Cache expired, refreshing data...")
+            self._prepared_df = self._fetch_and_prepare_data()
+            self._prepared_at = time.time()
+        return self._prepared_df
+
     def _fetch_and_prepare_data(self) -> pd.DataFrame:
-        """Fetch fresh data from API and apply feature engineering."""
+        """Fetch fresh data from API and apply feature engineering.
+
+        Mirrors the training pipeline order from Models_builder_pipeline.main_pipeline():
+        ensure_spot_prefix → ffill → add_engineered_features → add_lags → add_y_up_custom
+        """
         print("Fetching features from API...")
         dfs = get_features(self.getter, self.api_key)
         df_all = merge_by_date(dfs, how="outer", dedupe="last")
+        df_all = df_all.sort_values("date").reset_index(drop=True)
         print(f"Features gathered. Shape: {df_all.shape}")
 
         # Normalize spot columns
         df0 = self.features_engineer.ensure_spot_prefix(df_all)
 
-        # Add target column
-        df1 = self.features_engineer.add_y_up_custom(
-            df0,
-            horizon=self.n_days,
-            close_col="spot_price_history__close"
-        )
+        # Forward-fill NaN gaps (same as training pipeline)
+        feature_cols = [c for c in df0.columns if c != "date"]
+        df0[feature_cols] = df0[feature_cols].ffill()
 
-        # Add engineered features
-        df2 = self.features_engineer.add_engineered_features(df1, horizon=self.n_days)
+        # Add engineered features (before target, same as training)
+        df2 = self.features_engineer.add_engineered_features(df0, horizon=self.n_days)
 
         # Add lag features for external market data (same as training pipeline)
         EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
@@ -186,6 +206,13 @@ class Predictor:
         if external_market_cols:
             print(f"Adding lag features for Gold ({len(gold_cols)}) and S&P500 ({len(sp500_cols)}) columns...")
             df2 = add_lags(df2, cols=external_market_cols, lags=EXTERNAL_LAGS)
+
+        # Add target column (after engineered features + lags, same as training)
+        df2 = self.features_engineer.add_y_up_custom(
+            df2,
+            horizon=self.n_days,
+            close_col="spot_price_history__close"
+        )
 
         # Add range features if needed
         if self.model_type == "range":
@@ -247,7 +274,11 @@ class Predictor:
 
         missing = set(features) - set(available_feats)
         if missing:
-            print(f"Warning: Missing features: {missing}")
+            raise ValueError(
+                f"Missing {len(missing)} features required by model: {missing}. "
+                f"Available: {len(available_feats)}/{len(features)}. "
+                f"Check if CoinGlass API returned all required data."
+            )
 
         X = df[available_feats]
 
@@ -274,10 +305,8 @@ class Predictor:
         Returns:
             List of PredictionResult objects.
         """
-        if self._prepared_df is None:
-            self._prepared_df = self._fetch_and_prepare_data()
-
-        df_pred = self._get_prediction_dates(self._prepared_df, n_dates)
+        df = self._get_prepared_df()
+        df_pred = self._get_prediction_dates(df, n_dates)
 
         if len(df_pred) == 0:
             print("Warning: No dates available for prediction")
@@ -298,10 +327,8 @@ class Predictor:
         Returns:
             List of PredictionResult objects. Only dates that exist in the data will be returned.
         """
-        if self._prepared_df is None:
-            self._prepared_df = self._fetch_and_prepare_data()
-
-        df_pred = self._filter_by_dates(self._prepared_df, dates)
+        df = self._get_prepared_df()
+        df_pred = self._filter_by_dates(df, dates)
 
         if len(df_pred) == 0:
             print(f"Warning: None of the requested dates found in data: {dates}")

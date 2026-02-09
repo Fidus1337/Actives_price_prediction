@@ -28,6 +28,7 @@ from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 from ModelsTrainer.logistic_reg_model_train import add_range_target, add_lags
+from Models_builder_pipeline import add_ta_features_for_asset
 
 
 @dataclass
@@ -179,7 +180,7 @@ class Predictor:
         """Fetch fresh data from API and apply feature engineering.
 
         Mirrors the training pipeline order from Models_builder_pipeline.main_pipeline():
-        ensure_spot_prefix → ffill → add_engineered_features → add_lags → add_y_up_custom
+        ensure_spot_prefix → ffill → add_engineered_features → add_ta_features → add_lags → add_y_up_custom
         """
         print("Fetching features from API...")
         dfs = get_features(self.getter, self.api_key)
@@ -196,6 +197,12 @@ class Predictor:
 
         # Add engineered features (before target, same as training)
         df2 = self.features_engineer.add_engineered_features(df0, horizon=self.n_days)
+
+        # Add TA indicators (same as training pipeline)
+        df2 = add_ta_features_for_asset(df2, prefix="gold")
+        df2 = add_ta_features_for_asset(df2, prefix="sp500")
+        df2 = add_ta_features_for_asset(df2, prefix="spot_price_history",
+                                         volume_col_override="spot_price_history__volume_usd")
 
         # Add lag features for external market data (same as training pipeline)
         EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)

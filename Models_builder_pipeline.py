@@ -42,13 +42,22 @@ def add_coverage(effect_tbl: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     eff["coverage"] = eff["feature"].apply(lambda c: float(df[c].notna().mean()) if c in df.columns else 0.0)
     return eff.sort_values(["abs_cohen_d", "coverage"], ascending=[False, False]).reset_index(drop=True)
 
-def add_ta_features_for_asset(df: pd.DataFrame, prefix: str) -> pd.DataFrame:
-    """Добавляет TA-индикаторы для актива с заданным префиксом."""
-    # Примечание: Функция оставлена как утилита, даже если не вызывается явно в main
+def add_ta_features_for_asset(df: pd.DataFrame, prefix: str, volume_col_override: str | None = None) -> pd.DataFrame:
+    """Добавляет TA-индикаторы для актива с заданным префиксом.
+
+    Parameters:
+        prefix: префикс колонок актива (e.g. "gold", "sp500", "spot_price_history")
+        volume_col_override: полное имя volume-колонки, если оно не {prefix}__volume
+                             (e.g. "spot_price_history__volume_usd" для BTC)
+    """
     df = df.copy()
-    
+
     required = ['open', 'close', 'high', 'low', 'volume']
     col_map = {col: f"{prefix}__{col}" for col in required}
+
+    # Позволяем переопределить имя volume-колонки
+    if volume_col_override:
+        col_map['volume'] = volume_col_override
 
     missing = [col_map[c] for c in required if col_map[c] not in df.columns]
     if missing:
@@ -121,6 +130,11 @@ def main_pipeline(cfg: dict, api_key: str):
     print(f"  Shape before feature engineering: {df_all.shape}")
     df_all = features_engineer.add_engineered_features(df_all, horizon=N_DAYS)
     
+    df_all = add_ta_features_for_asset(df_all, prefix="gold")
+    df_all = add_ta_features_for_asset(df_all, prefix="sp500")
+    df_all = add_ta_features_for_asset(df_all, prefix="spot_price_history",
+                                        volume_col_override="spot_price_history__volume_usd")
+
     # Лаги
     gold_cols = [c for c in df_all.columns if c.startswith("gold__") and "__lag" not in c]
     sp500_cols = [c for c in df_all.columns if c.startswith("sp500__") and "__lag" not in c]
@@ -138,11 +152,11 @@ def main_pipeline(cfg: dict, api_key: str):
     # 5. Фильтрация по дате (1250 дней)
     # =============================================================================
     print("=" * 60)
-    print("Filtering last 1250 days...")
-    
+    print("Filtering last 1500 days...")
+
     df_all['date'] = pd.to_datetime(df_all['date'])
     max_date = df_all['date'].max()
-    cutoff_date = max_date - pd.Timedelta(days=1250)
+    cutoff_date = max_date - pd.Timedelta(days=1500)
     
     rows_total = len(df_all)
     df_all = df_all[df_all['date'] >= cutoff_date]

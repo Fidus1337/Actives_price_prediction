@@ -37,6 +37,7 @@ class PredictionResult:
     date: str
     prediction: int
     probability: float
+    spot_price: float | None = None
 
 
 class Predictor:
@@ -47,6 +48,25 @@ class Predictor:
         predictor = Predictor("base_model_1d")
         results = predictor.predict_by_dates(["2025-01-20"])
     """
+
+    # Class-level shared cache (set by API startup, None for standalone use)
+    _shared_cache = None  # type: Optional["SharedBaseDataCache"]
+
+    @classmethod
+    def set_shared_cache(cls, cache) -> None:
+        """Attach a shared base data cache for all Predictor instances."""
+        cls._shared_cache = cache
+
+    @classmethod
+    def clear_shared_cache(cls) -> None:
+        """Clear the shared base data cache (e.g., after retraining)."""
+        if cls._shared_cache is not None:
+            cls._shared_cache.clear()
+
+    def invalidate_cache(self) -> None:
+        """Reset per-instance prepared DataFrame cache so it rebuilds from shared cache."""
+        self._prepared_df = None
+        self._prepared_at = 0.0
 
     def __init__(
         self,
@@ -177,10 +197,53 @@ class Predictor:
         return self._prepared_df
 
     def _fetch_and_prepare_data(self) -> pd.DataFrame:
-        """Fetch fresh data from API and apply feature engineering.
+        """Fetch data and apply feature engineering.
+
+        If a shared cache is available (API mode), uses cached base DataFrame
+        and applies only model-specific steps. Otherwise (standalone mode),
+        performs the full pipeline.
+        """
+        if self._shared_cache is not None:
+            return self._build_from_shared_cache()
+        return self._fetch_full_pipeline()
+
+    def _build_from_shared_cache(self) -> pd.DataFrame:
+        """Build model-specific DataFrame from shared base data.
+
+        Gets a copy of the shared base DataFrame (steps 1-8 already done)
+        and applies only model-specific target columns (steps 9-10).
+        """
+        print(f"Using shared base data cache for {self.config_name}...")
+        df2 = self._shared_cache.get_base_df()
+
+        # Step 9: Add target column
+        df2 = self.features_engineer.add_y_up_custom(
+            df2,
+            horizon=self.n_days,
+            close_col="spot_price_history__close"
+        )
+
+        # Step 10: Add range features if needed
+        if self.model_type == "range":
+            df2 = add_range_target(
+                df2,
+                high_col="spot_price_history__high",
+                low_col="spot_price_history__low",
+                close_col="spot_price_history__close",
+                ma_window=self.ma_window,
+                horizon=self.n_days,
+                use_pct=True,
+                baseline_shift=1,
+            )
+
+        print(f"Feature engineering complete (from cache). Shape: {df2.shape}")
+        return df2
+
+    def _fetch_full_pipeline(self) -> pd.DataFrame:
+        """Full pipeline for standalone use (no shared cache).
 
         Mirrors the training pipeline order from Models_builder_pipeline.main_pipeline():
-        ensure_spot_prefix → ffill → add_engineered_features → add_ta_features → add_lags → add_y_up_custom
+        ensure_spot_prefix -> ffill -> add_engineered_features -> add_ta_features -> add_lags -> add_y_up_custom
         """
         print("Fetching features from API...")
         dfs = get_features(self.getter, self.api_key)
@@ -292,12 +355,15 @@ class Predictor:
         proba = self.model.predict_proba(X)[:, 1]
         pred = self.model.predict(X)
 
+        has_spot = "spot_price_history__close" in df.columns
         results = []
         for i, date in enumerate(df["date"].values):
+            spot_price = float(df["spot_price_history__close"].iloc[i]) if has_spot else None
             results.append(PredictionResult(
                 date=pd.Timestamp(date).strftime("%Y-%m-%d"),
                 prediction=int(pred[i]),
                 probability=float(proba[i]),
+                spot_price=spot_price,
             ))
 
         return results

@@ -48,6 +48,7 @@ MODELS_DIR = PROJECT_ROOT / "Models"
 
 def get_predictor(model_name: str) -> Predictor:
     """Get or create a Predictor instance for the given model."""
+    
     if model_name not in _predictor_cache:
         _predictor_cache[model_name] = Predictor(
             config_name=model_name,
@@ -121,6 +122,18 @@ async def get_predictions(request: PredictionRequest) -> PredictionResponse:
     available = get_available_models()
     results: list[ModelPredictionResult] = []
 
+    # Refresh shared data: only when explicitly requested or on first load
+    from api.main import shared_data_cache
+    data_refreshed = False
+    if shared_data_cache is not None:
+        if request.refresh_dataset:
+            shared_data_cache.refresh()
+            data_refreshed = True
+        elif shared_data_cache._base_df is None:
+            # No data yet — force initial load
+            shared_data_cache.refresh()
+            data_refreshed = True
+
     for model_name in request.models:
         if not validate_model_name(model_name):
             results.append(ModelPredictionResult(
@@ -136,6 +149,8 @@ async def get_predictions(request: PredictionRequest) -> PredictionResponse:
 
         try:
             predictor = get_predictor(model_name)
+            if data_refreshed or predictor._prepared_df is None:
+                predictor.invalidate_cache()
             preds = predictor.predict_by_dates(request.dates)
 
             found_dates = [r.date for r in preds]
@@ -146,6 +161,7 @@ async def get_predictions(request: PredictionRequest) -> PredictionResponse:
                     date=r.date,
                     prediction=r.prediction,
                     probability=round(r.probability, 6),
+                    spot_price=r.spot_price,
                 )
                 for r in preds
             ]
@@ -206,11 +222,11 @@ async def list_models() -> ModelsResponse:
         metrics = None
         if metrics_data:
             metrics = ModelMetrics(
-                auc=metrics_data.get("auc", 0.0),
-                accuracy=metrics_data.get("acc", 0.0),
-                precision=metrics_data.get("precision", 0.0),
-                recall=metrics_data.get("recall", 0.0),
-                f1=metrics_data.get("f1", 0.0),
+                auc=metrics_data.get("cv_avg_auc", 0.0),
+                accuracy=metrics_data.get("cv_avg_acc", 0.0),
+                precision=metrics_data.get("cv_avg_precision", 0.0),
+                recall=metrics_data.get("cv_avg_recall", 0.0),
+                f1=metrics_data.get("cv_avg_f1", 0.0),
                 threshold=metrics_data.get("thr", 0.5),
             )
 
@@ -251,26 +267,29 @@ async def train_models(
     else:
         print("No custom config provided, using default 'config.json'.")
 
-    # 1. Очищаем кеш
-    print("Clearing model cache...")
+    # 1. Очищаем кеш моделей и shared data cache
+    print("Clearing model cache and shared data cache...")
     _predictor_cache.clear()
-    
+    Predictor.clear_shared_cache()
+
     # 2. Запускаем тяжелую функцию
     try:
         print("Starting train_models...")
-        
-        # run_in_threadpool принимает аргументы: (функция, *args).
-        # Мы передаем "config.json" как первый аргумент (config_in_project)
-        # И custom_runs как второй аргумент (your_config)
+
         await run_in_threadpool(
-            run_all_configs, 
-            "config.json", 
+            run_all_configs,
+            "config.json",
             custom_runs
         )
-        
-        # FastAPI автоматически преобразует этот словарь в Pydantic-модель TrainConfigResponse
+
+        # 3. Перезагружаем shared data cache после тренировки
+        from api.main import shared_data_cache
+        if shared_data_cache is not None:
+            print("Refreshing shared data cache after training...")
+            await run_in_threadpool(shared_data_cache.preload)
+
         return {
-            "status": "success", 
+            "status": "success",
             "message": "Training executed successfully.",
             "source": "custom_json" if custom_runs else "file_config"
         }
@@ -278,7 +297,7 @@ async def train_models(
         tb = traceback.format_exc()
         print(f"Error running configs: {tb}")
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"Failed to run configs: {str(e)}"
         )
 

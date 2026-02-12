@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
 # Ensure project root is in path for imports
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -14,14 +15,36 @@ sys.path.insert(0, str(PROJECT_ROOT))
 os.chdir(PROJECT_ROOT)  # Set working directory for config/model paths
 
 from api.routers import predictions
+from shared_data_cache import SharedBaseDataCache
+from Predictor import Predictor
+
+# Module-level reference for access from routers
+shared_data_cache: SharedBaseDataCache | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
+    global shared_data_cache
+
     print("Starting BTC Price Prediction API...")
+
+    # Load API key and create shared data cache
+    load_dotenv(PROJECT_ROOT / "dev.env")
+    api_key = os.getenv("COINGLASS_API_KEY")
+
+    if api_key:
+        shared_data_cache = SharedBaseDataCache(api_key=api_key)
+        Predictor.set_shared_cache(shared_data_cache)
+        print("Shared data cache initialized. Data will be fetched on first prediction request.")
+    else:
+        print("Warning: COINGLASS_API_KEY not found. Predictions will fail.")
+
     yield
+
     print("Shutting down API...")
+    if shared_data_cache is not None:
+        shared_data_cache.clear()
 
 
 app = FastAPI(

@@ -181,17 +181,13 @@ def walk_forward_logreg(
         "fold": fold_id,
     }).dropna(subset=["p_up"]).reset_index(drop=True)
 
-    # --- Полный OOS для лучшей модели ---
-    # Всё, что НЕ входит в train лучшего фолда — честный OOS
+    # --- OOS для лучшей модели (только test-сет лучшего фолда) ---
     all_splits = list(tscv.split(X))
-    best_train_idx = all_splits[best_idx][0]
+    best_test_idx = all_splits[best_idx][1]
 
-    oos_mask = np.ones(len(X), dtype=bool)
-    oos_mask[best_train_idx] = False
-
-    X_oos_full = X.loc[oos_mask].reset_index(drop=True)
-    y_oos_full = y.loc[oos_mask].reset_index(drop=True)
-    dates_oos_full = dates.loc[oos_mask].reset_index(drop=True)
+    X_oos_full = X.iloc[best_test_idx].reset_index(drop=True)
+    y_oos_full = y.iloc[best_test_idx].reset_index(drop=True)
+    dates_oos_full = dates.iloc[best_test_idx].reset_index(drop=True)
 
     proba_oos_full = best_model.predict_proba(X_oos_full)[:, 1]
     pred_oos_full = (proba_oos_full >= thr).astype(int)
@@ -222,6 +218,13 @@ def walk_forward_logreg(
         "recall": float(recs[best_idx]),
         "f1": float(f1s[best_idx]),
         "oos_full_metrics": oos_full_metrics,
+        "cv_avg_metrics": {
+            "auc": float(np.nanmean(aucs)),
+            "acc": float(np.mean(accs)),
+            "precision": float(np.mean(precs)),
+            "recall": float(np.mean(recs)),
+            "f1": float(np.mean(f1s)),
+        },
     }
 
     return results, best_model, oos_df, oos_full_df

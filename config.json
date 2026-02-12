@@ -3,7 +3,7 @@
         {
             "name": "base_model_1d",
             "N_DAYS": 1,
-            "threshold": 0.5,
+            "threshold": 0.49,
             "base_feats": [
                 "index_btc_reserve_risk__rr_z180__pct1",
                 "index_btc_lth_supply__supply_pct30__diff1",
@@ -23,11 +23,11 @@
         {
             "name": "range_model_1d",
             "N_DAYS": 1,
-            "threshold": 0.6,
-            "ma_window": 10,
+            "threshold": 0.56,
+            "ma_window": 14,
             "range_feats": [
                 "range_pct",
-                "range_pct_ma10"
+                "range_pct_ma14"
             ],
             "base_feats": [
                 "index_btc_reserve_risk__rr_z180__pct1",
@@ -48,7 +48,7 @@
         {
             "name": "base_model_3d",
             "N_DAYS": 3,
-            "threshold": 0.5,
+            "threshold": 0.60,
             "base_feats": [
                 "index_btc_active_addresses__aa_z180",
                 "gold__trend_kst_diff",
@@ -67,11 +67,11 @@
         {
             "name": "range_model_3d",
             "N_DAYS": 3,
-            "threshold": 0.55,
-            "ma_window": 10,
+            "threshold": 0.59,
+            "ma_window": 14,
             "range_feats": [
                 "range_pct",
-                "range_pct_ma10"
+                "range_pct_ma14"
             ],
             "base_feats": [
                 "index_btc_active_addresses__aa_z180",
@@ -91,7 +91,7 @@
         {
             "name": "base_model_5d",
             "N_DAYS": 5,
-            "threshold": 0.5,
+            "threshold": 0.48,
             "base_feats": [
                 "sp500__volatility_kcli",
                 "gold__volatility_bbhi__lag1",
@@ -124,7 +124,7 @@
         {
             "name": "base_model_7d",
             "N_DAYS": 7,
-            "threshold": 0.5,
+            "threshold": 0.66,
             "base_feats": [
                 "gold__momentum_pvo_hist__lag3",
                 "gold__volume_sma_em",

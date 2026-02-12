@@ -72,6 +72,7 @@ def base_model_train_pipeline(
 
     # Сохраняем метрики лучшей модели в JSON
     oos_full = results["oos_full_metrics"]
+    cv_avg = results["cv_avg_metrics"]
     metrics = {
         "config_name": CONFIG_NAME,
         "model_path": model_path,
@@ -87,6 +88,11 @@ def base_model_train_pipeline(
         "recall": oos_full["recall"],
         "f1": oos_full["f1"],
         "n_oos_samples": oos_full["n_oos_samples"],
+        "cv_avg_auc": cv_avg["auc"],
+        "cv_avg_acc": cv_avg["acc"],
+        "cv_avg_precision": cv_avg["precision"],
+        "cv_avg_recall": cv_avg["recall"],
+        "cv_avg_f1": cv_avg["f1"],
     }
     metrics_path = os.path.join(models_folder, f"metrics_base_{CONFIG_NAME}.json")
     with open(metrics_path, "w", encoding="utf-8") as f:

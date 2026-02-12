@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import traceback
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -34,6 +35,7 @@ from api.schemas import (
     ModelInfo,
     ModelMetrics,
     HealthResponse,
+    DatasetStatusResponse,
     TrainConfigRequest,
     TrainConfigResponse
 )
@@ -300,6 +302,26 @@ async def train_models(
             status_code=500,
             detail=f"Failed to run configs: {str(e)}"
         )
+
+@router.get(
+    "/dataset-status",
+    response_model=DatasetStatusResponse,
+    summary="Dataset status",
+    description="Returns the last refresh time and shape of the cached dataset",
+)
+async def dataset_status() -> DatasetStatusResponse:
+    """Check when the shared dataset was last refreshed."""
+    from api.main import shared_data_cache
+
+    if shared_data_cache is None or shared_data_cache._base_df is None:
+        return DatasetStatusResponse(is_loaded=False, last_refreshed_at=None, shape=None)
+
+    return DatasetStatusResponse(
+        is_loaded=True,
+        last_refreshed_at=datetime.fromtimestamp(shared_data_cache._fetched_at).isoformat(),
+        shape=list(shared_data_cache._base_df.shape),
+    )
+
 
 @router.get(
     "/health",

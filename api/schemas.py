@@ -103,6 +103,14 @@ class HealthResponse(BaseModel):
         description="Status of loaded models"
     )
 
+
+class DatasetStatusResponse(BaseModel):
+    """Response schema for dataset status endpoint."""
+
+    is_loaded: bool = Field(..., description="Whether dataset is currently loaded in memory")
+    last_refreshed_at: str | None = Field(None, description="ISO datetime of last refresh, null if never loaded")
+    shape: list[int] | None = Field(None, description="[rows, columns], null if not loaded")
+
 # Схема ожидаемого JSON. 
 # Мы повторяем структуру config.json, где есть ключ "runs", содержащий список конфигов.
 class TrainConfigRequest(BaseModel):

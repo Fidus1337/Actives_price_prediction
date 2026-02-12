@@ -70,7 +70,7 @@ def range_model_train_pipeline(
     feat_set = [c for c in (base_feats + range_feats) if c in df_range.columns]
 
     # Обучаем модель
-    results, model, oos_df = walk_forward_logreg(
+    results, model, oos_df, oos_full_df = walk_forward_logreg(
         df_range,
         features=feat_set,
         target=target_col,
@@ -86,20 +86,22 @@ def range_model_train_pipeline(
     joblib.dump(model, model_path)
 
     # Сохраняем метрики лучшей модели в JSON
+    oos_full = results["oos_full_metrics"]
     metrics = {
         "config_name": CONFIG_NAME,
         "model_path": model_path,
         "target": target_col,
-        "features": feat_set,  # Список фичей, на которых обучалась модель
+        "features": feat_set,
         "n_features": results["n_features"],
         "thr": results["thr"],
         "best_metric": results["best_metric"],
         "best_fold_idx": results["best_fold_idx"],
-        "auc": results["auc"],
-        "acc": results["acc"],
-        "precision": results["precision"],
-        "recall": results["recall"],
-        "f1": results["f1"],
+        "auc": oos_full["auc"],
+        "acc": oos_full["acc"],
+        "precision": oos_full["precision"],
+        "recall": oos_full["recall"],
+        "f1": oos_full["f1"],
+        "n_oos_samples": oos_full["n_oos_samples"],
     }
     metrics_path = os.path.join(models_folder, f"metrics_range_{CONFIG_NAME}.json")
     with open(metrics_path, "w", encoding="utf-8") as f:
@@ -113,4 +115,4 @@ def range_model_train_pipeline(
     # print(f"  Recall:    {results['recall']:.4f}")
     # print(f"  F1:        {results['f1']:.4f}")
 
-    return results, model, oos_df
+    return results, model, oos_df, oos_full_df

@@ -199,59 +199,57 @@ def main_pipeline(cfg: dict, api_key: str):
     if "range_model" in CONFIG_NAME:
         ma_window = cfg.get("ma_window")
         print(f"\nTraining Logistic Regression (Range Target, MA={ma_window})...")
-        
-        res_rngp, model_rngp, oos_rngp = range_model_train_pipeline(
-            df2, base_feats, cfg, n_splits=4, thr=threshold, choose_model_by_metric="f1"
-        )
-        
-        print(f"Range model metrics (fold {res_rngp['best_fold_idx']}, by {res_rngp['best_metric']}): "
-              f"AUC={res_rngp['auc']:.4f}, "
-              f"Precision={res_rngp['precision']:.4f}, "
-              f"Recall={res_rngp['recall']:.4f}, "
-              f"F1={res_rngp['f1']:.4f}")
 
-        # Графики Range
-        y_rng, p_rng = oos_rngp["y"].values, oos_rngp["p_up"].values
+        res_rngp, model_rngp, oos_rngp, oos_full_rng = range_model_train_pipeline(
+            df2, base_feats, cfg, n_splits=4, thr=threshold, choose_model_by_metric="accuracy"
+        )
+
+        oos_full_m = res_rngp["oos_full_metrics"]
+        print(f"Range model full OOS ({oos_full_m['n_oos_samples']} samples, fold {res_rngp['best_fold_idx']}): "
+              f"AUC={oos_full_m['auc']:.4f}, "
+              f"Precision={oos_full_m['precision']:.4f}, "
+              f"Recall={oos_full_m['recall']:.4f}, "
+              f"F1={oos_full_m['f1']:.4f}")
+
+        # Графики Range — на полном OOS
+        y_rng, p_rng = oos_full_rng["y"].values, oos_full_rng["p_up"].values
         results_range = plot_metrics_vs_threshold(
             y_rng, p_rng,
-            title=f"Metrics vs threshold (RANGE, OOF) - N{N_DAYS}_ma{ma_window}",
+            title=f"Metrics vs threshold (RANGE, full OOS) - N{N_DAYS}_ma{ma_window}",
             config_name=CONFIG_NAME
         )
         print_threshold_analysis(results_range, model_name=f"RANGE (N{N_DAYS}_ma{ma_window})")
 
-        best_fold_rng = res_rngp["best_fold_idx"]
-        oos_best_rng = oos_rngp[oos_rngp["fold"] == best_fold_rng]
         plot_confusion_matrix(
-            oos_best_rng["y"].values, oos_best_rng["p_up"].values,
+            y_rng, p_rng,
             threshold=threshold,
-            title=f"Confusion Matrix (RANGE) - N{N_DAYS}_ma{ma_window} (fold {best_fold_rng})",
+            title=f"Confusion Matrix (RANGE, full OOS) - N{N_DAYS}_ma{ma_window} ({oos_full_m['n_oos_samples']} samples)",
             config_name=CONFIG_NAME
         )
 
     # --- BASE MODEL ---
     elif "base_model" in CONFIG_NAME:
         print(f"\nTraining Logistic Regression (BASE: {TARGET_COLUMN_NAME})...")
-        res_base, model_base, oos_df = base_model_train_pipeline(
-            df2, base_feats, cfg, n_splits=4, thr=threshold, best_metric="f1"
+        res_base, model_base, oos_df, oos_full_base = base_model_train_pipeline(
+            df2, base_feats, cfg, n_splits=4, thr=threshold, best_metric="accuracy"
         )
 
-        # Графики Base
-        y_b, p_b = oos_df["y"].values, oos_df["p_up"].values
-        plot_roc(y_b, p_b, title="ROC (BASE, OOS)", config_name=CONFIG_NAME)
+        # Графики Base — на полном OOS
+        y_b, p_b = oos_full_base["y"].values, oos_full_base["p_up"].values
+        plot_roc(y_b, p_b, title="ROC (BASE, full OOS)", config_name=CONFIG_NAME)
 
         results_base = plot_metrics_vs_threshold(
             y_b, p_b,
-            title=f"Metrics vs threshold (BASE, OOF) - {TARGET_COLUMN_NAME}",
+            title=f"Metrics vs threshold (BASE, full OOS) - {TARGET_COLUMN_NAME}",
             config_name=CONFIG_NAME
         )
         print_threshold_analysis(results_base, model_name=f"BASE ({TARGET_COLUMN_NAME})")
 
-        best_fold_base = res_base["best_fold_idx"]
-        oos_best_base = oos_df[oos_df["fold"] == best_fold_base]
+        oos_full_m = res_base["oos_full_metrics"]
         plot_confusion_matrix(
-            oos_best_base["y"].values, oos_best_base["p_up"].values,
+            y_b, p_b,
             threshold=threshold,
-            title=f"Confusion Matrix (BASE) - {TARGET_COLUMN_NAME} (fold {best_fold_base})",
+            title=f"Confusion Matrix (BASE, full OOS) - {TARGET_COLUMN_NAME} ({oos_full_m['n_oos_samples']} samples)",
             config_name=CONFIG_NAME
         )
 

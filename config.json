@@ -2,7 +2,99 @@
     "runs": [
         {
             "name": "base_model_1d",
-            "N_DAYS": 7,
+            "N_DAYS": 1,
+            "threshold": 0.5,
+            "base_feats": [
+                "index_btc_reserve_risk__rr_z180__pct1",
+                "index_btc_lth_supply__supply_pct30__diff1",
+                "sp500__volume__diff1__lag3",
+                "sp500__volume__diff1__lag1",
+                "index_btc_lth_supply__lth_supply__diff1",
+                "futures_open_interest_history__close__diff1",
+                "gold__open__diff1",
+                "sp500__volatility_kcli__lag3",
+                "spot_price_history__volatility_kcli",
+                "futures_liquidation_history__long_liquidation_usd",
+                "sp500__volatility_kcli__lag10",
+                "gold__low__diff1__lag1",
+                "index_btc_lth_supply__price__diff1"
+            ]
+        },
+        {
+            "name": "range_model_1d",
+            "N_DAYS": 1,
+            "threshold": 0.6,
+            "ma_window": 10,
+            "range_feats": [
+                "range_pct",
+                "range_pct_ma10"
+            ],
+            "base_feats": [
+                "index_btc_reserve_risk__rr_z180__pct1",
+                "index_btc_lth_supply__supply_pct30__diff1",
+                "sp500__volume__diff1__lag3",
+                "sp500__volume__diff1__lag1",
+                "index_btc_lth_supply__lth_supply__diff1",
+                "futures_open_interest_history__close__diff1",
+                "gold__open__diff1",
+                "sp500__volatility_kcli__lag3",
+                "spot_price_history__volatility_kcli",
+                "futures_liquidation_history__long_liquidation_usd",
+                "sp500__volatility_kcli__lag10",
+                "gold__low__diff1__lag1",
+                "index_btc_lth_supply__price__diff1"
+            ]
+        },
+        {
+            "name": "base_model_3d",
+            "N_DAYS": 3,
+            "threshold": 0.5,
+            "base_feats": [
+                "index_btc_active_addresses__active_address_count",
+                "index_btc_active_addresses__aa_z180",
+                "gold__volatility_kchi__lag3",
+                "spot_price_history__volatility_kcli",
+                "gold__volatility_kchi__lag1",
+                "gold__volume_sma_em",
+                "sp500__volatility_kchi__lag1"
+            ]
+        },
+        {
+            "name": "range_model_3d",
+            "N_DAYS": 3,
+            "threshold": 0.55,
+            "ma_window": 10,
+            "range_feats": [
+                "range_pct",
+                "range_pct_ma10"
+            ],
+            "base_feats": [
+                "sp500__volatility_kcli",
+                "gold__volatility_bbhi__lag1",
+                "gold__volatility_bbhi",
+                "gold__volatility_kchi",
+                "sp500__volatility_kcli__lag1",
+                "gold__volatility_kchi__lag1",
+                "sp500__volatility_kcli__lag7"
+            ]
+        },
+        {
+            "name": "base_model_5d",
+            "N_DAYS": 5,
+            "threshold": 0.5,
+            "base_feats": [
+                "sp500__volatility_kcli",
+                "gold__volatility_bbhi__lag1",
+                "gold__volatility_bbhi",
+                "gold__volatility_kchi",
+                "sp500__volatility_kcli__lag1",
+                "gold__volatility_kchi__lag1",
+                "sp500__volatility_kcli__lag7"
+            ]
+        },
+        {
+            "name": "range_model_5d",
+            "N_DAYS": 5,
             "threshold": 0.5,
             "ma_window": 14,
             "range_feats": [
@@ -10,35 +102,52 @@
                 "range_pct_ma14"
             ],
             "base_feats": [
-                "gold__volatility_kcli__lag7",
-                "index_btc_reserve_risk__rr_z180__pct1",
-                "index_btc_lth_supply__supply_pct30__diff1",
-                "sp500__volume__diff1__lag3",
-                "sp500__volume__diff1__lag1",
-                "index_btc_lth_supply__lth_supply__diff1",
-                "futures_open_interest_history__close__diff1",
-                "gold__open__diff1"
+                "sp500__volatility_kcli",
+                "gold__volatility_bbhi__lag1",
+                "gold__volatility_bbhi",
+                "gold__volatility_kchi",
+                "sp500__volatility_kcli__lag1",
+                "gold__volatility_kchi__lag1",
+                "sp500__volatility_kcli__lag7"
             ]
         },
         {
             "name": "base_model_7d",
             "N_DAYS": 7,
-            "threshold": 0.6,
+            "threshold": 0.5,
+            "base_feats": [
+                "gold__momentum_pvo_hist__lag3",
+                "gold__volume_sma_em",
+                "gold__momentum_pvo_hist__lag5",
+                "gold__momentum_pvo_hist__lag7",
+                "gold__trend_mass_index",
+                "sp500__momentum_uo",
+                "sp500__volatility_kchi__lag1",
+                "index_btc_active_addresses__aa_z180",
+                "gold__volatility_kchi__lag5",
+                "gold__volatility_kcw__lag15"
+            ]
+        },
+        {
+            "name": "range_model_7d",
+            "N_DAYS": 1,
+            "threshold": 0.59,
             "ma_window": 14,
             "range_feats": [
                 "range_pct",
                 "range_pct_ma14"
             ],
             "base_feats": [
-                "sp500__momentum_uo",
+                "gold__momentum_pvo_hist__lag3",
                 "gold__volume_sma_em",
                 "gold__momentum_pvo_hist__lag5",
-                "gold__momentum_pvo_hist__lag1",
                 "gold__momentum_pvo_hist__lag7",
                 "gold__trend_mass_index",
-                "gold__momentum_pvo_hist__lag3",
+                "sp500__momentum_uo",
+                "sp500__volatility_kchi__lag1",
+                "index_btc_active_addresses__aa_z180",
                 "gold__volatility_kchi__lag5",
-                "index_btc_active_addresses__aa_z180"
+                "gold__volatility_kcw__lag15"
             ]
         }
     ]

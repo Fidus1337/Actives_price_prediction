@@ -181,6 +181,36 @@ def walk_forward_logreg(
         "fold": fold_id,
     }).dropna(subset=["p_up"]).reset_index(drop=True)
 
+    # --- Полный OOS для лучшей модели ---
+    # Всё, что НЕ входит в train лучшего фолда — честный OOS
+    all_splits = list(tscv.split(X))
+    best_train_idx = all_splits[best_idx][0]
+
+    oos_mask = np.ones(len(X), dtype=bool)
+    oos_mask[best_train_idx] = False
+
+    X_oos_full = X.loc[oos_mask].reset_index(drop=True)
+    y_oos_full = y.loc[oos_mask].reset_index(drop=True)
+    dates_oos_full = dates.loc[oos_mask].reset_index(drop=True)
+
+    proba_oos_full = best_model.predict_proba(X_oos_full)[:, 1]
+    pred_oos_full = (proba_oos_full >= thr).astype(int)
+
+    oos_full_df = pd.DataFrame({
+        "date": dates_oos_full,
+        "y": y_oos_full,
+        "p_up": proba_oos_full,
+    }).reset_index(drop=True)
+
+    oos_full_metrics = {
+        "auc": float(roc_auc_score(y_oos_full, proba_oos_full)) if len(y_oos_full.unique()) == 2 else None,
+        "acc": float(accuracy_score(y_oos_full, pred_oos_full)),
+        "precision": float(precision_score(y_oos_full, pred_oos_full, zero_division=0)),
+        "recall": float(recall_score(y_oos_full, pred_oos_full, zero_division=0)),
+        "f1": float(f1_score(y_oos_full, pred_oos_full, zero_division=0)),
+        "n_oos_samples": int(len(y_oos_full)),
+    }
+
     results = {
         "n_features": len(features),
         "thr": thr,
@@ -191,9 +221,10 @@ def walk_forward_logreg(
         "precision": float(precs[best_idx]),
         "recall": float(recs[best_idx]),
         "f1": float(f1s[best_idx]),
+        "oos_full_metrics": oos_full_metrics,
     }
 
-    return results, best_model, oos_df
+    return results, best_model, oos_df, oos_full_df
 
 # --------- CV eval (one config) ----------
 def walk_forward_logreg_cfg(

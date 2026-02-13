@@ -288,7 +288,7 @@ async def train_models(
         from api.main import shared_data_cache
         if shared_data_cache is not None:
             print("Refreshing shared data cache after training...")
-            await run_in_threadpool(shared_data_cache.preload)
+            await run_in_threadpool(shared_data_cache.refresh)
 
         return {
             "status": "success",

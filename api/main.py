@@ -36,7 +36,8 @@ async def lifespan(app: FastAPI):
     if api_key:
         shared_data_cache = SharedBaseDataCache(api_key=api_key)
         Predictor.set_shared_cache(shared_data_cache)
-        print("Shared data cache initialized. Data will be fetched on first prediction request.")
+        print("Shared data cache initialized. Fetching dataset...")
+        shared_data_cache.refresh()
     else:
         print("Warning: COINGLASS_API_KEY not found. Predictions will fail.")
 

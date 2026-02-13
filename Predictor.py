@@ -28,7 +28,7 @@ from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 from ModelsTrainer.logistic_reg_model_train import add_range_target, add_lags
-from Models_builder_pipeline import add_ta_features_for_asset
+from FeaturesEngineer.ta_features import add_ta_features_for_asset
 
 
 @dataclass

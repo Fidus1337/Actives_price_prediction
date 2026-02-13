@@ -20,7 +20,7 @@ from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 from ModelsTrainer.logistic_reg_model_train import add_lags
-from Models_builder_pipeline import add_ta_features_for_asset
+from FeaturesEngineer.ta_features import add_ta_features_for_asset
 
 
 class SharedBaseDataCache:
@@ -75,6 +75,33 @@ class SharedBaseDataCache:
             self._fetched_at = time.time()
         print(f"SharedBaseDataCache: Refreshed. Shape: {self._base_df.shape}")
 
+    @staticmethod
+    def _trim_to_longest_continuous_segment(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Find the longest run of consecutive calendar days and return only that segment.
+        Drops rows that belong to shorter segments separated by date gaps.
+        """
+        dates = pd.to_datetime(df["date"]).sort_values()
+        diffs = dates.diff()
+        is_gap = diffs > pd.Timedelta(days=1)
+        group_id = is_gap.cumsum()
+        largest_group = group_id.value_counts().idxmax()
+        mask = group_id == largest_group
+
+        trimmed = df.loc[mask].reset_index(drop=True)
+
+        dropped = len(df) - len(trimmed)
+        if dropped > 0:
+            print(
+                f"SharedBaseDataCache: Date continuity check — dropped {dropped} rows with gaps. "
+                f"Kept {len(trimmed)} consecutive days "
+                f"({trimmed['date'].iloc[0]} to {trimmed['date'].iloc[-1]})"
+            )
+
+        print(f"SharedBaseDataCache: Last date in dataset: {trimmed['date'].iloc[-1]}")
+
+        return trimmed
+
     def _fetch_base_data(self) -> pd.DataFrame:
         """
         Execute shared pipeline steps 1-8 (identical for all models).
@@ -125,6 +152,9 @@ class SharedBaseDataCache:
         if external_market_cols:
             print(f"SharedBaseDataCache: Adding lags for {len(external_market_cols)} external columns...")
             df2 = add_lags(df2, cols=external_market_cols, lags=EXTERNAL_LAGS)
+
+        # Step 9: Keep only longest continuous date segment
+        df2 = self._trim_to_longest_continuous_segment(df2)
 
         print(f"SharedBaseDataCache: Base data ready. Shape: {df2.shape}")
         return df2

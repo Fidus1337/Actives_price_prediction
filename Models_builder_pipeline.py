@@ -7,20 +7,16 @@ pd.options.mode.chained_assignment = None  # Отключаем SettingWithCopyW
 import os
 import sys
 import json
-import ta
 from dotenv import load_dotenv
 from fastapi import Body
 
 # Ваши кастомные модули
 from LoggingSystem.LoggingSystem import LoggingSystem
-from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
-from get_features_from_API import get_features
-from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis, plot_confusion_matrix
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
-from ModelsTrainer.logistic_reg_model_train import add_lags
+from shared_data_cache import SharedBaseDataCache
 
 # Загрузка переменных окружения
 load_dotenv("dev.env")
@@ -42,54 +38,9 @@ def add_coverage(effect_tbl: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     eff["coverage"] = eff["feature"].apply(lambda c: float(df[c].notna().mean()) if c in df.columns else 0.0)
     return eff.sort_values(["abs_cohen_d", "coverage"], ascending=[False, False]).reset_index(drop=True)
 
-def add_ta_features_for_asset(df: pd.DataFrame, prefix: str, volume_col_override: str | None = None) -> pd.DataFrame:
-    """Добавляет TA-индикаторы для актива с заданным префиксом.
-
-    Parameters:
-        prefix: префикс колонок актива (e.g. "gold", "sp500", "spot_price_history")
-        volume_col_override: полное имя volume-колонки, если оно не {prefix}__volume
-                             (e.g. "spot_price_history__volume_usd" для BTC)
-    """
-    df = df.copy()
-
-    required = ['open', 'close', 'high', 'low', 'volume']
-    col_map = {col: f"{prefix}__{col}" for col in required}
-
-    # Позволяем переопределить имя volume-колонки
-    if volume_col_override:
-        col_map['volume'] = volume_col_override
-
-    missing = [col_map[c] for c in required if col_map[c] not in df.columns]
-    if missing:
-        print(f"  Пропущены колонки для {prefix}: {missing}")
-        return df
-
-    temp_df = pd.DataFrame({
-        'open': df[col_map['open']].values,
-        'high': df[col_map['high']].values,
-        'low': df[col_map['low']].values,
-        'close': df[col_map['close']].values,
-        'volume': df[col_map['volume']].values
-    })
-
-    temp_with_ta = ta.add_all_ta_features(
-        temp_df,
-        open="open", high="high", low="low", close="close", volume="volume",
-        fillna=False
-    )
-
-    original_cols = {'open', 'high', 'low', 'close', 'volume'}
-    ta_cols = [c for c in temp_with_ta.columns if c not in original_cols]
-
-    for col in ta_cols:
-        df.loc[df.index, f"{prefix}__{col}"] = temp_with_ta[col].values
-
-    print(f"  Добавлено {len(ta_cols)} TA-фичей для {prefix}")
-    return df
-
-def main_pipeline(cfg: dict, api_key: str):
+def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
     """Основной пайплайн для одной конфигурации."""
-    
+
     # 1. Распаковка конфига
     N_DAYS = cfg["N_DAYS"]
     base_feats = cfg["base_feats"]
@@ -97,59 +48,19 @@ def main_pipeline(cfg: dict, api_key: str):
     TARGET_COLUMN_NAME = f"y_up_{N_DAYS}d"
     threshold = cfg.get("threshold", 0.5)
 
-    getter = FeaturesGetter(api_key=api_key)
     features_engineer = FeaturesEngineer()
 
     # =============================================================================
-    # 2. Сбор данных
+    # 2-4. Base data from shared cache (fetch, merge, ffill, features, TA, lags)
     # =============================================================================
-    print("Gathering features from API...")
-    dfs = get_features(getter, api_key)
-    df_all = merge_by_date(dfs, how="outer", dedupe="last")
-    df_all = df_all.sort_values('date').reset_index(drop=True)
-    print(f"Features gathered. Shape: {df_all.shape}")
+    df_all = shared_cache.get_base_df()
+    print(f"Base data from shared cache. Shape: {df_all.shape}")
 
-    # =============================================================================
-    # 3. Нормализация и первичное заполнение (ffill)
-    # =============================================================================
-    print("=" * 60)
-    print("Normalizing spot columns & Applying ffill...")
-    df_all = features_engineer.ensure_spot_prefix(df_all)
-    
-    feature_cols = [c for c in df_all.columns if c != "date"]
-    df_all[feature_cols] = df_all[feature_cols].ffill()
-    print(f"  Remaining NaN after ffill: {df_all[feature_cols].isna().sum().sum()}")
-
-    # =============================================================================
-    # 4. Генерация фичей и лагов (ВАЖНО: До обрезки даты!)
-    # =============================================================================
-    print("=" * 60)
-    print("Engineering features & Adding lags...")
-    
-    # Инженерные фичи
-    print(f"  Shape before feature engineering: {df_all.shape}")
-    df_all = features_engineer.add_engineered_features(df_all, horizon=N_DAYS)
-    
-    df_all = add_ta_features_for_asset(df_all, prefix="gold")
-    df_all = add_ta_features_for_asset(df_all, prefix="sp500")
-    df_all = add_ta_features_for_asset(df_all, prefix="spot_price_history",
-                                        volume_col_override="spot_price_history__volume_usd")
-
-    # Лаги
-    gold_cols = [c for c in df_all.columns if c.startswith("gold__") and "__lag" not in c]
-    sp500_cols = [c for c in df_all.columns if c.startswith("sp500__") and "__lag" not in c]
-    external_market_cols = gold_cols + sp500_cols
-    EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
-    
-    if external_market_cols:
-        df_all = add_lags(df_all, cols=external_market_cols, lags=EXTERNAL_LAGS)
-        print(f"  Added {len(external_market_cols) * len(EXTERNAL_LAGS)} lag features")
-    
     # Целевая колонка
     df_all = features_engineer.add_y_up_custom(df_all, horizon=N_DAYS, close_col="spot_price_history__close")
 
     # =============================================================================
-    # 5. Фильтрация по дате (1250 дней)
+    # 5. Фильтрация по дате (1500) дней)
     # =============================================================================
     print("=" * 60)
     print("Filtering last 1500 days...")
@@ -268,6 +179,8 @@ def run_all_configs(config_in_project: str = "config.json", your_config = None):
     print(f"Found {len(configs)} configurations to run")
     print("=" * 60)
     
+    cache = SharedBaseDataCache(api_key=API_KEY)
+
     results = {}
     for i, cfg in enumerate(configs, 1):
         run_name = cfg.get("name", f"run_{i}")
@@ -279,7 +192,7 @@ def run_all_configs(config_in_project: str = "config.json", your_config = None):
         print("=" * 60)
 
         try:
-            main_pipeline(cfg, API_KEY)
+            main_pipeline(cfg, cache)
             results[run_name] = "SUCCESS"
         except Exception as e:
             print(f"ERROR in {run_name}: {e}")

@@ -44,7 +44,7 @@ class SinglePrediction(BaseModel):
     date: str = Field(..., description="Date in YYYY-MM-DD format")
     prediction: int = Field(..., ge=0, le=1, description="Binary prediction (0=down, 1=up)")
     probability: float = Field(..., ge=0.0, le=1.0, description="Probability of price increase")
-    spot_price: float | None = Field(None, description="BTC spot close price on prediction date")
+    spot_price_close: float | None = Field(None, description="BTC spot close price on prediction date")
 
 
 class ModelPredictionResult(BaseModel):

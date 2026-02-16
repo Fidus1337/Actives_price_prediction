@@ -19,7 +19,7 @@ def get_features(getter: FeaturesGetter, API_KEY: str):
     prefix="futures_open_interest_aggregated_history"
     )
     
-        # Open Interest Stablecoin
+    # Open Interest Stablecoin
     df_stable_oi = getter.get_history(
         endpoint_name="open_interest_stablecoin",
         exchange_list="Binance",

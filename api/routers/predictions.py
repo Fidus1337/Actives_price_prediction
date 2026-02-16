@@ -163,7 +163,7 @@ async def get_predictions(request: PredictionRequest) -> PredictionResponse:
                     date=r.date,
                     prediction=r.prediction,
                     probability=round(r.probability, 6),
-                    spot_price=r.spot_price,
+                    spot_price_close=r.spot_price,
                 )
                 for r in preds
             ]

@@ -38,6 +38,8 @@ class PredictionResult:
     prediction: int
     probability: float
     spot_price: float | None = None
+    range_pct_sma: float | None = None
+    sma_window: int | None = None
 
 
 class Predictor:
@@ -356,14 +358,19 @@ class Predictor:
         pred = self.model.predict(X)
 
         has_spot = "spot_price_history__close" in df.columns
+        sma_col = f"range_pct_ma{self.ma_window}"
+        has_sma = sma_col in df.columns
         results = []
         for i, date in enumerate(df["date"].values):
             spot_price = float(df["spot_price_history__close"].iloc[i]) if has_spot else None
+            range_sma = float(df[sma_col].iloc[i]) if has_sma else None
             results.append(PredictionResult(
                 date=pd.Timestamp(date).strftime("%Y-%m-%d"),
                 prediction=int(pred[i]),
                 probability=float(proba[i]),
                 spot_price=spot_price,
+                range_pct_sma=range_sma,
+                sma_window=self.ma_window if has_sma else None,
             ))
 
         return results

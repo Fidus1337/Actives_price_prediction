@@ -45,14 +45,14 @@ class SinglePrediction(BaseModel):
     prediction: int = Field(..., ge=0, le=1, description="Binary prediction (0=down, 1=up)")
     probability: float = Field(..., ge=0.0, le=1.0, description="Probability of price increase")
     spot_price_close: float | None = Field(None, description="BTC spot close price on prediction date")
-    range_pct_sma: float | None = Field(None, description="SMA of daily price range (range_pct), window size from model config. Populated for range models only.")
+    range_abs_sma: float | None = Field(None, description="SMA of daily price range in absolute USD terms, window size from model config. Populated for range models only.")
     sma_window: int | None = Field(None, exclude=True)
 
     @model_serializer(mode="wrap")
     def _serialize(self, handler) -> dict:
         data = handler(self)
-        if self.sma_window is not None and "range_pct_sma" in data:
-            data[f"range_pct_sma_{self.sma_window}"] = data.pop("range_pct_sma")
+        if self.sma_window is not None and "range_abs_sma" in data:
+            data[f"range_abs_sma_{self.sma_window}"] = data.pop("range_abs_sma")
         return data
 
 

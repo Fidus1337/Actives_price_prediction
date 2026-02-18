@@ -164,7 +164,7 @@ async def get_predictions(request: PredictionRequest) -> PredictionResponse:
                     prediction=r.prediction,
                     probability=round(r.probability, 6),
                     spot_price_close=r.spot_price,
-                    range_pct_sma=r.range_pct_sma,
+                    range_abs_sma=r.range_abs_sma,
                     sma_window=r.sma_window,
                 )
                 for r in preds

@@ -11,13 +11,13 @@ def range_model_train_pipeline(
     cfg: dict,
     n_splits: int = 5,
     thr: float = 0.5,
-    choose_model_by_metric = "f1"
 ) -> tuple[dict, object, pd.DataFrame]:
     """
     Тренирует и сохраняет Range модель.
 
     Модель предсказывает: будет ли range (high-low)/close через N дней
     выше текущей скользящей средней MA(ma_window).
+    OOS-оценка — на последнем фолде. Финальная модель — обучена на всех данных.
 
     Parameters:
     -----------
@@ -34,7 +34,7 @@ def range_model_train_pipeline(
 
     Returns:
     --------
-    tuple : (results_dict, trained_model, oos_df)
+    tuple : (results_dict, trained_model, oos_df, oos_last_df)
     """
     N_DAYS = cfg["N_DAYS"]
     ma_window = cfg.get("ma_window", 14)
@@ -45,7 +45,6 @@ def range_model_train_pipeline(
     LOW_COL = "spot_price_history__low"
     CLOSE_COL = "spot_price_history__close"
 
-    # Добавляем range target
     df_range = add_range_target(
         df,
         high_col=HIGH_COL,
@@ -59,33 +58,27 @@ def range_model_train_pipeline(
 
     target_col = f"y_range_up_range_pct_N{N_DAYS}_ma{ma_window}"
 
-    # Дефолтные range фичи если не указаны
     if range_feats is None:
         range_feats = [
             "range_pct",
             f"range_pct_ma{ma_window}",
         ]
 
-    # Собираем финальный набор фичей
     feat_set = [c for c in (base_feats + range_feats) if c in df_range.columns]
 
-    # Обучаем модель
-    results, model, oos_df, oos_full_df = walk_forward_logreg(
+    results, model, oos_df, oos_last_df = walk_forward_logreg(
         df_range,
         features=feat_set,
         target=target_col,
         n_splits=n_splits,
         thr=thr,
-        best_metric=choose_model_by_metric
     )
 
-    # Сохраняем модель
     models_folder = os.path.join("Models", CONFIG_NAME)
     os.makedirs(models_folder, exist_ok=True)
     model_path = os.path.join(models_folder, f"model_range_{CONFIG_NAME}.joblib")
     joblib.dump(model, model_path)
 
-    # Сохраняем метрики лучшей модели в JSON
     oos_full = results["oos_full_metrics"]
     cv_avg = results["cv_avg_metrics"]
     metrics = {
@@ -95,8 +88,7 @@ def range_model_train_pipeline(
         "features": feat_set,
         "n_features": results["n_features"],
         "thr": results["thr"],
-        "best_metric": results["best_metric"],
-        "best_fold_idx": results["best_fold_idx"],
+        "eval_fold_idx": results["eval_fold_idx"],
         "auc": oos_full["auc"],
         "acc": oos_full["acc"],
         "precision": oos_full["precision"],
@@ -113,12 +105,4 @@ def range_model_train_pipeline(
     with open(metrics_path, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2, ensure_ascii=False)
 
-    # print(f"Range model saved to {model_path}")
-    # print(f"Metrics saved to {metrics_path}")
-    # print(f"Best model metrics (fold {results['best_fold_idx']}, by {results['best_metric']}):")
-    # print(f"  AUC:       {results['auc']:.4f}" if results['auc'] else "  AUC:       N/A")
-    # print(f"  Precision: {results['precision']:.4f}")
-    # print(f"  Recall:    {results['recall']:.4f}")
-    # print(f"  F1:        {results['f1']:.4f}")
-
-    return results, model, oos_df, oos_full_df
+    return results, model, oos_df, oos_last_df

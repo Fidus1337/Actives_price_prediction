@@ -23,12 +23,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 from dotenv import load_dotenv
-from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
-from get_features_from_API import get_features
-from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-from ModelsTrainer.logistic_reg_model_train import add_range_target, add_lags
-from FeaturesEngineer.ta_features import add_ta_features_for_asset
+from ModelsTrainer.logistic_reg_model_train import add_range_target
+from shared_data_cache import SharedBaseDataCache
 
 
 @dataclass
@@ -94,9 +91,10 @@ class Predictor:
 
         # Load environment variables (API key)
         load_dotenv(env_path)
-        self.api_key = os.getenv("COINGLASS_API_KEY")
-        if not self.api_key:
+        api_key = os.getenv("COINGLASS_API_KEY")
+        if not api_key:
             raise ValueError(f"COINGLASS_API_KEY not found in {env_path}")
+        self.api_key: str = api_key
 
         # Config is optional — override defaults if found
         self.config = self._load_config_optional()
@@ -114,7 +112,6 @@ class Predictor:
         self.model_features = self._load_model_features()
 
         # Initialize helpers
-        self.getter = FeaturesGetter(api_key=self.api_key)
         self.features_engineer = FeaturesEngineer()
 
         # Cache for prepared data (with TTL)
@@ -199,97 +196,26 @@ class Predictor:
         return self._prepared_df
 
     def _fetch_and_prepare_data(self) -> pd.DataFrame:
-        """Fetch data and apply feature engineering.
+        """Fetch base data via SharedBaseDataCache, then add model-specific targets.
 
-        If a shared cache is available (API mode), uses cached base DataFrame
-        and applies only model-specific steps. Otherwise (standalone mode),
-        performs the full pipeline.
+        If no shared cache was set (standalone mode), creates a local one.
         """
-        if self._shared_cache is not None:
-            return self._build_from_shared_cache()
-        return self._fetch_full_pipeline()
+        cache = self._shared_cache
+        if cache is None:
+            cache = SharedBaseDataCache(api_key=self.api_key)
 
-    def _build_from_shared_cache(self) -> pd.DataFrame:
-        """Build model-specific DataFrame from shared base data.
+        print(f"Building dataset for {self.config_name}...")
+        df = cache.get_base_df()
 
-        Gets a copy of the shared base DataFrame (steps 1-8 already done)
-        and applies only model-specific target columns (steps 9-10).
-        """
-        print(f"Using shared base data cache for {self.config_name}...")
-        df2 = self._shared_cache.get_base_df()
-
-        # Step 9: Add target column
-        df2 = self.features_engineer.add_y_up_custom(
-            df2,
-            horizon=self.n_days,
-            close_col="spot_price_history__close"
-        )
-
-        # Step 10: Add range features if needed
-        if self.model_type == "range":
-            df2 = add_range_target(
-                df2,
-                high_col="spot_price_history__high",
-                low_col="spot_price_history__low",
-                close_col="spot_price_history__close",
-                ma_window=self.ma_window,
-                horizon=self.n_days,
-                use_pct=True,
-                baseline_shift=1,
-            )
-
-        print(f"Feature engineering complete (from cache). Shape: {df2.shape}")
-        return df2
-
-    def _fetch_full_pipeline(self) -> pd.DataFrame:
-        """Full pipeline for standalone use (no shared cache).
-
-        Mirrors the training pipeline order from Models_builder_pipeline.main_pipeline():
-        ensure_spot_prefix -> ffill -> add_engineered_features -> add_ta_features -> add_lags -> add_y_up_custom
-        """
-        print("Fetching features from API...")
-        dfs = get_features(self.getter, self.api_key)
-        df_all = merge_by_date(dfs, how="outer", dedupe="last")
-        df_all = df_all.sort_values("date").reset_index(drop=True)
-        print(f"Features gathered. Shape: {df_all.shape}")
-
-        # Normalize spot columns
-        df0 = self.features_engineer.ensure_spot_prefix(df_all)
-
-        # Forward-fill NaN gaps (same as training pipeline)
-        feature_cols = [c for c in df0.columns if c != "date"]
-        df0[feature_cols] = df0[feature_cols].ffill()
-
-        # Add engineered features (before target, same as training)
-        df2 = self.features_engineer.add_engineered_features(df0, horizon=self.n_days)
-
-        # Add TA indicators (same as training pipeline)
-        df2 = add_ta_features_for_asset(df2, prefix="gold")
-        df2 = add_ta_features_for_asset(df2, prefix="sp500")
-        df2 = add_ta_features_for_asset(df2, prefix="spot_price_history",
-                                         volume_col_override="spot_price_history__volume_usd")
-
-        # Add lag features for external market data (same as training pipeline)
-        EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
-        gold_cols = [c for c in df2.columns if c.startswith("gold__") and "__lag" not in c]
-        sp500_cols = [c for c in df2.columns if c.startswith("sp500__") and "__lag" not in c]
-        external_market_cols = gold_cols + sp500_cols
-
-        if external_market_cols:
-            print(f"Adding lag features for Gold ({len(gold_cols)}) and S&P500 ({len(sp500_cols)}) columns...")
-            df2 = add_lags(df2, cols=external_market_cols, lags=EXTERNAL_LAGS)
-
-        # Add target column (after engineered features + lags, same as training)
-        df2 = self.features_engineer.add_y_up_custom(
-            df2,
-            horizon=self.n_days,
-            close_col="spot_price_history__close"
+        # Add target column
+        df = self.features_engineer.add_y_up_custom(
+            df, horizon=self.n_days, close_col="spot_price_history__close"
         )
 
         # Add range features if needed
         if self.model_type == "range":
-            df2 = add_range_target(
-                df2,
+            df = add_range_target(
+                df,
                 high_col="spot_price_history__high",
                 low_col="spot_price_history__low",
                 close_col="spot_price_history__close",
@@ -299,8 +225,8 @@ class Predictor:
                 baseline_shift=1,
             )
 
-        print(f"Feature engineering complete. Shape: {df2.shape}")
-        return df2
+        print(f"Feature engineering complete. Shape: {df.shape}")
+        return df
 
     def _get_prediction_dates(self, df: pd.DataFrame, n_dates: int = 10) -> pd.DataFrame:
         """Filter DataFrame to last n_dates."""

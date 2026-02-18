@@ -2,13 +2,15 @@
 Shared base data cache for Predictor instances.
 
 Caches the result of the expensive shared pipeline steps
-(API fetch + merge + ffill + engineered features + TA + lags)
+(API fetch + merge + ffill + date filter + drop sparse + engineered features + TA)
 that are identical for ALL models regardless of horizon or type.
 
 Each Predictor then applies only model-specific target engineering
 on top of a copy of this shared DataFrame.
 """
 
+import json
+import os
 import threading
 import time
 from typing import Optional
@@ -19,15 +21,14 @@ from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 from get_features_from_API import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-from ModelsTrainer.logistic_reg_model_train import add_lags
-from FeaturesEngineer.ta_features import add_ta_features_for_asset
+from FeaturesEngineer.ta_features import add_ta_features_selected
 
 
 class SharedBaseDataCache:
     """
     Thread-safe cache for the base DataFrame shared across all Predictor instances.
 
-    The base DataFrame includes all pipeline steps up to (and including) add_lags(),
+    The base DataFrame includes all pipeline steps up to (and including) TA indicators,
     but EXCLUDES model-specific target columns (y_up_Nd, range targets).
     """
 
@@ -102,59 +103,104 @@ class SharedBaseDataCache:
 
         return trimmed
 
+    # Columns with too many NaN (data starts much later than other sources)
+    _SPARSE_COLUMNS = [
+        # Orderbook: ~337 NaN out of 1000 rows
+        'futures_orderbook_aggregated_ask_bids_history__aggregated_asks_usd',
+        'futures_orderbook_aggregated_ask_bids_history__aggregated_bids_usd',
+        'futures_orderbook_aggregated_ask_bids_history__aggregated_bids_quantity',
+        'futures_orderbook_ask_bids_history__asks_quantity',
+        'futures_orderbook_ask_bids_history__asks_usd',
+        'futures_orderbook_ask_bids_history__bids_quantity',
+        'futures_orderbook_ask_bids_history__bids_usd',
+        'futures_orderbook_aggregated_ask_bids_history__aggregated_asks_quantity',
+        # CGDI index: ~222 NaN
+        'cgdi_dev_from_base',
+        'cgdi_log_level',
+        'cgdi_index_value',
+        'cgdi_dev_softsign',
+    ]
+
+    _DATE_WINDOW_DAYS = 1000
+    _LAG_PERIODS = [1, 3, 5, 7, 15]
+
     def _fetch_base_data(self) -> pd.DataFrame:
         """
-        Execute shared pipeline steps 1-8 (identical for all models).
+        Execute shared pipeline (identical for all models).
 
-        1. get_features()                    -> 27 API calls
-        2. merge_by_date()                   -> single DataFrame
-        3. sort_values("date")
-        4. ensure_spot_prefix()
-        5. ffill()
-        6. add_engineered_features()         -> diff1, pct1, imbalances
-        7. add_ta_features_for_asset() x3    -> TA indicators
-        8. add_lags()                        -> external market lags
-
-        NOTE on step 6: horizon param is used only to exclude a target column
-        from diff/pct computation, but that column doesn't exist yet at this
-        point, so the output is identical regardless of horizon value.
+        1. get_features() + merge_by_date() + sort
+        2. ensure_spot_prefix()
+        3. ffill()
+        4. Date filter (last _DATE_WINDOW_DAYS days)
+        5. Drop sparse columns + re-ffill + dropna
+        6. add_engineered_features()  -> diff1, pct1, imbalances
+        7. add_ta_features_selected() x3  -> 8 TA indicators per asset
+        8. Add lag features (1, 3, 5, 7, 15 days) for base columns
+        9. _trim_to_longest_continuous_segment()
         """
+        # 1. Raw data
         print("SharedBaseDataCache: Fetching features from API...")
         dfs = get_features(self._getter, self._api_key)
-        df_all = merge_by_date(dfs, how="outer", dedupe="last")
-        df_all = df_all.sort_values("date").reset_index(drop=True)
-        print(f"SharedBaseDataCache: Features gathered. Shape: {df_all.shape}")
+        df = merge_by_date(dfs, how="outer", dedupe="last")
+        df = df.sort_values("date").reset_index(drop=True)
+        print(f"SharedBaseDataCache: Raw data: {df.shape}")
 
-        # Step 4: Normalize spot columns
-        df0 = self._features_engineer.ensure_spot_prefix(df_all)
+        # 2. Normalize spot columns
+        df = self._features_engineer.ensure_spot_prefix(df)
 
-        # Step 5: Forward-fill NaN gaps
-        feature_cols = [c for c in df0.columns if c != "date"]
-        df0[feature_cols] = df0[feature_cols].ffill()
+        # 3. Forward-fill gaps (weekends/holidays)
+        feature_cols = [c for c in df.columns if c != "date"]
+        df[feature_cols] = df[feature_cols].ffill()
 
-        # Step 6: Engineered features (horizon irrelevant, see docstring)
-        df2 = self._features_engineer.add_engineered_features(df0)
+        # 4. Date filter
+        df['date'] = pd.to_datetime(df['date'])
+        cutoff = df['date'].max() - pd.Timedelta(days=self._DATE_WINDOW_DAYS)
+        df = df[df['date'] >= cutoff]
 
-        # Step 7: TA indicators
-        df2 = add_ta_features_for_asset(df2, prefix="gold")
-        df2 = add_ta_features_for_asset(df2, prefix="sp500")
-        df2 = add_ta_features_for_asset(
-            df2, prefix="spot_price_history",
+        # 5. Drop sparse columns + clean up remaining NaN
+        cols_to_drop = [c for c in self._SPARSE_COLUMNS if c in df.columns]
+        df = df.drop(columns=cols_to_drop)
+        feature_cols = [c for c in df.columns if c != "date"]
+        df[feature_cols] = pd.DataFrame(df[feature_cols]).ffill()
+        df = pd.DataFrame(df.dropna())
+
+        # 6. Engineered features (diff1, pct1, imbalances)
+        df = self._features_engineer.add_engineered_features(df)
+
+        # 7. TA indicators (8 per asset: ADX, CCI, RSI, ROC, ATR, BBW, OBV, MFI)
+        df = add_ta_features_selected(df, prefix="gold")
+        df = add_ta_features_selected(df, prefix="sp500")
+        df = add_ta_features_selected(
+            df, prefix="spot_price_history",
             volume_col_override="spot_price_history__volume_usd"
         )
 
-        # Step 8: Lag features for external market data
-        EXTERNAL_LAGS = (1, 3, 5, 7, 10, 15)
-        gold_cols = [c for c in df2.columns if c.startswith("gold__") and "__lag" not in c]
-        sp500_cols = [c for c in df2.columns if c.startswith("sp500__") and "__lag" not in c]
-        external_market_cols = gold_cols + sp500_cols
+        # 8. Lag features for base columns (excluding diff1/pct1 derivatives)
+        base_cols = [
+            c for c in df.columns
+            if c != "date" and "__pct1" not in c and "__diff1" not in c
+        ]
+        cols_before = df.shape[1]
+        lag_frames = []
+        for lag in self._LAG_PERIODS:
+            lagged = df[base_cols].shift(lag)
+            lagged.columns = [f"{col}__lag{lag}" for col in base_cols]
+            lag_frames.append(lagged)
+        df = pd.concat([df] + lag_frames, axis=1)
+        print(f"SharedBaseDataCache: Added lags {self._LAG_PERIODS}: "
+              f"{cols_before} -> {df.shape[1]} columns (+{df.shape[1] - cols_before})")
 
-        if external_market_cols:
-            print(f"SharedBaseDataCache: Adding lags for {len(external_market_cols)} external columns...")
-            df2 = add_lags(df2, cols=external_market_cols, lags=EXTERNAL_LAGS)
+        # 9. Keep only longest continuous date segment
+        df = self._trim_to_longest_continuous_segment(df)
 
-        # Step 9: Keep only longest continuous date segment
-        df2 = self._trim_to_longest_continuous_segment(df2)
+        df = df.dropna()
 
-        print(f"SharedBaseDataCache: Base data ready. Shape: {df2.shape}")
-        return df2
+        # Save available features list to project root
+        feature_names = sorted([c for c in df.columns if c != "date"])
+        features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "available_features.json")
+        with open(features_path, "w", encoding="utf-8") as f:
+            json.dump({"features": feature_names, "count": len(feature_names)}, f, indent=2, ensure_ascii=False)
+        print(f"SharedBaseDataCache: Saved {len(feature_names)} features to available_features.json")
+
+        print(f"SharedBaseDataCache: Base data ready. Shape: {df.shape}")
+        return df

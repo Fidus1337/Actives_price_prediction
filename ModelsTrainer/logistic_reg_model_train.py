@@ -99,16 +99,19 @@ def walk_forward_logreg(
     target: str = "y_up_1d",
     n_splits: int = 5,
     thr: float = 0.5,
-    best_metric: str = "auc",
 ):
     """
     Walk-forward cross-validation for Logistic Regression.
 
+    OOS evaluation uses the LAST fold (most training data, most recent period,
+    no selection bias). The final model for production is trained on ALL data.
+
     Returns:
-        tuple: (results_dict, best_model, oos_df) where:
-            - results_dict: metrics from CV
-            - best_model: pipeline from the fold with the best score
-            - oos_df: DataFrame with OOS predictions from ALL folds (date, y, p_up, fold)
+        tuple: (results_dict, final_model, oos_df, oos_last_df) where:
+            - results_dict: metrics from CV + last-fold OOS
+            - final_model: pipeline trained on ALL data (for production)
+            - oos_df: DataFrame with OOS predictions from ALL folds
+            - oos_last_df: DataFrame with OOS predictions from last fold only
     """
     d = df.copy()
     d["date"] = pd.to_datetime(d["date"], errors="coerce")
@@ -130,9 +133,7 @@ def walk_forward_logreg(
     ])
 
     accs, aucs, precs, recs, f1s = [], [], [], [], []
-    models = []
 
-    # Собираем OOS-предсказания со всех фолдов
     proba_oos = np.full(len(X), np.nan)
     fold_id = np.full(len(X), -1, dtype=int)
 
@@ -141,12 +142,10 @@ def walk_forward_logreg(
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
         pipe.fit(X_train, y_train)
-        models.append(copy.deepcopy(pipe))
 
         proba = pipe.predict_proba(X_test)[:, 1]
         pred = (proba >= thr).astype(int)
 
-        # Сохраняем OOS-предсказания
         proba_oos[test_idx] = proba
         fold_id[test_idx] = fold_i
 
@@ -155,25 +154,12 @@ def walk_forward_logreg(
         recs.append(recall_score(y_test, pred, zero_division=0))
         f1s.append(f1_score(y_test, pred, zero_division=0))
 
-        # ROC AUC: если один класс — ставим nan, но длину сохраняем
         if len(np.unique(y_test)) == 2:
             aucs.append(roc_auc_score(y_test, proba))
         else:
             aucs.append(np.nan)
 
-    # Select best model by metric
-    metric_map = {
-        "auc": aucs,
-        "acc": accs,
-        "precision": precs,
-        "recall": recs,
-        "f1": f1s,
-    }
-    scores = metric_map.get(best_metric, aucs)
-    best_idx = int(np.nanargmax(scores))
-    best_model = models[best_idx]
-
-    # Формируем OOS DataFrame со всех фолдов
+    # OOS DataFrame from all folds
     oos_df = pd.DataFrame({
         "date": dates,
         "y": y,
@@ -181,43 +167,51 @@ def walk_forward_logreg(
         "fold": fold_id,
     }).dropna(subset=["p_up"]).reset_index(drop=True)
 
-    # --- OOS для лучшей модели (только test-сет лучшего фолда) ---
+    # --- OOS from the LAST fold (no selection bias) ---
+    last_idx = n_splits - 1
     all_splits = list(tscv.split(X))
-    best_test_idx = all_splits[best_idx][1]
+    last_test_idx = all_splits[last_idx][1]
 
-    X_oos_full = X.iloc[best_test_idx].reset_index(drop=True)
-    y_oos_full = y.iloc[best_test_idx].reset_index(drop=True)
-    dates_oos_full = dates.iloc[best_test_idx].reset_index(drop=True)
+    X_oos_last = X.iloc[last_test_idx].reset_index(drop=True)
+    y_oos_last = y.iloc[last_test_idx].reset_index(drop=True)
+    dates_oos_last = dates.iloc[last_test_idx].reset_index(drop=True)
 
-    proba_oos_full = best_model.predict_proba(X_oos_full)[:, 1]
-    pred_oos_full = (proba_oos_full >= thr).astype(int)
+    proba_oos_last = proba_oos[last_test_idx]
+    pred_oos_last = (proba_oos_last >= thr).astype(int)
 
-    oos_full_df = pd.DataFrame({
-        "date": dates_oos_full,
-        "y": y_oos_full,
-        "p_up": proba_oos_full,
+    oos_last_df = pd.DataFrame({
+        "date": dates_oos_last,
+        "y": y_oos_last,
+        "p_up": proba_oos_last,
     }).reset_index(drop=True)
 
-    oos_full_metrics = {
-        "auc": float(roc_auc_score(y_oos_full, proba_oos_full)) if len(y_oos_full.unique()) == 2 else None,
-        "acc": float(accuracy_score(y_oos_full, pred_oos_full)),
-        "precision": float(precision_score(y_oos_full, pred_oos_full, zero_division=0)),
-        "recall": float(recall_score(y_oos_full, pred_oos_full, zero_division=0)),
-        "f1": float(f1_score(y_oos_full, pred_oos_full, zero_division=0)),
-        "n_oos_samples": int(len(y_oos_full)),
+    oos_last_metrics = {
+        "auc": float(roc_auc_score(y_oos_last, proba_oos_last)) if len(y_oos_last.unique()) == 2 else None,
+        "acc": float(accuracy_score(y_oos_last, pred_oos_last)),
+        "precision": float(precision_score(y_oos_last, pred_oos_last, zero_division=0)),
+        "recall": float(recall_score(y_oos_last, pred_oos_last, zero_division=0)),
+        "f1": float(f1_score(y_oos_last, pred_oos_last, zero_division=0)),
+        "n_oos_samples": int(len(y_oos_last)),
     }
+
+    # --- Final model: train on ALL data for production ---
+    final_pipe = Pipeline([
+        ("imputer", SimpleImputer(strategy="mean")),
+        ("scaler", StandardScaler()),
+        ("clf", LogisticRegression(max_iter=3000, class_weight="balanced")),
+    ])
+    final_pipe.fit(X, y)
 
     results = {
         "n_features": len(features),
         "thr": thr,
-        "best_metric": best_metric,
-        "best_fold_idx": best_idx + 1,  # +1 т.к. fold_i начинается с 1
-        "auc": float(aucs[best_idx]) if not np.isnan(aucs[best_idx]) else None,
-        "acc": float(accs[best_idx]),
-        "precision": float(precs[best_idx]),
-        "recall": float(recs[best_idx]),
-        "f1": float(f1s[best_idx]),
-        "oos_full_metrics": oos_full_metrics,
+        "eval_fold_idx": n_splits,
+        "auc": float(aucs[last_idx]) if not np.isnan(aucs[last_idx]) else None,
+        "acc": float(accs[last_idx]),
+        "precision": float(precs[last_idx]),
+        "recall": float(recs[last_idx]),
+        "f1": float(f1s[last_idx]),
+        "oos_full_metrics": oos_last_metrics,
         "cv_avg_metrics": {
             "auc": float(np.nanmean(aucs)),
             "acc": float(np.mean(accs)),
@@ -227,7 +221,7 @@ def walk_forward_logreg(
         },
     }
 
-    return results, best_model, oos_df, oos_full_df
+    return results, final_pipe, oos_df, oos_last_df
 
 # --------- CV eval (one config) ----------
 def walk_forward_logreg_cfg(

@@ -15,6 +15,7 @@ from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis, plot_confusion_matrix
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
+from ModelsTrainer.ret_threshold_model_trainer import ret_threshold_model_train_pipeline
 from shared_data_cache import SharedBaseDataCache
 
 # Загрузка переменных окружения
@@ -101,6 +102,33 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
             y_rng, p_rng,
             threshold=threshold,
             title=f"Confusion Matrix (RANGE, last fold OOS) - N{N_DAYS}_ma{ma_window} ({oos_full_m['n_oos_samples']} samples)",
+            config_name=CONFIG_NAME
+        )
+
+    # --- RET THRESHOLD MODEL ---
+    elif "ret_threshold_model" in CONFIG_NAME:
+        ret_thr = cfg.get("ret_thr", 0.02)
+        print(f"\nTraining Logistic Regression (RET THRESHOLD: {TARGET_COLUMN_NAME}, ret_thr={ret_thr})...")
+
+        res_rt, model_rt, oos_rt, oos_last_rt = ret_threshold_model_train_pipeline(
+            df_all, base_feats, cfg, n_splits=4, thr=threshold
+        )
+
+        y_rt, p_rt = oos_last_rt["y"].values, oos_last_rt["p_up"].values
+        plot_roc(y_rt, p_rt, title="ROC (RET_THR, last fold OOS)", config_name=CONFIG_NAME)
+
+        results_rt = plot_metrics_vs_threshold(
+            y_rt, p_rt,
+            title=f"Metrics vs threshold (RET_THR, last fold OOS) - {N_DAYS}d ret_thr={ret_thr}",
+            config_name=CONFIG_NAME
+        )
+        print_threshold_analysis(results_rt, model_name=f"RET_THR ({N_DAYS}d, ret_thr={ret_thr})")
+
+        oos_full_m = res_rt["oos_full_metrics"]
+        plot_confusion_matrix(
+            y_rt, p_rt,
+            threshold=threshold,
+            title=f"Confusion Matrix (RET_THR, last fold OOS) - {N_DAYS}d ret_thr={ret_thr} ({oos_full_m['n_oos_samples']} samples)",
             config_name=CONFIG_NAME
         )
 

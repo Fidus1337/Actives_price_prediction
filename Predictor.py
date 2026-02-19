@@ -35,7 +35,7 @@ class PredictionResult:
     prediction: int
     probability: float
     spot_price: float | None = None
-    range_abs_sma: float | None = None
+    range_sma: float | None = None
     sma_window: int | None = None
 
 
@@ -265,8 +265,13 @@ class Predictor:
             return self.base_feats + self.range_feats
         return self.base_feats
 
-    def _predict_df(self, df: pd.DataFrame) -> list[PredictionResult]:
-        """Generate predictions for a prepared DataFrame."""
+    def _predict_df(self, df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> list[PredictionResult]:
+        """Generate predictions for a prepared DataFrame.
+
+        Args:
+            df: Filtered DataFrame with rows to predict.
+            full_df: Full dataset (before date filtering) used to compute SMA correctly.
+        """
         features = self._get_features()
         available_feats = [c for c in features if c in df.columns]
 
@@ -284,29 +289,28 @@ class Predictor:
         pred = self.model.predict(X)
 
         has_spot = "spot_price_history__close" in df.columns
-        sma_col = f"range_pct_ma{self.ma_window}"
-        has_sma = sma_col in df.columns
+        # Compute close-price SMA on full dataset to avoid NaN from insufficient rows
+        sma_map = {}
+        if self.model_type == "range" and has_spot:
+            src = full_df if full_df is not None else df
+            sma_series = src["spot_price_history__close"].rolling(self.ma_window).mean()
+            for idx, val in sma_series.items():
+                if pd.notna(val):
+                    date_str = pd.Timestamp(src.at[idx, "date"]).strftime("%Y-%m-%d")
+                    sma_map[date_str] = float(val)
+
         results = []
         for i, date in enumerate(df["date"].values):
             spot_price = float(df["spot_price_history__close"].iloc[i]) if has_spot else None
-            range_pct_sma = float(df[sma_col].iloc[i]) if has_sma else None
-            range_abs_sma = (
-                float(range_pct_sma * spot_price)
-                if (
-                    range_pct_sma is not None
-                    and spot_price is not None
-                    and pd.notna(range_pct_sma)
-                    and pd.notna(spot_price)
-                )
-                else None
-            )
+            date_str = pd.Timestamp(date).strftime("%Y-%m-%d")
+            close_sma = sma_map.get(date_str)
             results.append(PredictionResult(
-                date=pd.Timestamp(date).strftime("%Y-%m-%d"),
+                date=date_str,
                 prediction=int(pred[i]),
                 probability=float(proba[i]),
                 spot_price=spot_price,
-                range_abs_sma=range_abs_sma,
-                sma_window=self.ma_window if has_sma else None,
+                range_sma=close_sma,
+                sma_window=self.ma_window if close_sma is not None else None,
             ))
 
         return results
@@ -329,7 +333,7 @@ class Predictor:
             return []
 
         print(f"Generating predictions for {len(df_pred)} dates...")
-        results = self._predict_df(df_pred)
+        results = self._predict_df(df_pred, full_df=df)
         print(f"Generated {len(results)} predictions")
         return results
 
@@ -357,7 +361,7 @@ class Predictor:
         print(f"Found {len(found_dates)} dates: {found_dates}")
 
         print(f"Generating predictions for {len(df_pred)} dates...")
-        results = self._predict_df(df_pred)
+        results = self._predict_df(df_pred, full_df=df)
         print(f"Generated {len(results)} predictions")
         return results
 

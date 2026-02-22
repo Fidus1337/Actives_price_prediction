@@ -1,9 +1,28 @@
 import os
 import json
 import joblib
+import numpy as np
 import pandas as pd
 from ModelsTrainer.logistic_reg_model_train import walk_forward_logreg
-from new_targets import make_up7d_target_ret_threshold
+
+
+def make_upNd_target_ret_threshold(
+    close: pd.Series,
+    horizon: int = 7,
+    ret_thr: float = 0.02,   # 2% за 7 дней
+    use_log: bool = True,
+) -> pd.Series:
+    close = close.astype(float)
+    if use_log:
+        fwd = np.log(close.shift(-horizon) / close)
+        thr = np.log(1.0 + ret_thr)
+    else:
+        fwd = close.shift(-horizon) / close - 1.0
+        thr = ret_thr
+
+    y = (fwd >= thr).astype(float)
+    y.iloc[-horizon:] = np.nan
+    return y
 
 
 def ret_threshold_model_train_pipeline(
@@ -45,7 +64,7 @@ def ret_threshold_model_train_pipeline(
     TARGET_COLUMN_NAME = f"y_up_ret_thr_{N_DAYS}d"
 
     # Создаём таргет
-    target_series = make_up7d_target_ret_threshold(
+    target_series = make_upNd_target_ret_threshold(
         close=df[CLOSE_COL],
         horizon=N_DAYS,
         ret_thr=ret_thr,
@@ -55,9 +74,18 @@ def ret_threshold_model_train_pipeline(
     df_rt[TARGET_COLUMN_NAME] = target_series.values
 
     total_rows = len(df_rt)
+    
+    # Маска: True для строк, где таргет НЕ NaN
     valid_mask = df_rt[TARGET_COLUMN_NAME].notna()
+    
+    # Сколько строк с валидным таргетом
     valid_rows_before_drop = int(valid_mask.sum())
+    
+    # Сколько строк с NaN в таргете (последние horizon строк + возможные пропуски)
     nan_rows_before_drop = int((~valid_mask).sum())
+    
+    # Количество примеров каждого класса (0 и 1) среди валидных строк
+#    Например: {0: 320, 1: 180}
     class_counts_before = (
         df_rt.loc[valid_mask, TARGET_COLUMN_NAME]
         .astype(int)
@@ -65,6 +93,9 @@ def ret_threshold_model_train_pipeline(
         .sort_index()
         .to_dict()
     )
+    
+    # То же самое, но в долях (normalize=True)
+    # Например: {0: 0.64, 1: 0.36}
     class_share_before = (
         df_rt.loc[valid_mask, TARGET_COLUMN_NAME]
         .astype(int)
@@ -80,6 +111,7 @@ def ret_threshold_model_train_pipeline(
     # Убираем строки без таргета
     df_rt = df_rt.dropna(subset=[TARGET_COLUMN_NAME]).reset_index(drop=True)
 
+    # Сколько осталось строк после дропа Nan таргетов
     class_counts_after = (
         df_rt[TARGET_COLUMN_NAME].astype(int).value_counts().sort_index().to_dict()
     )
@@ -126,6 +158,7 @@ def ret_threshold_model_train_pipeline(
         target=TARGET_COLUMN_NAME,
         n_splits=n_splits,
         thr=thr,
+        purge_gap=N_DAYS,
     )
 
     models_folder = os.path.join("Models", CONFIG_NAME)

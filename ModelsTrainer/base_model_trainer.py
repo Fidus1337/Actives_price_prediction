@@ -56,6 +56,7 @@ def base_model_train_pipeline(
         target=TARGET_COLUMN_NAME,
         n_splits=n_splits,
         thr=thr,
+        purge_gap=N_DAYS,
     )
 
     models_folder = os.path.join("Models", CONFIG_NAME)

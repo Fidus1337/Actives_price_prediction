@@ -119,12 +119,14 @@ def walk_forward_logreg(
     target: str = "y_up_1d",
     n_splits: int = 5,
     thr: float = 0.5,
+    purge_gap: int = 0,
 ):
     """
     Walk-forward cross-validation for Logistic Regression.
 
     OOS evaluation uses the LAST fold (most training data, most recent period,
-    no selection bias). The final model for production is trained on ALL data.
+    no selection bias). For forward-looking targets, set purge_gap >= horizon
+    to avoid leakage at the train/test boundary.
 
     Returns:
         tuple: (results_dict, final_model, oos_df, oos_last_df) where:
@@ -144,6 +146,10 @@ def walk_forward_logreg(
     X, y = X.loc[m].reset_index(drop=True), y.loc[m].astype(int).reset_index(drop=True)
     dates = d.loc[m, "date"].reset_index(drop=True)
 
+    purge_gap = int(purge_gap)
+    if purge_gap < 0:
+        raise ValueError(f"purge_gap must be >= 0, got {purge_gap}")
+
     # region agent log
     _agent_debug_log(
         run_id="pre-fix",
@@ -153,6 +159,7 @@ def walk_forward_logreg(
         data={
             "target": target,
             "thr": float(thr),
+            "purge_gap": int(purge_gap),
             "n_samples": int(len(y)),
             "pos_share": float(y.mean()) if len(y) else None,
             "neg_share": float(1 - y.mean()) if len(y) else None,
@@ -161,7 +168,7 @@ def walk_forward_logreg(
     )
     # endregion
 
-    tscv = TimeSeriesSplit(n_splits=n_splits)
+    tscv = TimeSeriesSplit(n_splits=n_splits, gap=purge_gap)
 
     pipe = Pipeline([
         ("imputer", SimpleImputer(strategy="mean")),
@@ -316,6 +323,7 @@ def walk_forward_logreg_cfg(
     target: str = "y_up_1d",
     n_splits: int = 5,
     thr: float = 0.5,
+    purge_gap: int = 0,
     imputer_strategy: str = "mean",          # "mean" | "median"
     C: float = 1.0,
     penalty: str = "l2",                     # "l1" | "l2" | "elasticnet"
@@ -333,7 +341,11 @@ def walk_forward_logreg_cfg(
     m = y.notna() & X.notna().any(axis=1)
     X, y = X.loc[m].reset_index(drop=True), y.loc[m].astype(int).reset_index(drop=True)
 
-    tscv = TimeSeriesSplit(n_splits=n_splits)
+    purge_gap = int(purge_gap)
+    if purge_gap < 0:
+        raise ValueError(f"purge_gap must be >= 0, got {purge_gap}")
+
+    tscv = TimeSeriesSplit(n_splits=n_splits, gap=purge_gap)
 
     clf_kwargs = dict(
         max_iter=4000,
@@ -391,6 +403,7 @@ def tune_logreg_timecv(
     features: list[str],
     target: str = "y_up_1d",
     n_splits: int = 5,
+    purge_gap: int = 0,
     score: str = "auc",          # "auc" | "acc" | "precision" | "recall"
     topk: int = 10,
 ):
@@ -425,6 +438,7 @@ def tune_logreg_timecv(
                 target=target,
                 n_splits=n_splits,
                 thr=cfg["thr"],
+                purge_gap=purge_gap,
                 imputer_strategy=cfg["imputer_strategy"],
                 C=cfg["C"],
                 penalty=cfg["penalty"],

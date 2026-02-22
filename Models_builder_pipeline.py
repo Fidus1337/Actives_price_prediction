@@ -45,28 +45,15 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
     N_DAYS = cfg["N_DAYS"]
     base_feats = cfg["base_feats"]
     CONFIG_NAME = cfg["name"]
-    TARGET_COLUMN_NAME = f"y_up_{N_DAYS}d"
     threshold = cfg.get("threshold", 0.5)
 
     features_engineer = FeaturesEngineer()
 
     # =============================================================================
-    # 2. Base data from shared cache + target column
+    # 2. Base data from shared cache
     # =============================================================================
     df_all = shared_cache.get_base_df()
-    df_all = features_engineer.add_y_up_custom(df_all, horizon=N_DAYS, close_col="spot_price_history__close")
-    print(f"Data from cache + target. Shape: {df_all.shape}")
-
-    # =============================================================================
-    # 3. Финальная очистка
-    # =============================================================================
-    # Удаляем строки, где нет таргета (последние N_DAYS дней)
-    df_all = df_all.dropna(subset=[TARGET_COLUMN_NAME])
-
-    # Финальная очистка оставшихся NaN (от TA lookback ~20 строк)
-    rows_before = len(df_all)
-    df_all = df_all.dropna().reset_index(drop=True)
-    print(f"Cleanup: {rows_before} -> {len(df_all)} rows. Final shape: {df_all.shape}")
+    print(f"Data from cache. Shape: {df_all.shape}")
 
     # =============================================================================
     # 4. Тренировка моделей
@@ -108,7 +95,8 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
     # --- RET THRESHOLD MODEL ---
     elif "ret_threshold_model" in CONFIG_NAME:
         ret_thr = cfg.get("ret_thr", 0.02)
-        print(f"\nTraining Logistic Regression (RET THRESHOLD: {TARGET_COLUMN_NAME}, ret_thr={ret_thr})...")
+        ret_target_col = f"y_up_ret_thr_{N_DAYS}d"
+        print(f"\nTraining Logistic Regression (RET THRESHOLD: {ret_target_col}, ret_thr={ret_thr})...")
 
         res_rt, model_rt, oos_rt, oos_last_rt = ret_threshold_model_train_pipeline(
             df_all, base_feats, cfg, n_splits=4, thr=threshold
@@ -134,7 +122,17 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
 
     # --- BASE MODEL ---
     elif "base_model" in CONFIG_NAME:
-        print(f"\nTraining Logistic Regression (BASE: {TARGET_COLUMN_NAME})...")
+        target_column_name = f"y_up_{N_DAYS}d"
+        df_all = features_engineer.add_y_up_custom(
+            df_all, horizon=N_DAYS, close_col="spot_price_history__close"
+        )
+        print(f"Data from cache + base target. Shape: {df_all.shape}")
+        df_all = df_all.dropna(subset=[target_column_name])
+        rows_before = len(df_all)
+        df_all = df_all.dropna().reset_index(drop=True)
+        print(f"Cleanup: {rows_before} -> {len(df_all)} rows. Final shape: {df_all.shape}")
+
+        print(f"\nTraining Logistic Regression (BASE: {target_column_name})...")
         res_base, model_base, oos_df, oos_last_base = base_model_train_pipeline(
             df_all, base_feats, cfg, n_splits=4, thr=threshold
         )
@@ -144,16 +142,16 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
 
         results_base = plot_metrics_vs_threshold(
             y_b, p_b,
-            title=f"Metrics vs threshold (BASE, last fold OOS) - {TARGET_COLUMN_NAME}",
+            title=f"Metrics vs threshold (BASE, last fold OOS) - {target_column_name}",
             config_name=CONFIG_NAME
         )
-        print_threshold_analysis(results_base, model_name=f"BASE ({TARGET_COLUMN_NAME})")
+        print_threshold_analysis(results_base, model_name=f"BASE ({target_column_name})")
 
         oos_full_m = res_base["oos_full_metrics"]
         plot_confusion_matrix(
             y_b, p_b,
             threshold=threshold,
-            title=f"Confusion Matrix (BASE, last fold OOS) - {TARGET_COLUMN_NAME} ({oos_full_m['n_oos_samples']} samples)",
+            title=f"Confusion Matrix (BASE, last fold OOS) - {target_column_name} ({oos_full_m['n_oos_samples']} samples)",
             config_name=CONFIG_NAME
         )
 

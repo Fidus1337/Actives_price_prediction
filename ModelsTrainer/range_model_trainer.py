@@ -2,7 +2,7 @@ import os
 import json
 import joblib
 import pandas as pd
-from ModelsTrainer.logistic_reg_model_train import walk_forward_logreg, add_range_target
+from ModelsTrainer.logistic_reg_model_train import walk_forward_logreg, add_price_vs_sma_target
 
 
 def range_model_train_pipeline(
@@ -15,8 +15,8 @@ def range_model_train_pipeline(
     """
     Тренирует и сохраняет Range модель.
 
-    Модель предсказывает: будет ли range (high-low)/close через N дней
-    выше текущей скользящей средней MA(ma_window).
+    Модель предсказывает: будет ли close через N дней выше, чем
+    SMA(ma_window) по close на текущий день (close[t+N] > SMA[t]).
     OOS-оценка — на последнем фолде. Финальная модель — обучена на всех данных.
 
     Parameters:
@@ -41,27 +41,20 @@ def range_model_train_pipeline(
     range_feats = cfg.get("range_feats", None)
     CONFIG_NAME = cfg["name"]
 
-    HIGH_COL = "spot_price_history__high"
-    LOW_COL = "spot_price_history__low"
     CLOSE_COL = "spot_price_history__close"
 
-    df_range = add_range_target(
+    df_range = add_price_vs_sma_target(
         df,
-        high_col=HIGH_COL,
-        low_col=LOW_COL,
         close_col=CLOSE_COL,
         ma_window=ma_window,
         horizon=N_DAYS,
-        use_pct=True,
-        baseline_shift=1,
     )
 
-    target_col = f"y_range_up_range_pct_N{N_DAYS}_ma{ma_window}"
+    target_col = f"y_close_above_sma_today_ma{ma_window}_N{N_DAYS}"
 
     if range_feats is None:
         range_feats = [
-            "range_pct",
-            f"range_pct_ma{ma_window}",
+            f"close_sma{ma_window}",
         ]
 
     feat_set = [c for c in (base_feats + range_feats) if c in df_range.columns]

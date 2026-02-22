@@ -4,6 +4,9 @@ warnings.filterwarnings("ignore")
 import copy
 import numpy as np
 import pandas as pd
+import json
+import time
+import os
 
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.pipeline import Pipeline
@@ -11,6 +14,23 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, f1_score
+
+def _agent_debug_log(run_id: str, hypothesis_id: str, location: str, message: str, data: dict):
+    log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "debug-0ffe56.log"))
+    payload = {
+        "sessionId": "0ffe56",
+        "runId": run_id,
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": int(time.time() * 1000),
+    }
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 def oos_predictions_logreg(
     df: pd.DataFrame,
@@ -124,6 +144,23 @@ def walk_forward_logreg(
     X, y = X.loc[m].reset_index(drop=True), y.loc[m].astype(int).reset_index(drop=True)
     dates = d.loc[m, "date"].reset_index(drop=True)
 
+    # region agent log
+    _agent_debug_log(
+        run_id="pre-fix",
+        hypothesis_id="H1_H2_entry",
+        location="ModelsTrainer/logistic_reg_model_train.py:walk_forward_logreg:entry",
+        message="entry_dataset_target_balance",
+        data={
+            "target": target,
+            "thr": float(thr),
+            "n_samples": int(len(y)),
+            "pos_share": float(y.mean()) if len(y) else None,
+            "neg_share": float(1 - y.mean()) if len(y) else None,
+            "n_features": int(len(features)),
+        },
+    )
+    # endregion
+
     tscv = TimeSeriesSplit(n_splits=n_splits)
 
     pipe = Pipeline([
@@ -145,6 +182,7 @@ def walk_forward_logreg(
 
         proba = pipe.predict_proba(X_test)[:, 1]
         pred = (proba >= thr).astype(int)
+        pred_lo = (proba >= 0.4).astype(int)
 
         proba_oos[test_idx] = proba
         fold_id[test_idx] = fold_i
@@ -158,6 +196,33 @@ def walk_forward_logreg(
             aucs.append(roc_auc_score(y_test, proba))
         else:
             aucs.append(np.nan)
+
+        # region agent log
+        _agent_debug_log(
+            run_id="pre-fix",
+            hypothesis_id="H1_H2_H3_fold",
+            location="ModelsTrainer/logistic_reg_model_train.py:walk_forward_logreg:fold",
+            message="fold_metrics_and_probability_profile",
+            data={
+                "fold": int(fold_i),
+                "thr": float(thr),
+                "n_train": int(len(y_train)),
+                "n_test": int(len(y_test)),
+                "train_pos_share": float(y_train.mean()) if len(y_train) else None,
+                "test_pos_share": float(y_test.mean()) if len(y_test) else None,
+                "proba_mean": float(np.mean(proba)) if len(proba) else None,
+                "proba_p50": float(np.quantile(proba, 0.5)) if len(proba) else None,
+                "proba_p90": float(np.quantile(proba, 0.9)) if len(proba) else None,
+                "pred_pos_rate_thr": float(np.mean(pred)) if len(pred) else None,
+                "pred_pos_rate_040": float(np.mean(pred_lo)) if len(pred_lo) else None,
+                "acc_thr": float(accuracy_score(y_test, pred)),
+                "recall_thr": float(recall_score(y_test, pred, zero_division=0)),
+                "f1_thr": float(f1_score(y_test, pred, zero_division=0)),
+                "recall_040": float(recall_score(y_test, pred_lo, zero_division=0)),
+                "f1_040": float(f1_score(y_test, pred_lo, zero_division=0)),
+            },
+        )
+        # endregion
 
     # OOS DataFrame from all folds
     oos_df = pd.DataFrame({
@@ -194,13 +259,14 @@ def walk_forward_logreg(
         "n_oos_samples": int(len(y_oos_last)),
     }
 
-    # --- Final model: train on ALL data for production ---
+    # --- Final model: last fold's model (metrics and model are consistent) ---
+    last_train_idx = all_splits[last_idx][0]
     final_pipe = Pipeline([
         ("imputer", SimpleImputer(strategy="mean")),
         ("scaler", StandardScaler()),
         ("clf", LogisticRegression(max_iter=3000, class_weight="balanced")),
     ])
-    final_pipe.fit(X, y)
+    final_pipe.fit(X.iloc[last_train_idx], y.iloc[last_train_idx])
 
     results = {
         "n_features": len(features),
@@ -220,6 +286,26 @@ def walk_forward_logreg(
             "f1": float(np.mean(f1s)),
         },
     }
+
+    # region agent log
+    _agent_debug_log(
+        run_id="pre-fix",
+        hypothesis_id="H3_H4_exit",
+        location="ModelsTrainer/logistic_reg_model_train.py:walk_forward_logreg:exit",
+        message="final_last_fold_and_cv_summary",
+        data={
+            "thr": float(thr),
+            "last_fold_auc": results["auc"],
+            "last_fold_acc": results["acc"],
+            "last_fold_recall": results["recall"],
+            "last_fold_f1": results["f1"],
+            "cv_avg_auc": results["cv_avg_metrics"]["auc"],
+            "cv_avg_acc": results["cv_avg_metrics"]["acc"],
+            "cv_avg_recall": results["cv_avg_metrics"]["recall"],
+            "cv_avg_f1": results["cv_avg_metrics"]["f1"],
+        },
+    )
+    # endregion
 
     return results, final_pipe, oos_df, oos_last_df
 
@@ -423,6 +509,105 @@ def add_range_target(
 
     d[out_target_col] = y
     return d
+
+
+def add_price_vs_sma_target(
+    df: pd.DataFrame,
+    close_col: str,
+    date_col: str = "date",
+    ma_window: int = 14,
+    horizon: int = 1,
+    out_target_col: str | None = None,
+) -> pd.DataFrame:
+    """
+    Таргет: будет ли close[t+N] выше SMA(close)[t].
+
+    y = 1 если close[t+N] > SMA_ma_window(close)[t]
+    y = 0 иначе
+
+    Также добавляет фичу close_sma{ma_window} — SMA на текущий день (без leakage).
+    """
+    d = df.copy()
+    d[date_col] = pd.to_datetime(d[date_col], errors="coerce")
+    d = d.sort_values(date_col, kind="stable").reset_index(drop=True)
+
+    close = pd.to_numeric(d[close_col], errors="coerce")
+
+    # SMA close на текущий день — фича, доступна при предсказании
+    sma_col = f"close_sma{ma_window}"
+    d[sma_col] = close.rolling(ma_window, min_periods=ma_window).mean()
+
+    # Для таргета: сравниваем будущий close с текущей SMA
+    future_close = close.shift(-horizon)
+    current_sma = d[sma_col]
+
+    if out_target_col is None:
+        out_target_col = f"y_close_above_sma_today_ma{ma_window}_N{horizon}"
+
+    d[out_target_col] = np.where(
+        future_close.notna() & current_sma.notna(),
+        (future_close > current_sma).astype(int),
+        np.nan,
+    )
+    return d
+
+
+def add_crossover_target(
+    df: pd.DataFrame,
+    close_col: str,
+    date_col: str = "date",
+    ma_window: int = 14,
+    horizon: int = 1,
+    out_target_col: str | None = None,
+) -> pd.DataFrame:
+    """
+    Таргет: будет ли пересечение close и SMA через horizon дней.
+
+    above_today    = close[t]          > SMA[t]
+    above_tomorrow = close[t+horizon]  > SMA[t+horizon]
+
+    y = 1 если above_today != above_tomorrow  (будет пересечение / crossover)
+    y = 0 если above_today == above_tomorrow  (без пересечения)
+
+    Также добавляет фичу close_above_sma{ma_window} — бинарный признак
+    (close выше SMA на текущий день).
+    """
+    d = df.copy()
+    d[date_col] = pd.to_datetime(d[date_col], errors="coerce")
+    d = d.sort_values(date_col, kind="stable").reset_index(drop=True)
+
+    close = pd.to_numeric(d[close_col], errors="coerce")
+
+    # SMA close на текущий день
+    sma_col = f"close_sma{ma_window}"
+    d[sma_col] = close.rolling(ma_window, min_periods=ma_window).mean()
+
+    sma = d[sma_col]
+
+    # above_today: close[t] > SMA[t]  (известно в момент предсказания)
+    above_today = close > sma
+
+    # above_future: close[t+horizon] > SMA[t+horizon]  (будущее — для таргета)
+    future_close = close.shift(-horizon)
+    future_sma = sma.shift(-horizon)
+    above_future = future_close > future_sma
+
+    # Бинарная фича: close выше SMA сейчас
+    d[f"close_above_sma{ma_window}"] = np.where(
+        sma.notna(), above_today.astype(int), np.nan
+    )
+
+    if out_target_col is None:
+        out_target_col = f"y_crossover_ma{ma_window}_N{horizon}"
+
+    # y = 1 если будет пересечение (above_today != above_future)
+    d[out_target_col] = np.where(
+        future_close.notna() & future_sma.notna() & sma.notna(),
+        (above_today != above_future).astype(int),
+        np.nan,
+    )
+    return d
+
 
 def add_lags(df: pd.DataFrame, cols: list[str], lags=(1, 2)) -> pd.DataFrame:
     out = df.copy()

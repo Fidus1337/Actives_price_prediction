@@ -24,7 +24,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-from ModelsTrainer.logistic_reg_model_train import add_range_target
+from ModelsTrainer.logistic_reg_model_train import add_price_vs_sma_target
 from shared_data_cache import SharedBaseDataCache
 
 
@@ -110,6 +110,7 @@ class Predictor:
         # Load model and model features
         self.model = self._load_model()
         self.model_features = self._load_model_features()
+        self.pred_threshold = self._load_model_threshold()
 
         # Initialize helpers
         self.features_engineer = FeaturesEngineer()
@@ -180,6 +181,26 @@ class Predictor:
         print("Warning: Could not determine features, falling back to config")
         return []
 
+    def _load_model_threshold(self) -> float:
+        """Load classification threshold from metrics JSON (fallback: 0.5)."""
+        models_folder = os.path.join("Models", self.config_name)
+        metrics_path = os.path.join(
+            models_folder, f"metrics_{self.model_type}_{self.config_name}.json"
+        )
+
+        if os.path.exists(metrics_path):
+            try:
+                with open(metrics_path, "r", encoding="utf-8") as f:
+                    metrics = json.load(f)
+                thr = float(metrics.get("thr", 0.5))
+                print(f"Loaded threshold={thr:.4f} from {metrics_path}")
+                return thr
+            except (ValueError, TypeError, json.JSONDecodeError):
+                pass
+
+        print("Warning: Could not determine threshold from metrics, using 0.5")
+        return 0.5
+
     def _is_cache_stale(self) -> bool:
         """Check if cached data has expired."""
         if self._prepared_df is None:
@@ -214,15 +235,11 @@ class Predictor:
 
         # Add range features if needed
         if self.model_type == "range":
-            df = add_range_target(
+            df = add_price_vs_sma_target(
                 df,
-                high_col="spot_price_history__high",
-                low_col="spot_price_history__low",
                 close_col="spot_price_history__close",
                 ma_window=self.ma_window,
                 horizon=self.n_days,
-                use_pct=True,
-                baseline_shift=1,
             )
 
         print(f"Feature engineering complete. Shape: {df.shape}")
@@ -286,7 +303,7 @@ class Predictor:
         X = df[available_feats]
 
         proba = self.model.predict_proba(X)[:, 1]
-        pred = self.model.predict(X)
+        pred = (proba >= self.pred_threshold).astype(int)
 
         has_spot = "spot_price_history__close" in df.columns
         # Compute close-price SMA on full dataset to avoid NaN from insufficient rows

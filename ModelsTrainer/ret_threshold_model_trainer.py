@@ -54,8 +54,60 @@ def ret_threshold_model_train_pipeline(
     df_rt = df.copy()
     df_rt[TARGET_COLUMN_NAME] = target_series.values
 
+    total_rows = len(df_rt)
+    valid_mask = df_rt[TARGET_COLUMN_NAME].notna()
+    valid_rows_before_drop = int(valid_mask.sum())
+    nan_rows_before_drop = int((~valid_mask).sum())
+    class_counts_before = (
+        df_rt.loc[valid_mask, TARGET_COLUMN_NAME]
+        .astype(int)
+        .value_counts()
+        .sort_index()
+        .to_dict()
+    )
+    class_share_before = (
+        df_rt.loc[valid_mask, TARGET_COLUMN_NAME]
+        .astype(int)
+        .value_counts(normalize=True)
+        .sort_index()
+        .to_dict()
+    )
+    print(
+        f"Target diagnostics BEFORE dropna: total={total_rows}, valid={valid_rows_before_drop}, "
+        f"nan={nan_rows_before_drop}, class_counts={class_counts_before}, class_share={class_share_before}"
+    )
+
     # Убираем строки без таргета
     df_rt = df_rt.dropna(subset=[TARGET_COLUMN_NAME]).reset_index(drop=True)
+
+    class_counts_after = (
+        df_rt[TARGET_COLUMN_NAME].astype(int).value_counts().sort_index().to_dict()
+    )
+    class_share_after = (
+        df_rt[TARGET_COLUMN_NAME]
+        .astype(int)
+        .value_counts(normalize=True)
+        .sort_index()
+        .to_dict()
+    )
+    print(
+        f"Target diagnostics AFTER dropna: rows={len(df_rt)}, "
+        f"class_counts={class_counts_after}, class_share={class_share_after}"
+    )
+
+    if len(class_share_after) < 2:
+        raise ValueError(
+            f"Target {TARGET_COLUMN_NAME} has only one class after cleanup: {class_counts_after}. "
+            "Training cannot proceed."
+        )
+
+    min_class_share = min(class_share_after.values())
+    if min_class_share < 0.20:
+        print(
+            f"WARNING: Strong class imbalance detected for {TARGET_COLUMN_NAME} "
+            f"(min class share={min_class_share:.3f}). "
+            "Consider lowering ret_thr for this horizon."
+        )
 
     feat_set = [c for c in base_feats if c in df_rt.columns]
 

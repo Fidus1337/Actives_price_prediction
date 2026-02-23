@@ -15,6 +15,7 @@ from PlotsBuilder.Plots_Builder import plot_roc, plot_metrics_vs_threshold, plot
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
 from ModelsTrainer.ret_threshold_model_trainer import ret_threshold_model_train_pipeline
+from ModelsTrainer.vol_scaled_model_trainer import vol_scaled_model_train_pipeline
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 
 load_dotenv("dev.env")
@@ -37,7 +38,6 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
     raw -> normalize -> ffill -> date filter -> drop sparse -> engineered features -> TA.
     Here we only add the target, do final cleanup, and train.
     """
-    N_DAYS = cfg["N_DAYS"]
     base_feats = cfg["base_feats"]
     CONFIG_NAME = cfg["name"]
     threshold = cfg.get("threshold", 0.5)
@@ -48,83 +48,45 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
     models_folder = os.path.join("Models", CONFIG_NAME)
     os.makedirs(models_folder, exist_ok=True)
 
-    # --- RANGE MODEL ---
-    if "range_model" in CONFIG_NAME:
-        ma_window = cfg.get("ma_window")
-        print(f"\nTraining Logistic Regression (Range Target, MA={ma_window})...")
+    # Select trainer by model type
+    _TRAINERS = {
+        "range_model": (range_model_train_pipeline, False),
+        "ret_threshold_model": (ret_threshold_model_train_pipeline, True),
+        "vol_scaled_model": (vol_scaled_model_train_pipeline, True),
+        "base_model": (base_model_train_pipeline, True),
+    }
 
-        res_rngp, model_rngp, oos_rngp, oos_last_rng = range_model_train_pipeline(
-            df_all, base_feats, cfg, n_splits=4, thr=threshold
-        )
+    train_fn = None
+    for model_type, (fn, use_roc) in _TRAINERS.items():
+        if model_type in CONFIG_NAME:
+            train_fn = fn
+            break
+    else:
+        raise ValueError(f"Unknown model type in config name: {CONFIG_NAME}")
 
-        oos_full_m = res_rngp["oos_full_metrics"]
+    print(f"\nTraining {CONFIG_NAME}...")
+    res, _, _, oos_last = train_fn(
+        df_all, base_feats, cfg, n_splits=4, thr=threshold
+    )
 
-        y_rng, p_rng = oos_last_rng["y"].values, oos_last_rng["p_up"].values
-        results_range = plot_metrics_vs_threshold(
-            y_rng, p_rng,
-            title=f"Metrics vs threshold (RANGE, last fold OOS) - N{N_DAYS}_ma{ma_window}",
-            config_name=CONFIG_NAME
-        )
+    # --- OOS plots ---
+    y, p = oos_last["y"].values, oos_last["p_up"].values
+    n_samples = res["oos_full_metrics"]["n_oos_samples"]
 
-        plot_confusion_matrix(
-            y_rng, p_rng,
-            threshold=threshold,
-            title=f"Confusion Matrix (RANGE, last fold OOS) - N{N_DAYS}_ma{ma_window} ({oos_full_m['n_oos_samples']} samples)",
-            config_name=CONFIG_NAME
-        )
+    if use_roc:
+        plot_roc(y, p, title=f"ROC ({CONFIG_NAME}, last fold OOS)", config_name=CONFIG_NAME)
 
-    # --- RET THRESHOLD MODEL ---
-    elif "ret_threshold_model" in CONFIG_NAME:
-        ret_thr = cfg.get("ret_thr")
-        ret_target_col = f"y_up_ret_thr_{N_DAYS}d"
-        print(f"\nTraining Logistic Regression (RET THRESHOLD: {ret_target_col}, ret_thr={ret_thr})...")
+    plot_metrics_vs_threshold(
+        y, p,
+        title=f"Metrics vs threshold ({CONFIG_NAME}, last fold OOS)",
+        config_name=CONFIG_NAME
+    )
 
-        res_rt, model_rt, oos_rt, oos_last_rt = ret_threshold_model_train_pipeline(
-            df_all, base_feats, cfg, n_splits=4, thr=threshold
-        )
-
-        y_rt, p_rt = oos_last_rt["y"].values, oos_last_rt["p_up"].values
-        plot_roc(y_rt, p_rt, title="ROC (RET_THR, last fold OOS)", config_name=CONFIG_NAME)
-
-        results_rt = plot_metrics_vs_threshold(
-            y_rt, p_rt,
-            title=f"Metrics vs threshold (RET_THR, last fold OOS) - {N_DAYS}d ret_thr={ret_thr}",
-            config_name=CONFIG_NAME
-        )
-
-        oos_full_m = res_rt["oos_full_metrics"]
-        
-        plot_confusion_matrix(
-            y_rt, p_rt,
-            threshold=threshold,
-            title=f"Confusion Matrix (RET_THR, last fold OOS) - {N_DAYS}d ret_thr={ret_thr} ({oos_full_m['n_oos_samples']} samples)",
-            config_name=CONFIG_NAME
-        )
-
-    # --- BASE MODEL ---
-    elif "base_model" in CONFIG_NAME:
-        target_column_name = f"y_up_{N_DAYS}d"
-        print(f"\nTraining Logistic Regression (BASE: {target_column_name})...")
-        res_base, model_base, oos_df, oos_last_base = base_model_train_pipeline(
-            df_all, base_feats, cfg, n_splits=4, thr=threshold
-        )
-
-        y_b, p_b = oos_last_base["y"].values, oos_last_base["p_up"].values
-        plot_roc(y_b, p_b, title="ROC (BASE, last fold OOS)", config_name=CONFIG_NAME)
-
-        results_base = plot_metrics_vs_threshold(
-            y_b, p_b,
-            title=f"Metrics vs threshold (BASE, last fold OOS) - {target_column_name}",
-            config_name=CONFIG_NAME
-        )
-
-        oos_full_m = res_base["oos_full_metrics"]
-        plot_confusion_matrix(
-            y_b, p_b,
-            threshold=threshold,
-            title=f"Confusion Matrix (BASE, last fold OOS) - {target_column_name} ({oos_full_m['n_oos_samples']} samples)",
-            config_name=CONFIG_NAME
-        )
+    plot_confusion_matrix(
+        y, p, threshold=threshold,
+        title=f"Confusion Matrix ({CONFIG_NAME}, last fold OOS) ({n_samples} samples)",
+        config_name=CONFIG_NAME
+    )
 
 def train_all_models_from_configs(config_in_project: str = "config.json", your_config=None):
     """Run main_pipeline() for each configuration."""

@@ -12,7 +12,7 @@ def base_model_train_pipeline(
     cfg: dict,
     n_splits: int = 5,
     thr: float = 0.5,
-) -> tuple[dict, object, pd.DataFrame]:
+) -> tuple[dict, object, pd.DataFrame, pd.DataFrame]:
     """
     Тренирует и сохраняет BASE модель.
 

@@ -187,6 +187,6 @@ dev.env
 
 *.png
 
-graphics/
+Models/plots/
 
 Models/

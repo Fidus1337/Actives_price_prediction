@@ -12,7 +12,7 @@ from sklearn.linear_model import LogisticRegression
 import pandas as pd
 
 # Папка для сохранения графиков
-GRAPHICS_DIR = "graphics"
+GRAPHICS_DIR = os.path.join("Models", "plots")
 
 
 def ensure_graphics_dir(config_name: str = None) -> str:

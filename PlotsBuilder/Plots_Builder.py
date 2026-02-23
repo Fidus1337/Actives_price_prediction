@@ -212,30 +212,6 @@ def plot_metrics_vs_threshold(y_true, y_proba, title="Metrics vs threshold (OOF)
     
     return results
 
-
-def print_threshold_analysis(results: dict, model_name: str = "Model"):
-    """
-    Печатает результаты анализа порогов в читаемом формате.
-    
-    Parameters:
-    -----------
-    results : dict
-        Результаты из plot_metrics_vs_threshold
-    model_name : str
-        Название модели для заголовка
-    """
-    print(f"\n{'='*50}")
-    print(f"Threshold Analysis: {model_name}")
-    print(f"{'='*50}")
-    print(f"Best F1 Score: {results['best_f1']['value']:.4f} @ threshold = {results['best_f1']['threshold']:.2f}")
-    print(f"Best Accuracy: {results['best_accuracy']['value']:.4f} @ threshold = {results['best_accuracy']['threshold']:.2f}")
-    print(f"Best Precision: {results['best_precision']['value']:.4f} @ threshold = {results['best_precision']['threshold']:.2f}")
-    print(f"\nMetrics at Best F1 threshold ({results['best_f1']['threshold']:.2f}):")
-    for metric, value in results['metrics_at_best_f1'].items():
-        print(f"  {metric.capitalize()}: {value:.4f}")
-    print(f"{'='*50}")
-
-
 def plot_confusion_matrix(y_true, y_proba, threshold=0.5,
                           title="Confusion Matrix", config_name="BASE"):
     """

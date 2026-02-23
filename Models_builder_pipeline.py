@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from LoggingSystem.LoggingSystem import LoggingSystem
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-from PlotsBuilder.Plots_Builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis, plot_confusion_matrix
+from PlotsBuilder.Plots_Builder import plot_roc, plot_metrics_vs_threshold, plot_confusion_matrix
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
 from ModelsTrainer.ret_threshold_model_trainer import ret_threshold_model_train_pipeline
@@ -59,11 +59,6 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
         )
 
         oos_full_m = res_rngp["oos_full_metrics"]
-        print(f"Range model last fold OOS ({oos_full_m['n_oos_samples']} samples, fold {res_rngp['eval_fold_idx']}): "
-              f"AUC={oos_full_m['auc']:.4f}, "
-              f"Precision={oos_full_m['precision']:.4f}, "
-              f"Recall={oos_full_m['recall']:.4f}, "
-              f"F1={oos_full_m['f1']:.4f}")
 
         y_rng, p_rng = oos_last_rng["y"].values, oos_last_rng["p_up"].values
         results_range = plot_metrics_vs_threshold(
@@ -71,7 +66,6 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
             title=f"Metrics vs threshold (RANGE, last fold OOS) - N{N_DAYS}_ma{ma_window}",
             config_name=CONFIG_NAME
         )
-        print_threshold_analysis(results_range, model_name=f"RANGE (N{N_DAYS}_ma{ma_window})")
 
         plot_confusion_matrix(
             y_rng, p_rng,
@@ -98,9 +92,9 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
             title=f"Metrics vs threshold (RET_THR, last fold OOS) - {N_DAYS}d ret_thr={ret_thr}",
             config_name=CONFIG_NAME
         )
-        print_threshold_analysis(results_rt, model_name=f"RET_THR ({N_DAYS}d, ret_thr={ret_thr})")
 
         oos_full_m = res_rt["oos_full_metrics"]
+        
         plot_confusion_matrix(
             y_rt, p_rt,
             threshold=threshold,
@@ -133,7 +127,6 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
             title=f"Metrics vs threshold (BASE, last fold OOS) - {target_column_name}",
             config_name=CONFIG_NAME
         )
-        print_threshold_analysis(results_base, model_name=f"BASE ({target_column_name})")
 
         oos_full_m = res_base["oos_full_metrics"]
         plot_confusion_matrix(
@@ -143,7 +136,7 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
             config_name=CONFIG_NAME
         )
 
-def run_all_configs(config_in_project: str = "config.json", your_config=None):
+def train_all_models_from_configs(config_in_project: str = "config.json", your_config=None):
     """Run main_pipeline() for each configuration."""
     configs = your_config if your_config is not None else load_config(config_in_project)
 
@@ -186,7 +179,7 @@ if __name__ == "__main__":
     sys.stdout = LoggingSystem("Logs/logs.log")
 
     try:
-        run_all_configs("configs/config.json")
+        train_all_models_from_configs("configs/config.json")
     finally:
         sys.stdout.close()
         sys.stdout = sys.__stdout__

@@ -696,7 +696,7 @@ print(train_resp.json())
 ├── Models_builder_pipeline.py       # Main training pipeline
 ├── Predictor.py                     # Prediction class
 ├── Dataset_builder_pipeline.py         # Data collection from 27 sources
-├── graphics_builder.py              # ROC curves, metric plots, confusion matrices
+├── PlotsBuilder/Plots_Builder.py    # ROC curves, metric plots, confusion matrices
 ├── requirements.txt                 # Dependencies
 │
 ├── FeaturesGetterModule/            # CoinGlass API wrapper

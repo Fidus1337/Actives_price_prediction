@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from LoggingSystem.LoggingSystem import LoggingSystem
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis, plot_confusion_matrix
+from PlotsBuilder.Plots_Builder import plot_roc, plot_metrics_vs_threshold, print_threshold_analysis, plot_confusion_matrix
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
 from ModelsTrainer.ret_threshold_model_trainer import ret_threshold_model_train_pipeline

@@ -196,9 +196,10 @@ class SharedBaseDataCache:
 
         df = df.dropna()
 
-        # Save available features list to project root
+        # Save available features list to Logs/
         feature_names = sorted([c for c in df.columns if c != "date"])
-        features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "available_features.json")
+        os.makedirs("Logs", exist_ok=True)
+        features_path = os.path.join("Logs", "available_features.json")
         with open(features_path, "w", encoding="utf-8") as f:
             json.dump({"features": feature_names, "count": len(feature_names)}, f, indent=2, ensure_ascii=False)
         print(f"SharedBaseDataCache: Saved {len(feature_names)} features to available_features.json")

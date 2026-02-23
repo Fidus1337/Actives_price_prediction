@@ -16,7 +16,7 @@ os.chdir(PROJECT_ROOT)  # Set working directory for config/model paths
 
 from api.routers import predictions
 from shared_data_cache import SharedBaseDataCache
-from Predictor import Predictor
+from PredictWithModel.Predictor import Predictor
 
 # Module-level reference for access from routers
 shared_data_cache: SharedBaseDataCache | None = None

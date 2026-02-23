@@ -25,7 +25,7 @@ from Models_builder_pipeline import run_all_configs
 # Set working directory to project root (Predictor uses relative paths for models)
 os.chdir(PROJECT_ROOT)
 
-from Predictor import Predictor
+from PredictWithModel.Predictor import Predictor
 from api.schemas import (
     PredictionRequest,
     PredictionResponse,

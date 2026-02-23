@@ -1,14 +1,14 @@
 import warnings
-# Отключаем предупреждения, чтобы не засорять вывод
 warnings.filterwarnings('ignore')
+
 import pandas as pd
-pd.options.mode.chained_assignment = None  # Отключаем SettingWithCopyWarning
+pd.options.mode.chained_assignment = None
 
 import os
 import sys
 import json
+import traceback
 from dotenv import load_dotenv
-
 
 from LoggingSystem.LoggingSystem import LoggingSystem
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
@@ -18,46 +18,34 @@ from ModelsTrainer.base_model_trainer import base_model_train_pipeline
 from ModelsTrainer.ret_threshold_model_trainer import ret_threshold_model_train_pipeline
 from shared_data_cache import SharedBaseDataCache
 
-# Загрузка переменных окружения
 load_dotenv("dev.env")
-_api_key = os.getenv("COINGLASS_API_KEY")
 
+_api_key = os.getenv("COINGLASS_API_KEY")
 if not _api_key:
     raise ValueError("COINGLASS_API_KEY not found in dev.env")
-
 API_KEY: str = _api_key
 
 def load_config(config_path: str = "config.json") -> list:
-    """Загружает конфигурации из JSON файла."""
+    """Load configurations from a JSON file."""
     with open(config_path, "r", encoding="utf-8") as f:
         config = json.load(f)
     return config.get("runs", [])
 
 def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
-    """Основной пайплайн для одной конфигурации.
+    """Run training pipeline for a single configuration.
 
-    shared_cache уже содержит подготовленные данные:
-    raw -> normalize -> ffill -> date filter -> drop sparse -> engineered features -> TA
-    Здесь добавляем только target + финальная очистка + тренировка.
+    shared_cache already contains prepared data:
+    raw -> normalize -> ffill -> date filter -> drop sparse -> engineered features -> TA.
+    Here we only add the target, do final cleanup, and train.
     """
-
-    # 1. Распаковка конфига
     N_DAYS = cfg["N_DAYS"]
     base_feats = cfg["base_feats"]
     CONFIG_NAME = cfg["name"]
     threshold = cfg.get("threshold", 0.5)
 
-    features_engineer = FeaturesEngineer()
-
-    # =============================================================================
-    # 2. Base data from shared cache
-    # =============================================================================
     df_all = shared_cache.get_base_df()
     print(f"Data from cache. Shape: {df_all.shape}")
 
-    # =============================================================================
-    # 4. Тренировка моделей
-    # =============================================================================
     models_folder = os.path.join("Models", CONFIG_NAME)
     os.makedirs(models_folder, exist_ok=True)
 
@@ -94,7 +82,7 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
 
     # --- RET THRESHOLD MODEL ---
     elif "ret_threshold_model" in CONFIG_NAME:
-        ret_thr = cfg.get("ret_thr", 0.02)
+        ret_thr = cfg.get("ret_thr")
         ret_target_col = f"y_up_ret_thr_{N_DAYS}d"
         print(f"\nTraining Logistic Regression (RET THRESHOLD: {ret_target_col}, ret_thr={ret_thr})...")
 
@@ -123,7 +111,7 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
     # --- BASE MODEL ---
     elif "base_model" in CONFIG_NAME:
         target_column_name = f"y_up_{N_DAYS}d"
-        df_all = features_engineer.add_y_up_custom(
+        df_all = FeaturesEngineer().add_y_up_custom(
             df_all, horizon=N_DAYS, close_col="spot_price_history__close"
         )
         print(f"Data from cache + base target. Shape: {df_all.shape}")
@@ -155,21 +143,17 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
             config_name=CONFIG_NAME
         )
 
-def run_all_configs(config_in_project: str = "config.json", your_config = None):
-    """Запускает main() для каждой конфигурации из config.json."""
-    
-    if your_config is not None:
-        configs = your_config
-    else:
-        configs = load_config(config_in_project)
-    
+def run_all_configs(config_in_project: str = "config.json", your_config=None):
+    """Run main_pipeline() for each configuration."""
+    configs = your_config if your_config is not None else load_config(config_in_project)
+
     if not configs:
         print("No configurations found in config.json")
         return
-    
+
     print(f"Found {len(configs)} configurations to run")
     print("=" * 60)
-    
+
     cache = SharedBaseDataCache(api_key=API_KEY)
 
     results = {}
@@ -187,10 +171,9 @@ def run_all_configs(config_in_project: str = "config.json", your_config = None):
             results[run_name] = "SUCCESS"
         except Exception as e:
             print(f"ERROR in {run_name}: {e}")
-            import traceback
-            traceback.print_exc() # Полезно для отладки
+            traceback.print_exc()
             results[run_name] = f"FAILED: {e}"
-    
+
     print("\n" + "=" * 60)
     print("SUMMARY:")
     for name, status in results.items():
@@ -199,8 +182,9 @@ def run_all_configs(config_in_project: str = "config.json", your_config = None):
 
 
 if __name__ == "__main__":
-    # Логирование
-    sys.stdout = LoggingSystem("logs.log")
+    # Setup logging
+    sys.stdout = LoggingSystem("Logs/logs.log")
+
     try:
         run_all_configs("config.json")
     finally:

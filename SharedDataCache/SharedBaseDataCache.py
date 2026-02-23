@@ -18,7 +18,7 @@ from typing import Optional
 import pandas as pd
 
 from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
-from get_features_from_API import get_features
+from Dataset_builder_pipeline import get_features
 from FeaturesGetterModule.helpers._merge_features_by_date import merge_by_date
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 from FeaturesEngineer.ta_features import add_ta_features_selected

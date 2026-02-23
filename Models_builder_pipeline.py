@@ -186,7 +186,7 @@ if __name__ == "__main__":
     sys.stdout = LoggingSystem("Logs/logs.log")
 
     try:
-        run_all_configs("config.json")
+        run_all_configs("configs/config.json")
     finally:
         sys.stdout.close()
         sys.stdout = sys.__stdout__

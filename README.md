@@ -171,7 +171,7 @@ The script sequentially trains models for **each configuration** from `config.js
 
 ### Data Sources (27 total)
 
-All data is fetched via `get_features_from_API.py`:
+All data is fetched via `Dataset_builder_pipeline.py`:
 
 | Category | Sources |
 |----------|---------|
@@ -695,7 +695,7 @@ print(train_resp.json())
 ├── dev.env                          # CoinGlass API key
 ├── Models_builder_pipeline.py       # Main training pipeline
 ├── Predictor.py                     # Prediction class
-├── get_features_from_API.py         # Data collection from 27 sources
+├── Dataset_builder_pipeline.py         # Data collection from 27 sources
 ├── graphics_builder.py              # ROC curves, metric plots, confusion matrices
 ├── requirements.txt                 # Dependencies
 │

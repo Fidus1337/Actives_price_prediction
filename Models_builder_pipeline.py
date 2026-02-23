@@ -16,7 +16,7 @@ from graphics_builder import plot_roc, plot_metrics_vs_threshold, print_threshol
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
 from ModelsTrainer.ret_threshold_model_trainer import ret_threshold_model_train_pipeline
-from shared_data_cache import SharedBaseDataCache
+from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 
 load_dotenv("dev.env")
 

@@ -25,7 +25,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 from ModelsTrainer.logistic_reg_model_train import add_price_vs_sma_target
-from shared_data_cache import SharedBaseDataCache
+from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 
 
 @dataclass

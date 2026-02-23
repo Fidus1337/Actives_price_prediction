@@ -709,6 +709,48 @@ class FeaturesGetter:
         df = _prefix_columns(df, prefix=prefix, keep=("date",))
         return df
 
+    def get_igv_ohlcv(
+        self,
+        days: int = 1250,
+        prefix: str = "igv",
+    ) -> pd.DataFrame:
+        """
+        iShares Expanded Tech-Software Sector ETF (IGV) OHLCV via yfinance.
+
+        Args:
+            days: Number of historical days
+            prefix: Feature prefix
+
+        Returns:
+            DataFrame: date, {prefix}__open, {prefix}__close, {prefix}__high, {prefix}__low, {prefix}__volume
+        """
+        ticker = yf.Ticker("IGV")
+        df = ticker.history(period=f"{days}d", interval="1d")
+
+        if df.empty:
+            return df
+
+        df = df.reset_index()
+        df = df.rename(columns={"Date": "date"})
+        df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
+
+        df = df[["date", "Open", "Close", "High", "Low", "Volume"]].copy()
+        df.columns = ["date", "open", "close", "high", "low", "volume"]
+
+        for col in df.columns:
+            if col != "date":
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        df = (
+            df.dropna(subset=["date"])
+            .sort_values("date", kind="stable")
+            .drop_duplicates(subset=["date"], keep="last")
+            .reset_index(drop=True)
+        )
+
+        df = _prefix_columns(df, prefix=prefix, keep=("date",))
+        return df
+
 
 # ============================================================================
 # Примеры использования

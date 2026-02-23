@@ -241,6 +241,9 @@ def get_features(getter: FeaturesGetter, API_KEY: str):
     # Gold Futures (yfinance)
     df_gold = getter.get_gold_ohlcv(days=1250, prefix="gold")
 
+    # Software ETF (IGV, yfinance)
+    df_igv = getter.get_igv_ohlcv(days=1250, prefix="igv")
+
     return [
     df_oi,
     df_oi_agg,
@@ -269,6 +272,7 @@ def get_features(getter: FeaturesGetter, API_KEY: str):
     df_spot,
     df_sp500,
     df_gold,
+    df_igv,
     ]
 
 

@@ -134,7 +134,7 @@ class SharedBaseDataCache:
         4. Date filter (last _DATE_WINDOW_DAYS days)
         5. Drop sparse columns + re-ffill + dropna
         6. add_engineered_features()  -> diff1, pct1, imbalances
-        7. add_ta_features_selected() x3  -> 8 TA indicators per asset
+        7. add_ta_features_selected() x4  -> 8 TA indicators per asset
         8. Add lag features (1, 3, 5, 7, 15 days) for base columns
         9. _trim_to_longest_continuous_segment()
         """
@@ -170,6 +170,7 @@ class SharedBaseDataCache:
         # 7. TA indicators (8 per asset: ADX, CCI, RSI, ROC, ATR, BBW, OBV, MFI)
         df = add_ta_features_selected(df, prefix="gold")
         df = add_ta_features_selected(df, prefix="sp500")
+        df = add_ta_features_selected(df, prefix="igv")
         df = add_ta_features_selected(
             df, prefix="spot_price_history",
             volume_col_override="spot_price_history__volume_usd"

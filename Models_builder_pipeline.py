@@ -11,7 +11,6 @@ import traceback
 from dotenv import load_dotenv
 
 from LoggingSystem.LoggingSystem import LoggingSystem
-from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 from PlotsBuilder.Plots_Builder import plot_roc, plot_metrics_vs_threshold, plot_confusion_matrix
 from ModelsTrainer.range_model_trainer import range_model_train_pipeline
 from ModelsTrainer.base_model_trainer import base_model_train_pipeline
@@ -105,15 +104,6 @@ def main_pipeline(cfg: dict, shared_cache: SharedBaseDataCache):
     # --- BASE MODEL ---
     elif "base_model" in CONFIG_NAME:
         target_column_name = f"y_up_{N_DAYS}d"
-        df_all = FeaturesEngineer().add_y_up_custom(
-            df_all, horizon=N_DAYS, close_col="spot_price_history__close"
-        )
-        print(f"Data from cache + base target. Shape: {df_all.shape}")
-        df_all = df_all.dropna(subset=[target_column_name])
-        rows_before = len(df_all)
-        df_all = df_all.dropna().reset_index(drop=True)
-        print(f"Cleanup: {rows_before} -> {len(df_all)} rows. Final shape: {df_all.shape}")
-
         print(f"\nTraining Logistic Regression (BASE: {target_column_name})...")
         res_base, model_base, oos_df, oos_last_base = base_model_train_pipeline(
             df_all, base_feats, cfg, n_splits=4, thr=threshold

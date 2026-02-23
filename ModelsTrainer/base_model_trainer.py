@@ -3,6 +3,7 @@ import json
 import joblib
 import pandas as pd
 from ModelsTrainer.logistic_reg_model_train import walk_forward_logreg
+from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 
 
 def base_model_train_pipeline(
@@ -38,6 +39,15 @@ def base_model_train_pipeline(
     N_DAYS = cfg["N_DAYS"]
     CONFIG_NAME = cfg["name"]
     TARGET_COLUMN_NAME = f"y_up_{N_DAYS}d"
+
+    df = FeaturesEngineer().add_y_up_custom(
+        df, horizon=N_DAYS, close_col="spot_price_history__close"
+    )
+    print(f"Base target added. Shape: {df.shape}")
+    df = df.dropna(subset=[TARGET_COLUMN_NAME])
+    rows_before = len(df)
+    df = df.dropna().reset_index(drop=True)
+    print(f"Cleanup: {rows_before} -> {len(df)} rows. Final shape: {df.shape}")
 
     feat_set = [c for c in base_feats if c in df.columns]
 

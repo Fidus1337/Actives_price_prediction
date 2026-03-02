@@ -1,0 +1,26 @@
+{
+    "horizon": 5,
+    "agent_settings": [
+        {
+            "system_prompt": "",
+            "name": "agent_for_analysing_tech_indicators",
+            "window_to_analysis": 21,
+            "base_feats": [
+                "spot_price_history__ta_rsi",
+                "spot_price_history__ta_adx",
+                "spot_price_history__ta_cci",
+                "spot_price_history__ta_roc",
+                "spot_price_history__ta_bbw",
+                "spot_price_history__ta_mfi",
+                "spot_price_history__ta_obv",
+                "spot_price_history__ta_atr",
+                "spot_price_history__close",
+                "spot_price_history__volume_usd",
+                "spot_price_history__ta_rsi__lag7",
+                "spot_price_history__ta_adx__lag7",
+                "spot_price_history__ta_bbw__lag7",
+                "spot_price_history__ta_obv__lag7"
+            ]
+        }
+    ]
+}

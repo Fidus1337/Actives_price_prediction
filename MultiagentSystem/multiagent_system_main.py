@@ -1,52 +1,22 @@
-from datetime import date
-from typing import List, Literal, Optional, Union, Annotated # <-- Добавили Annotated
+import json
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from typing_extensions import TypedDict
-import operator # <-- Понадобится для Reducer
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
+
 from langgraph.graph import StateGraph, START, END
-
-# ... ваши импорты и кэш ...
-
-class AgentSignal(TypedDict):
-    signal: Literal["BULLISH", "BEARISH", "NEUTRAL"]
-    confidence: float
-    weight: float
-    summary: Optional[str]
-
-class RetryAgentEntry(TypedDict):
-    agent_name: str
-    recompose_report: bool
-
-# Пишем простую функцию-reducer, которая будет безопасно сливать словари агентов
-def merge_dicts(left: dict, right: dict) -> dict:
-    if not left: left = {}
-    if not right: right = {}
-    return {**left, **right} # Объединяем старый словарь с новым
-
-class AgentState(TypedDict):
-    messages: List[Union[HumanMessage, AIMessage, SystemMessage]]
-    forecast_start_date: date
-    close_price_by_start_date: float
-    direction: Literal["LONG", "SHORT"]
-    confidence: float
-    horizon: int
-    reasoning: str
-    
-    # ВОТ ОНО МАГИЧЕСКОЕ ИСПРАВЛЕНИЕ: 
-    # Теперь LangGraph знает, что данные от 4-х агентов нужно "сливать" через merge_dicts
-    agent_signals: Annotated[dict[str, AgentSignal], merge_dicts]
-    
-    error_detected: bool
-    error_reasoning: str
-    try_again_launch_agents: list[RetryAgentEntry]
+from multiagent_types import AgentState
+from agent_for_analysing_tech_indicators import agent_a_tech
+from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 
 def supervisor_node(state: AgentState):
-    # Ничего не меняем, просто пропускаем дальше
-    return {} # <-- Возвращаем пустой словарь, а не state!
-
-def agent_a_tech(state: AgentState):
-    return {"agent_signals": {"technical": {"signal": "BULLISH", "confidence": 0.8, "weight": 0.2, "summary": None}}}
+    return {}
 
 def agent_b_onchain(state: AgentState):
     return {"agent_signals": {"onchain": {"signal": "BEARISH", "confidence": 0.6, "weight": 0.3, "summary": None}}}
@@ -60,12 +30,6 @@ def agent_d_twitter(state: AgentState):
 def validation_node(state: AgentState):
     print("Собранные сигналы:", state.get("agent_signals"))
     return {} # <-- Тоже возвращаем пустой словарь
-
-from langgraph.graph import StateGraph, START, END
-from datetime import date
-
-# Предполагается, что AgentState и функции узлов (agent_a_tech, и т.д.) 
-# уже определены выше в коде.
 
 # ==========================================
 # ШАГ 1: ИНИЦИАЛИЗАЦИЯ И ДОБАВЛЕНИЕ УЗЛОВ
@@ -115,12 +79,20 @@ app = builder.compile()
 # ШАГ 4: ЗАПУСК (INVOKE)
 # ==========================================
 if __name__ == "__main__":
+    # Загружаем конфиг мультиагентной системы
+    config_path = Path(__file__).parent / "multiagent_config.json"
+    with open(config_path, encoding="utf-8") as f:
+        config = json.load(f)
+
     # Формируем стартовые данные, которые запросил пользователь.
     # Нам не нужно заполнять весь State целиком, только вводные данные!
+    cache = SharedBaseDataCache(api_key=os.environ["COINGLASS_API_KEY"])
+    forecast_date = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d").date()
+
     initial_input = {
-        "forecast_start_date": date(2026, 3, 2),
-        "close_price_by_start_date": 65000.0,
-        "horizon": 7
+        "config": config,
+        "cached_dataset": cache,
+        "forecast_start_date": forecast_date,
     }
 
     print("🚀 Запуск мультиагентного графа...")

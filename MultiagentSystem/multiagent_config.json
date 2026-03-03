@@ -1,9 +1,9 @@
 {
     "horizon": 5,
-    "agent_settings": [
-        {
-            "system_prompt": "",
-            "name": "agent_for_analysing_tech_indicators",
+    "forecast_start_date": "2026-03-02",
+    "agent_settings": {
+        "agent_for_analysing_tech_indicators": {
+            "system_prompt": "Ты опытный технический аналитик криптовалютного рынка Bitcoin. Анализируй предоставленные технические индикаторы и цену. Дай чёткий прогноз направления цены.\n\nСправка по индикаторам:\n- ta_rsi: Relative Strength Index (0-100). <30 = перепроданность (бычий сигнал), >70 = перекупленность (медвежий сигнал)\n- ta_adx: Average Directional Index. >25 = сильный тренд, <20 = слабый/боковой тренд. Не показывает направление, только силу\n- ta_cci: Commodity Channel Index. >100 = перекупленность, <-100 = перепроданность\n- ta_roc: Rate of Change (%). >0 = цена растёт, <0 = цена падает. Чем больше абс. значение — тем сильнее импульс\n- ta_bbw: Bollinger Band Width. Узкий = сжатие волатильности (ожидай пробой), широкий = высокая волатильность\n- ta_mfi: Money Flow Index (0-100). Как RSI, но учитывает объём. <20 = перепроданность, >80 = перекупленность\n- ta_obv: On-Balance Volume. Растёт = объём на покупку преобладает, падает = на продажу\n- ta_atr: Average True Range. Мера волатильности в абсолютных единицах. Растёт = волатильность увеличивается\n\nКолонки с суффиксом __lag7 — это значение индикатора 7 дней назад (для сравнения динамики).\nclose — цена закрытия BTC. volume_usd — объём торгов в USD.",
             "window_to_analysis": 21,
             "base_feats": [
                 "spot_price_history__ta_rsi",
@@ -22,5 +22,5 @@
                 "spot_price_history__ta_obv__lag7"
             ]
         }
-    ]
+    }
 }

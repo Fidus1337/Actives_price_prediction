@@ -12,20 +12,20 @@ load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
 
 from langgraph.graph import StateGraph, START, END
 from multiagent_types import AgentState
-from agent_for_analysing_tech_indicators import agent_a_tech
+from agents.tech_indicators import agent_a_tech
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 
 def supervisor_node(state: AgentState):
     return {}
 
 def agent_b_onchain(state: AgentState):
-    return {"agent_signals": {"onchain": {"signal": "BEARISH", "confidence": 0.6, "weight": 0.3, "summary": None}}}
+    return {"agent_signals": {"onchain": {"summary": "Заглушка: on-chain анализ ещё не реализован"}}}
 
 def agent_c_news(state: AgentState):
-    return {"agent_signals": {"news_background": {"signal": "NEUTRAL", "confidence": 0.5, "weight": 0.2, "summary": None}}}
+    return {"agent_signals": {"news_background": {"summary": "Заглушка: анализ новостей ещё не реализован"}}}
 
 def agent_d_twitter(state: AgentState):
-    return {"agent_signals": {"twitter_news": {"signal": "BULLISH", "confidence": 0.7, "weight": 0.3, "summary": None}}}
+    return {"agent_signals": {"twitter_news": {"summary": "Заглушка: анализ Twitter ещё не реализован"}}}
 
 def validation_node(state: AgentState):
     print("Собранные сигналы:", state.get("agent_signals"))
@@ -94,6 +94,8 @@ if __name__ == "__main__":
         "cached_dataset": cache,
         "forecast_start_date": forecast_date,
     }
+    
+    print(forecast_date)
 
     print("🚀 Запуск мультиагентного графа...")
     
@@ -104,4 +106,4 @@ if __name__ == "__main__":
     
     # Красиво выводим то, что собрали параллельные агенты
     for agent_name, report in final_state.get("agent_signals", {}).items():
-        print(f" - {agent_name.upper()}: Сигнал {report['signal']}, Уверенность: {report['confidence']}")
+        print(f" - {agent_name.upper()}: {report['summary']}")

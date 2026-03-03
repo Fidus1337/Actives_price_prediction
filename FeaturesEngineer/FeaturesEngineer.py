@@ -74,9 +74,11 @@ class FeaturesEngineer:
             if c not in {"date", target_column_name}
             and pd.api.types.is_numeric_dtype(out[c])
         ]
+        new_cols = {}
         for c in base_numeric:
-            out[c + "__diff1"] = out[c].diff(1)
-            out[c + "__pct1"] = out[c].pct_change(1)
+            new_cols[c + "__diff1"] = out[c].diff(1)
+            new_cols[c + "__pct1"] = out[c].pct_change(1)
+        out = pd.concat([out, pd.DataFrame(new_cols, index=out.index)], axis=1)
 
         # imbalances (если пары колонок есть)
         def _imbalance(num_col_a, num_col_b, new_col):

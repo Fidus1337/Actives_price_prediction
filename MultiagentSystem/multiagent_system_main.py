@@ -75,6 +75,11 @@ builder.add_edge("validator", END)
 # и правильно ли настроены Reducer'ы в State.
 app = builder.compile()
 
+png = app.get_graph().draw_mermaid_png()
+graph_path = Path(__file__).parent / "graph.png"
+graph_path.write_bytes(png)
+os.startfile(graph_path)
+
 # ==========================================
 # ШАГ 4: ЗАПУСК (INVOKE)
 # ==========================================

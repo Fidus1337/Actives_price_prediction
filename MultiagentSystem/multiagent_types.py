@@ -13,7 +13,9 @@ def merge_dicts(left: dict, right: dict) -> dict:
     return {**left, **right}
 
 class AgentSignal(TypedDict):
+    reasoning: str
     summary: str
+    prediction: bool  # True = ВЫШЕ, False = НИЖЕ
 
 class RetryAgentEntry(TypedDict):
     agent_name: str

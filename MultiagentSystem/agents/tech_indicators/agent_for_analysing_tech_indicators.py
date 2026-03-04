@@ -4,6 +4,14 @@ import pandas as pd
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from multiagent_types import AgentState, get_agent_settings
+from typing import cast
+from pydantic import BaseModel
+
+
+class TechAnalysisResponse(BaseModel):
+    reasoning: str   # пошаговый разбор всех индикаторов по структуре из промпта
+    summary: str     # краткое итоговое заключение: прогноз + уверенность + диапазон
+    prediction: bool # True = цена будет ВЫШЕ, False = НИЖЕ — вывод из reasoning и summary
 
 AGENT_DIR = Path(__file__).parent
 
@@ -42,10 +50,10 @@ def agent_a_tech(state: AgentState):
     else:
         system_prompt = settings["system_prompt"]
 
-    # 6. Вызвать LLM
+    # 6. Вызвать LLM с CoT: reasoning заполняется первым, summary — на его основе
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
 
-    response = llm.invoke([
+    response = cast(TechAnalysisResponse, llm.with_structured_output(TechAnalysisResponse).invoke([
         SystemMessage(content=system_prompt),
         HumanMessage(content=(
             f"Данные за {settings['window_to_analysis']} дней до {forecast_date}:\n{data_json}\n\n"
@@ -55,6 +63,10 @@ def agent_a_tech(state: AgentState):
             f"1. ПРОГНОЗ: будет ли цена выше или ниже {close_price} через {horizon} дней?\n"
             f"2. АРГУМЕНТЫ: какие индикаторы поддерживают твой прогноз?\n"
         ))
-    ])
+    ]))
 
-    return {"agent_signals": {"technical": {"summary": response.content}}}
+    return {"agent_signals": {"technical": {
+        "reasoning": response.reasoning,
+        "summary": response.summary,
+        "prediction": response.prediction,
+    }}}

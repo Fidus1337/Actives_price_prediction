@@ -15,6 +15,9 @@ from multiagent_types import AgentState
 from agents.tech_indicators import agent_a_tech
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
+
 def supervisor_node(state: AgentState):
     return {}
 
@@ -111,4 +114,9 @@ if __name__ == "__main__":
     
     # Красиво выводим то, что собрали параллельные агенты
     for agent_name, report in final_state.get("agent_signals", {}).items():
-        print(f" - {agent_name.upper()}: {report['summary']}")
+        prediction = report.get("prediction")
+        prefix = f"[{'↑' if prediction is True else '↓' if prediction is False else '?'}] {agent_name.upper()}"
+        print(f"\n{prefix}")
+        if "reasoning" in report:
+            print(f"  reasoning : {report['reasoning'][:200]}...")
+        print(f"  summary   : {report['summary'][:]}")

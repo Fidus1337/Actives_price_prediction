@@ -111,3 +111,26 @@ class FeaturesEngineer:
         # почистим бесконечности
         out = out.replace([np.inf, -np.inf], np.nan)
         return out
+
+    # ---------- 4) SMA, относительный прирост, Z-score ----------
+    def add_price_ma_features(
+        self,
+        df: pd.DataFrame,
+        close_col: str = "spot_price_history__close",
+        windows: list = [7, 14, 21, 50],
+    ) -> pd.DataFrame:
+        out = df.copy()
+        if close_col not in out.columns:
+            return out
+
+        close = out[close_col]
+        new_cols = {}
+        for w in windows:
+            sma = close.rolling(w).mean()
+            std = close.rolling(w).std()
+            new_cols[f"{close_col}__sma{w}"]     = sma
+            new_cols[f"{close_col}__sma{w}_rel"] = close / sma - 1
+            new_cols[f"{close_col}__zscore{w}"]  = (close - sma) / std
+
+        out = pd.concat([out, pd.DataFrame(new_cols, index=out.index)], axis=1)
+        return out

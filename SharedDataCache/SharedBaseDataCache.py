@@ -167,6 +167,9 @@ class SharedBaseDataCache:
         # 6. Engineered features (diff1, pct1, imbalances)
         df = self._features_engineer.add_engineered_features(df)
 
+        # 6.1. Price MA features (SMA 7/14/21/50, relative return, z-score)
+        df = self._features_engineer.add_price_ma_features(df)
+
         # 7. TA indicators (8 per asset: ADX, CCI, RSI, ROC, ATR, BBW, OBV, MFI)
         df = add_ta_features_selected(df, prefix="gold")
         df = add_ta_features_selected(df, prefix="sp500")

@@ -11,9 +11,10 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
 
 from langgraph.graph import StateGraph, START, END
-from multiagent_types import AgentState
+from multiagent_types import AgentState, _default_retry_agents
 from agents.tech_indicators import agent_a_tech
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
+from agents.verdicts_validator import agent_for_verdicts_validation
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
@@ -22,17 +23,13 @@ def supervisor_node(state: AgentState):
     return {}
 
 def agent_b_onchain(state: AgentState):
-    return {"agent_signals": {"onchain": {"summary": "Заглушка: on-chain анализ ещё не реализован"}}}
+    return {"agent_signals": {"onchain": {"summary": None}}}
 
 def agent_c_news(state: AgentState):
-    return {"agent_signals": {"news_background": {"summary": "Заглушка: анализ новостей ещё не реализован"}}}
+    return {"agent_signals": {"news_background": {"summary": None}}}
 
 def agent_d_twitter(state: AgentState):
-    return {"agent_signals": {"twitter_news": {"summary": "Заглушка: анализ Twitter ещё не реализован"}}}
-
-def validation_node(state: AgentState):
-    print("Собранные сигналы:", state.get("agent_signals"))
-    return {} # <-- Тоже возвращаем пустой словарь
+    return {"agent_signals": {"twitter_news": {"summary": None}}}
 
 # ==========================================
 # ШАГ 1: ИНИЦИАЛИЗАЦИЯ И ДОБАВЛЕНИЕ УЗЛОВ
@@ -46,7 +43,7 @@ builder.add_node("agent_a", agent_a_tech)
 builder.add_node("agent_b", agent_b_onchain)
 builder.add_node("agent_c", agent_c_news)
 builder.add_node("agent_d", agent_d_twitter)
-builder.add_node("validator", validation_node)
+builder.add_node("validator", agent_for_verdicts_validation)
 # Агента E пока нет в коде, но его узел будет добавляться аналогично
 
 # ==========================================
@@ -101,6 +98,7 @@ if __name__ == "__main__":
         "config": config,
         "cached_dataset": cache,
         "forecast_start_date": forecast_date,
+        "try_again_launch_agents": _default_retry_agents(),
     }
     
     print(forecast_date)
@@ -117,6 +115,7 @@ if __name__ == "__main__":
         prediction = report.get("prediction")
         prefix = f"[{'↑' if prediction is True else '↓' if prediction is False else '?'}] {agent_name.upper()}"
         print(f"\n{prefix}")
-        if "reasoning" in report:
-            print(f"  reasoning : {report['reasoning'][:200]}...")
-        print(f"  summary   : {report['summary'][:]}")
+        if report['summary'] is not None:
+            if "reasoning" in report:
+                print(f"  reasoning : {report['reasoning'][:200]}...")
+                print(f"  summary   : {report['summary'][:]}")

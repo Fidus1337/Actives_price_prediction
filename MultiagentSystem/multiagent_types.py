@@ -13,6 +13,7 @@ def merge_dicts(left: dict, right: dict) -> dict:
     return {**left, **right}
 
 class AgentSignal(TypedDict):
+    description_of_the_reports_problem: str
     reasoning: str
     summary: str
     prediction: bool  # True = ВЫШЕ, False = НИЖЕ
@@ -34,6 +35,16 @@ class AgentState(TypedDict):
     error_detected: bool
     error_reasoning: str
     try_again_launch_agents: list[RetryAgentEntry]
+
+def _default_retry_agents() -> list[RetryAgentEntry]:
+    return [
+        {"agent_name": "supervisor", "recompose_report": False},
+        {"agent_name": "agent_a",    "recompose_report": False},
+        {"agent_name": "agent_b",    "recompose_report": False},
+        {"agent_name": "agent_c",    "recompose_report": False},
+        {"agent_name": "agent_d",    "recompose_report": False},
+        {"agent_name": "validator",  "recompose_report": False},
+    ]
 
 
 def get_agent_settings(state: AgentState, agent_name: str) -> dict:

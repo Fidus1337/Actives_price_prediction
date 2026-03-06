@@ -1,10 +1,10 @@
 {
-    "horizon": 1,
+    "horizon": 7,
     "forecast_start_date": "2026-01-22",
     "agent_settings": {
         "agent_for_analysing_tech_indicators": {
             "system_prompt_file": "agents/tech_indicators/system_prompt.md",
-            "window_to_analysis": 14,
+            "window_to_analysis": 21,
             "base_feats": [
                 "spot_price_history__ta_rsi",
                 "spot_price_history__ta_adx",
@@ -23,17 +23,11 @@
                 "spot_price_history__ta_adx__lag7",
                 "spot_price_history__ta_bbw__lag7",
                 "spot_price_history__ta_obv__lag7",
-                "spot_price_history__close__sma7",
                 "spot_price_history__close__sma14",
-                "spot_price_history__close__sma21",
                 "spot_price_history__close__sma50",
-                "spot_price_history__close__sma7_rel",
                 "spot_price_history__close__sma14_rel",
-                "spot_price_history__close__sma21_rel",
                 "spot_price_history__close__sma50_rel",
-                "spot_price_history__close__zscore7",
                 "spot_price_history__close__zscore14",
-                "spot_price_history__close__zscore21",
                 "spot_price_history__close__zscore50"
             ]
         }

@@ -9,7 +9,8 @@ from pydantic import BaseModel
 
 class AgentValidationResult(BaseModel):
     has_problem: bool
-    description: str  # Конкретное описание проблемы или "" если проблем нет
+    description: str        # Конкретное описание проблемы или "" если проблем нет
+    should_nullify: bool    # True = уверенность низкая, обнулить prediction → None
 
 
 VALIDATOR_SYSTEM_PROMPT = """
@@ -30,10 +31,18 @@ VALIDATOR_SYSTEM_PROMPT = """
 - Субъективное несогласие с прогнозом.
 - Пустое поле risks — это допустимо, если значимых рисков нет.
 
-Отвечай строго через структуру: has_problem (bool) и description (строка с конкретным описанием ТОЛЬКО грубой ошибки или "" если проблем нет).
+Отвечай строго через структуру: has_problem (bool), description (строка с конкретным описанием ТОЛЬКО грубой ошибки или "" если проблем нет), should_nullify (bool).
 
 Prediction = False - значит что цена пойдет вниз
 Prediction = True - значит что цена пойдет вверх
+Prediction = None - значит что агент воздержался от прогноза (противоречивые сигналы)
+
+should_nullify = True если:
+- reasoning явно описывает примерно равное количество бычьих и медвежьих сигналов БЕЗ явного перевеса
+- summary содержит формулировки типа "неопределённо", "сложно сказать", "равновероятно", "низкая уверенность"
+- агент сам поставил prediction=None
+
+should_nullify = False если агент выразил хоть какой-то перевес в пользу одного направления.
 """.strip()
 
 
@@ -52,7 +61,9 @@ def agent_for_verdicts_validation(state: AgentState):
         summary = signal.get("summary") or ""
         risks = signal.get("risks") or ""
         prediction = signal.get("prediction")
-        prev_description = signal.get("description_of_the_reports_problem", "")
+        prev_descriptions = signal.get("description_of_the_reports_problem", [])
+        if isinstance(prev_descriptions, str):
+            prev_descriptions = [prev_descriptions] if prev_descriptions else []
 
         # Пропускаем агентов-заглушки (нет ни reasoning, ни summary) — сбрасываем их флаг
         if not reasoning and not summary:
@@ -72,13 +83,16 @@ def agent_for_verdicts_validation(state: AgentState):
                 f"**reasoning:**\n{reasoning}\n\n"
                 f"**summary:**\n{summary}\n\n"
                 f"**risks:**\n{risks if risks else '(не указаны)'}\n\n"
-                f"**prediction:** {'ВЫШЕ (True)' if prediction else 'НИЖЕ (False)'}"
+                f"**prediction:** {'ВЫШЕ (True)' if prediction is True else ('НИЖЕ (False)' if prediction is False else 'НЕЙТРАЛЬНО (None)')}"
             )),
         ]
 
-        if prev_description:
+        if prev_descriptions:
+            history_text = "\n".join(
+                f"Итерация {i+1}: {d}" for i, d in enumerate(prev_descriptions)
+            )
             messages.append(HumanMessage(content=(
-                f"Предыдущая проблема, зафиксированная валидатором:\n{prev_description}"
+                f"История предыдущих замечаний валидатора:\n{history_text}"
             )))
 
         result = cast(
@@ -91,9 +105,14 @@ def agent_for_verdicts_validation(state: AgentState):
         else:
             print(f"[validator] {agent_name}: OK")
 
+        new_descriptions = prev_descriptions + ([result.description] if result.has_problem else [])
+        final_prediction = None if result.should_nullify else signal.get("prediction")
+        if result.should_nullify:
+            print(f"[validator] {agent_name}: низкая уверенность — prediction обнулён до None")
         updated_signals[agent_name] = {
             **signal,
-            "description_of_the_reports_problem": result.description if result.has_problem else "",
+            "prediction": final_prediction,
+            "description_of_the_reports_problem": new_descriptions,
         }
 
         # Явно проставляем флаг — True если есть проблема, False если прошёл проверку

@@ -15,13 +15,20 @@ from multiagent_types import AgentState, _default_retry_agents
 from agents.tech_indicators import agent_a_tech
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 from agents.verdicts_validator import agent_for_verdicts_validation
+from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
+# Node for starting analysis by agents
 def supervisor_node(state: AgentState):
+    # How much retries we have
     retry = state.get("retry_count", 0) + 1
+    # Trying to detect agents to retry, check if the agent laucnhes first time
     agents_to_run = [e["agent_name"] for e in state["try_again_launch_agents"] if e["recompose_report"]]
+    
     if agents_to_run:
         print(f"\n[supervisor] Итерация #{retry} — повторный запуск агентов: {agents_to_run}")
     else:
@@ -120,30 +127,67 @@ if __name__ == "__main__":
     cache = SharedBaseDataCache(api_key=os.environ["COINGLASS_API_KEY"])
     forecast_date = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d").date()
 
-    initial_input = {
-        "config": config,
-        "cached_dataset": cache,
-        "forecast_start_date": forecast_date,
-        "try_again_launch_agents": _default_retry_agents(),
-        "retry_count": 0,
-    }
+    horizon = config["horizon"]
+    base_df = cache.get_base_df()
+    dataset_with_target = FeaturesEngineer().add_y_up_custom(
+        base_df, horizon=horizon, close_col="spot_price_history__close"
+    )
+    dataset_with_target = dataset_with_target.head(-horizon)
     
-    print(forecast_date)
-
-    print("🚀 Запуск мультиагентного графа...")
+    print(dataset_with_target[["date", "spot_price_history__close", f"y_up_{horizon}d"]].tail(10))
     
     # Метод invoke запускает выполнение и возвращает финальное состояние State
-    final_state = app.invoke(initial_input)
-    
+    N_last_dates = 100
+    results_dataset = dataset_with_target[["date", f"y_up_{horizon}d"]].tail(N_last_dates).copy()
+    results_dataset["y_predictions"] = None
+
+    # predictions_Y убрать — он не нужен
+
+    for idx, row in results_dataset.iterrows():              # итерируем по индексам
+        forecast_date = row["date"].date()                   # Python date, не datetime64
+
+        initial_input = {
+            "config": config,
+            "cached_dataset": cache,
+            "forecast_start_date": forecast_date,            # правильный тип
+            "try_again_launch_agents": _default_retry_agents(),
+            "retry_count": 0,
+        }
+
+        final_state = app.invoke(initial_input)
+
+        # Достаём предсказание и пишем в датасет по индексу
+        pred = final_state["agent_signals"]["tech_analyser_agent"]["prediction"]
+        results_dataset.at[idx, "y_predictions"] = pred
+
+    print(results_dataset[["date", f"y_up_{horizon}d", "y_predictions"]])
+
+    output_path = Path(__file__).parent / "tech_agent_results.csv"
+    results_dataset.to_csv(output_path, index=False)
+    print(f"\nРезультаты сохранены в {output_path}")
+
+    valid = results_dataset.dropna(subset=["y_predictions"])
+    y_true = valid[f"y_up_{horizon}d"].astype(int)
+    y_pred = valid["y_predictions"].astype(int)
+
+    cm = confusion_matrix(y_true, y_pred)
+    disp = ConfusionMatrixDisplay(cm, display_labels=["НИЖЕ (0)", "ВЫШЕ (1)"])
+    disp.plot()
+    plt.title(f"Tech Agent — Confusion Matrix (last {N_last_dates} days, horizon={horizon}d)")
+    cm_path = Path(__file__).parent / "agents" / "tech_agent_confusion_matrix.png"
+    plt.savefig(cm_path)
+    plt.close()
+    print(f"Confusion matrix сохранена в {cm_path}")
+
     print("\n✅ Граф завершил работу! Собранные сигналы агентов:")
     
     # Красиво выводим то, что собрали параллельные агенты
-    for agent_name, report in final_state.get("agent_signals", {}).items():
-        prediction = report.get("prediction")
-        prefix = f"[{'↑' if prediction is True else '↓' if prediction is False else '?'}] {agent_name.upper()}"
-        print(f"\n{prefix}")
-        if report['summary'] is not None:
-            if "reasoning" in report:
-                print(f"  reasoning : {report['reasoning'][:200]}...")
-                print(f"  summary   : {report['summary'][:]}")
-                print(f"  summary   : {report['risks'][:]}")
+    # for agent_name, report in final_state.get("agent_signals", {}).items():
+    #     prediction = report.get("prediction")
+    #     prefix = f"[{'↑' if prediction is True else '↓' if prediction is False else '?'}] {agent_name.upper()}"
+    #     print(f"\n{prefix}")
+    #     if report['summary'] is not None:
+    #         if "reasoning" in report:
+    #             print(f"  reasoning : {report['reasoning'][:200]}...")
+    #             print(f"  summary   : {report['summary'][:]}")
+    #             print(f"  summary   : {report['risks'][:]}")в зависимости от горизонта, должны с датасета отсеиваться N-ое количество 

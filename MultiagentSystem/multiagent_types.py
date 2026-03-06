@@ -1,6 +1,7 @@
 from datetime import date
 from typing import List, Literal, Union, Annotated
 
+import pandas as pd
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
@@ -13,11 +14,11 @@ def merge_dicts(left: dict, right: dict) -> dict:
     return {**left, **right}
 
 class AgentSignal(TypedDict):
-    description_of_the_reports_problem: str
+    description_of_the_reports_problem: list[str]
     reasoning: str
     summary: str
     risks: str        # риски и контраргументы к прогнозу
-    prediction: bool  # True = ВЫШЕ, False = НИЖЕ
+    prediction: bool | None  # True = ВЫШЕ, False = НИЖЕ, None = нейтральный/неопределённый
 
 class RetryAgentEntry(TypedDict):
     agent_name: str
@@ -30,7 +31,6 @@ class AgentState(TypedDict):
     cached_dataset: SharedBaseDataCache
     forecast_start_date: date
     direction: Literal["LONG", "SHORT"]
-    confidence: float
     reasoning: str
     agent_signals: Annotated[dict[str, AgentSignal], merge_dicts]
     error_detected: bool

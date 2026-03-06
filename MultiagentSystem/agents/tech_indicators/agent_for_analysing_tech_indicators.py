@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 from langchain_openai import ChatOpenAI
@@ -8,17 +9,20 @@ from multiagent_types import AgentState, get_agent_settings
 from typing import cast
 from pydantic import BaseModel
 
+import os
+from openai import AzureOpenAI
 
 class TechAnalysisResponse(BaseModel):
-    reasoning: str   # пошаговый разбор всех индикаторов по структуре из промпта
-    summary: str     # краткое итоговое заключение: прогноз + уверенность + диапазон
-    risks: str       # риски и контраргументы к прогнозу (2–5 пунктов или "")
-    prediction: bool # True = цена будет ВЫШЕ, False = НИЖЕ — вывод из reasoning и summary
+    reasoning: str        # пошаговый разбор всех индикаторов по структуре из промпта
+    summary: str          # краткое итоговое заключение: прогноз + уверенность + диапазон
+    risks: str            # риски и контраргументы к прогнозу (2–5 пунктов или "")
+    prediction: Optional[bool]  # True = ВЫШЕ, False = НИЖЕ, None = нейтральный (сигналы противоречивы)
 
 AGENT_DIR = Path(__file__).parent
 
 
 def agent_a_tech(state: AgentState):
+    # We should try to find retry of the agent, by default, we have True value for retry
     retry_entry = next(
         (e for e in state["try_again_launch_agents"] if e["agent_name"] == "tech_analyser_agent"),
         None,
@@ -63,18 +67,43 @@ def agent_a_tech(state: AgentState):
 
     # 6. Вызвать LLM с CoT: reasoning заполняется первым, summary — на его основе
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    
+    from langchain_openai import AzureChatOpenAI
 
-    response = cast(TechAnalysisResponse, llm.with_structured_output(TechAnalysisResponse).invoke([
+
+
+
+    prev_feedback: list[str] = (
+        state.get("agent_signals", {})
+        .get("tech_analyser_agent", {})
+        .get("description_of_the_reports_problem", [])
+    )
+
+    messages = [
         SystemMessage(content=system_prompt),
         HumanMessage(content=(
             f"Данные за {settings['window_to_analysis']} дней до {forecast_date}:\n{data_json}\n\n"
             f"Текущая цена закрытия BTC: {close_price}\n"
             f"Горизонт прогноза: {horizon} дней (от {forecast_date})\n\n"
             f"Ответь по структуре:\n"
-            f"1. ПРОГНОЗ: будет ли цена выше или ниже {close_price} через {horizon} дней?\n"
+            f"1. ПРОГНОЗ: будет ли цена выше, ниже или нейтрально через {horizon} дней?\n"
+            f"   - True  = цена ВЫШЕ {close_price} через {horizon} дней\n"
+            f"   - False = цена НИЖЕ {close_price} через {horizon} дней\n"
+            f"   - null  = сигналы противоречивы, уверенность низкая — воздержаться от прогноза\n"
             f"2. АРГУМЕНТЫ: какие индикаторы поддерживают твой прогноз?\n"
-        ))
-    ]))
+        )),
+    ]
+
+    if prev_feedback:
+        history_text = "\n".join(
+            f"Итерация {i+1}: {d}" for i, d in enumerate(prev_feedback)
+        )
+        messages.append(HumanMessage(content=(
+            f"ЗАМЕЧАНИЯ ВАЛИДАТОРА ПО ПРЕДЫДУЩИМ ВЕРСИЯМ ОТЧЁТА:\n{history_text}\n\n"
+            f"Учти эти замечания при составлении нового отчёта."
+        )))
+
+    response = cast(TechAnalysisResponse, llm.with_structured_output(TechAnalysisResponse).invoke(messages))
 
     prediction_label = "ВЫШЕ" if response.prediction else "НИЖЕ"
     print(f"[agent_a_tech] Готово. Прогноз: {prediction_label} | summary: {response.summary[:120]}...")

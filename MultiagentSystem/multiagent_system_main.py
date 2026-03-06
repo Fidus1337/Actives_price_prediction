@@ -20,16 +20,42 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
 def supervisor_node(state: AgentState):
-    return {}
+    retry = state.get("retry_count", 0) + 1
+    agents_to_run = [e["agent_name"] for e in state["try_again_launch_agents"] if e["recompose_report"]]
+    if agents_to_run:
+        print(f"\n[supervisor] Итерация #{retry} — повторный запуск агентов: {agents_to_run}")
+    else:
+        print(f"\n[supervisor] Итерация #{retry} — первый запуск всех агентов")
+    return {"retry_count": retry}
+
+
+MAX_RETRIES = 2
+
+def _should_retry(state: AgentState) -> str:
+    retry_count = state.get("retry_count", 0)
+    agents_with_problems = [e["agent_name"] for e in state["try_again_launch_agents"] if e["recompose_report"]]
+
+    if agents_with_problems and retry_count < MAX_RETRIES:
+        print(f"\n[router] Проблемы у агентов: {agents_with_problems} — retry #{retry_count + 1}/{MAX_RETRIES}")
+        return "supervisor"
+
+    if agents_with_problems:
+        print(f"\n[router] Лимит retry ({MAX_RETRIES}) исчерпан. Проблемные агенты: {agents_with_problems} — завершаем.")
+    else:
+        print(f"\n[router] Все агенты прошли валидацию — завершаем.")
+    return END
 
 def agent_b_onchain(state: AgentState):
-    return {"agent_signals": {"onchain": {"summary": None}}}
+    print("[agent_b] stub — пропускаем")
+    return {"agent_signals": {"agent_b": {"summary": None}}}
 
 def agent_c_news(state: AgentState):
-    return {"agent_signals": {"news_background": {"summary": None}}}
+    print("[agent_c] stub — пропускаем")
+    return {"agent_signals": {"agent_c": {"summary": None}}}
 
 def agent_d_twitter(state: AgentState):
-    return {"agent_signals": {"twitter_news": {"summary": None}}}
+    print("[agent_d] stub — пропускаем")
+    return {"agent_signals": {"agent_d": {"summary": None}}}
 
 # ==========================================
 # ШАГ 1: ИНИЦИАЛИЗАЦИЯ И ДОБАВЛЕНИЕ УЗЛОВ
@@ -65,8 +91,8 @@ builder.add_edge("supervisor", "agent_d")
 # и только потом передай управление в validator"
 builder.add_edge(["agent_a", "agent_b", "agent_c", "agent_d"], "validator")
 
-# 4. Точка выхода: завершаем работу после валидатора
-builder.add_edge("validator", END)
+# 4. Условный выход: если есть агенты с recompose_report=True — повторяем с супервизора
+builder.add_conditional_edges("validator", _should_retry)
 
 # ==========================================
 # ШАГ 3: КОМПИЛЯЦИЯ ГРАФА
@@ -99,6 +125,7 @@ if __name__ == "__main__":
         "cached_dataset": cache,
         "forecast_start_date": forecast_date,
         "try_again_launch_agents": _default_retry_agents(),
+        "retry_count": 0,
     }
     
     print(forecast_date)
@@ -119,3 +146,4 @@ if __name__ == "__main__":
             if "reasoning" in report:
                 print(f"  reasoning : {report['reasoning'][:200]}...")
                 print(f"  summary   : {report['summary'][:]}")
+                print(f"  summary   : {report['risks'][:]}")

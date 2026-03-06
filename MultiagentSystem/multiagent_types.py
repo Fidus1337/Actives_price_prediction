@@ -16,6 +16,7 @@ class AgentSignal(TypedDict):
     description_of_the_reports_problem: str
     reasoning: str
     summary: str
+    risks: str        # риски и контраргументы к прогнозу
     prediction: bool  # True = ВЫШЕ, False = НИЖЕ
 
 class RetryAgentEntry(TypedDict):
@@ -35,15 +36,14 @@ class AgentState(TypedDict):
     error_detected: bool
     error_reasoning: str
     try_again_launch_agents: list[RetryAgentEntry]
+    retry_count: int
 
 def _default_retry_agents() -> list[RetryAgentEntry]:
     return [
-        {"agent_name": "supervisor", "recompose_report": False},
-        {"agent_name": "agent_a",    "recompose_report": False},
-        {"agent_name": "agent_b",    "recompose_report": False},
-        {"agent_name": "agent_c",    "recompose_report": False},
-        {"agent_name": "agent_d",    "recompose_report": False},
-        {"agent_name": "validator",  "recompose_report": False},
+        {"agent_name": "tech_analyser_agent", "recompose_report": True},
+        {"agent_name": "agent_b",             "recompose_report": True},
+        {"agent_name": "agent_c",             "recompose_report": True},
+        {"agent_name": "agent_d",             "recompose_report": True},
     ]
 
 

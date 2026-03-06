@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -11,12 +12,22 @@ from pydantic import BaseModel
 class TechAnalysisResponse(BaseModel):
     reasoning: str   # пошаговый разбор всех индикаторов по структуре из промпта
     summary: str     # краткое итоговое заключение: прогноз + уверенность + диапазон
+    risks: str       # риски и контраргументы к прогнозу (2–5 пунктов или "")
     prediction: bool # True = цена будет ВЫШЕ, False = НИЖЕ — вывод из reasoning и summary
 
 AGENT_DIR = Path(__file__).parent
 
 
 def agent_a_tech(state: AgentState):
+    retry_entry = next(
+        (e for e in state["try_again_launch_agents"] if e["agent_name"] == "tech_analyser_agent"),
+        None,
+    )
+    if retry_entry is None or not retry_entry["recompose_report"]:
+        print("[agent_a_tech] recompose_report=False — пропускаем")
+        return {}
+    print("[agent_a_tech] Запускаем анализ технических индикаторов...")
+    
     # 1. Достать настройки агента и общие параметры из конфига
     settings = get_agent_settings(state, "agent_for_analysing_tech_indicators")
     horizon = state["config"]["horizon"]
@@ -65,8 +76,27 @@ def agent_a_tech(state: AgentState):
         ))
     ]))
 
-    return {"agent_signals": {"technical": {
+    prediction_label = "ВЫШЕ" if response.prediction else "НИЖЕ"
+    print(f"[agent_a_tech] Готово. Прогноз: {prediction_label} | summary: {response.summary[:120]}...")
+
+    tech_predict = {
+        "date": str(forecast_date),
+        "horizon": horizon,
+        "base_feats": cols,
+        "window": settings["window_to_analysis"],
         "reasoning": response.reasoning,
         "summary": response.summary,
+        "risks": response.risks,
+    }
+    (AGENT_DIR / "tech_predict.json").write_text(
+        json.dumps(tech_predict, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print(f"[agent_a_tech] tech_predict.json сохранён в {AGENT_DIR}")
+
+    return {"agent_signals": {"tech_analyser_agent": {
+        "reasoning": response.reasoning,
+        "summary": response.summary,
+        "risks": response.risks,
         "prediction": response.prediction,
     }}}

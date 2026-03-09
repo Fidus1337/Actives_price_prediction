@@ -17,7 +17,8 @@ class AgentSignal(TypedDict):
     reasoning: str
     summary: str
     risks: str        # риски и контраргументы к прогнозу
-    prediction: bool | None  # True = ВЫШЕ, False = НИЖЕ, None = нейтральный/неопределённый
+    prediction: bool  # True = ВЫШЕ, False = НИЖЕ (агенты всегда выбирают направление)
+    confidence: str   # high / medium / low
 
 class AgentState(TypedDict):
     config: dict

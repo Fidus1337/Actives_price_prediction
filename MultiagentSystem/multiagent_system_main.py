@@ -13,6 +13,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
 from langgraph.graph import StateGraph, START, END
 from multiagent_types import AgentState
 from agents.tech_indicators import agent_a_tech
+from agents.onchain_indicators import agent_b_onchain
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 from agents.verdicts_validator import agent_for_verdicts_validation
 from agents.reports_analyser import agent_reports_analyser
@@ -54,9 +55,6 @@ def _should_retry(state: AgentState) -> str:
 
     return "agent_reports_analyser"
 
-def agent_b_onchain(state: AgentState):
-    print("[agent_b] stub — пропускаем")
-    return {"agent_signals": {"agent_b": {"summary": None}}}
 
 def agent_c_news(state: AgentState):
     print("[agent_c] stub — пропускаем")
@@ -149,6 +147,9 @@ if __name__ == "__main__":
 
     # predictions_Y убрать — он не нужен
 
+    cm_path = Path(__file__).parent / "agents" / "tech_agent_confusion_matrix.png"
+    done_count = 0
+
     for idx, row in results_dataset.iterrows():              # итерируем по индексам
         forecast_date = row["date"].date()                   # Python date, не datetime64
 
@@ -166,6 +167,21 @@ if __name__ == "__main__":
         direction = final_state.get("general_prediction_by_all_reports")
         pred = 1 if direction == "LONG" else (0 if direction == "SHORT" else None)
         results_dataset.at[idx, "y_predictions"] = pred
+        done_count += 1
+
+        # Обновляем confusion matrix каждые 10 прогнозов
+        if done_count % 10 == 0:
+            valid = results_dataset.dropna(subset=["y_predictions"])
+            if len(valid) >= 2:
+                y_true = valid[f"y_up_{horizon}d"].astype(int)
+                y_pred = valid["y_predictions"].astype(int)
+                cm = confusion_matrix(y_true, y_pred)
+                disp = ConfusionMatrixDisplay(cm, display_labels=["НИЖЕ (0)", "ВЫШЕ (1)"])
+                disp.plot()
+                plt.title(f"Confusion Matrix ({done_count}/{N_last_dates} predictions, horizon={horizon}d)")
+                plt.savefig(cm_path)
+                plt.close()
+                print(f"[CM] Обновлена confusion matrix ({done_count} прогнозов) → {cm_path}")
 
     print(results_dataset[["date", f"y_up_{horizon}d", "y_predictions"]])
 
@@ -173,18 +189,18 @@ if __name__ == "__main__":
     results_dataset.to_csv(output_path, index=False)
     print(f"\nРезультаты сохранены в {output_path}")
 
+    # Финальная confusion matrix
     valid = results_dataset.dropna(subset=["y_predictions"])
-    y_true = valid[f"y_up_{horizon}d"].astype(int)
-    y_pred = valid["y_predictions"].astype(int)
-
-    cm = confusion_matrix(y_true, y_pred)
-    disp = ConfusionMatrixDisplay(cm, display_labels=["НИЖЕ (0)", "ВЫШЕ (1)"])
-    disp.plot()
-    plt.title(f"Tech Agent — Confusion Matrix (last {N_last_dates} days, horizon={horizon}d)")
-    cm_path = Path(__file__).parent / "agents" / "tech_agent_confusion_matrix.png"
-    plt.savefig(cm_path)
-    plt.close()
-    print(f"Confusion matrix сохранена в {cm_path}")
+    if len(valid) >= 2:
+        y_true = valid[f"y_up_{horizon}d"].astype(int)
+        y_pred = valid["y_predictions"].astype(int)
+        cm = confusion_matrix(y_true, y_pred)
+        disp = ConfusionMatrixDisplay(cm, display_labels=["НИЖЕ (0)", "ВЫШЕ (1)"])
+        disp.plot()
+        plt.title(f"Final Confusion Matrix ({len(valid)}/{N_last_dates} predictions, horizon={horizon}d)")
+        plt.savefig(cm_path)
+        plt.close()
+        print(f"Финальная confusion matrix сохранена в {cm_path}")
 
     print("\n✅ Граф завершил работу! Собранные сигналы агентов:")
     

@@ -10,7 +10,6 @@ from pydantic import BaseModel
 class AgentValidationResult(BaseModel):
     has_problem: bool
     description: str        # Конкретное описание проблемы или "" если проблем нет
-    should_nullify: bool    # True = уверенность низкая, обнулить prediction → None
 
 
 _PROMPT_PATH = Path(__file__).parent / "system_prompt.md"
@@ -39,7 +38,8 @@ def agent_for_verdicts_validation(state: AgentState):
 
         print(f"[validator] {agent_name}: проверяем отчёт...")
 
-        pred_label = "ВЫШЕ (True)" if prediction is True else ("НИЖЕ (False)" if prediction is False else "НЕЙТРАЛЬНО (None)")
+        confidence = signal.get("confidence", "unknown")
+        pred_label = "ВЫШЕ (True)" if prediction is True else "НИЖЕ (False)"
         messages = [
             SystemMessage(content=VALIDATOR_SYSTEM_PROMPT),
             HumanMessage(content=(
@@ -47,7 +47,8 @@ def agent_for_verdicts_validation(state: AgentState):
                 f"**reasoning:**\n{reasoning}\n\n"
                 f"**summary:**\n{summary}\n\n"
                 f"**risks:**\n{risks or '(не указаны)'}\n\n"
-                f"**prediction:** {pred_label}"
+                f"**prediction:** {pred_label}\n"
+                f"**confidence:** {confidence}"
             )),
         ]
 
@@ -59,15 +60,9 @@ def agent_for_verdicts_validation(state: AgentState):
 
         print(f"[validator] {agent_name}: {'ПРОБЛЕМА — ' + result.description[:1000] if result.has_problem else 'OK'}")
 
-        if result.should_nullify:
-            print(f"[validator] {agent_name}: низкая уверенность — prediction обнулён до None")
-            final_prediction = None
-        else:
-            final_prediction = prediction
-
         updated_signals[agent_name] = {
             **signal,
-            "prediction": final_prediction,
+            "prediction": prediction,
             "description_of_the_reports_problem": prev_descriptions + ([result.description] if result.has_problem else []),
         }
 

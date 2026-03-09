@@ -50,13 +50,15 @@ def agent_reports_analyser(state: AgentState):
     reports_text_parts = []
     for name, signal in real_reports.items():
         pred = signal.get("prediction")
-        pred_label = "ВЫШЕ (True)" if pred is True else ("НИЖЕ (False)" if pred is False else "НЕЙТРАЛЬНО (None)")
+        pred_label = "ВЫШЕ (True)" if pred is True else "НИЖЕ (False)"
+        confidence = signal.get("confidence", "unknown")
         reports_text_parts.append(
             f"### Агент: {name}\n"
             f"**reasoning:** {signal.get('reasoning', '')}\n\n"
             f"**summary:** {signal.get('summary', '')}\n\n"
             f"**risks:** {signal.get('risks', '(не указаны)')}\n\n"
-            f"**prediction:** {pred_label}"
+            f"**prediction:** {pred_label}\n"
+            f"**confidence:** {confidence}"
         )
 
     reports_text = "\n\n---\n\n".join(reports_text_parts)

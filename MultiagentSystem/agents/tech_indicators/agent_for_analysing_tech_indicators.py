@@ -37,7 +37,7 @@ def agent_a_tech(state: AgentState):
     forecast_date = state["forecast_start_date"]
 
     # 2. Взять DataFrame, отфильтровать нужные колонки и N дней до forecast_start_date
-    df = state["cached_dataset"].get_base_df()
+    df = state["cached_dataset"].copy()
     cols = [c for c in settings["base_feats"] if c in df.columns]
 
     df = df.loc[df["date"] <= pd.Timestamp(forecast_date), ["date"] + cols].tail(settings["window_to_analysis"])
@@ -86,7 +86,7 @@ def agent_a_tech(state: AgentState):
             f"1. ПРОГНОЗ: будет ли цена выше, ниже или нейтрально через {horizon} дней?\n"
             f"   - True  = цена ВЫШЕ {close_price} через {horizon} дней\n"
             f"   - False = цена НИЖЕ {close_price} через {horizon} дней\n"
-            f"   - null  = сигналы противоречивы, уверенность низкая — воздержаться от прогноза\n"
+            f"   - null  = уверенность НЕ высокая — воздержаться от прогноза (давай True/False ТОЛЬКО при высокой уверенности)\n"
             f"2. АРГУМЕНТЫ: какие индикаторы поддерживают твой прогноз?\n"
         )),
     ]

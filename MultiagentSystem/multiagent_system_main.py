@@ -15,8 +15,11 @@ from multiagent_types import AgentState
 from agents.tech_indicators import agent_a_tech
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 from agents.verdicts_validator import agent_for_verdicts_validation
+from agents.reports_analyser import agent_reports_analyser
 from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import warnings
@@ -63,8 +66,6 @@ def agent_d_twitter(state: AgentState):
     print("[agent_d] stub — пропускаем")
     return {"agent_signals": {"agent_d": {"summary": None}}}
 
-def agent_reports_analyser(state: AgentState):
-    return {}
 
 # ==========================================
 # ШАГ 1: ИНИЦИАЛИЗАЦИЯ И ДОБАВЛЕНИЕ УЗЛОВ
@@ -153,7 +154,7 @@ if __name__ == "__main__":
 
         initial_input = {
             "config": config,
-            "cached_dataset": cache,
+            "cached_dataset": base_df,
             "forecast_start_date": forecast_date,
             "retry_agents": [],
             "retry_count": 0,
@@ -161,8 +162,9 @@ if __name__ == "__main__":
 
         final_state = app.invoke(initial_input)
 
-        # Достаём предсказание и пишем в датасет по индексу
-        pred = final_state["agent_signals"]["tech_analyser_agent"]["prediction"]
+        # Достаём общий вердикт reports_analyser
+        direction = final_state.get("general_prediction_by_all_reports")
+        pred = 1 if direction == "LONG" else (0 if direction == "SHORT" else None)
         results_dataset.at[idx, "y_predictions"] = pred
 
     print(results_dataset[["date", f"y_up_{horizon}d", "y_predictions"]])

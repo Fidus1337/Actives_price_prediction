@@ -5,7 +5,6 @@ import pandas as pd
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
-from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 
 # Reducer: безопасно сливает словари агентов
 def merge_dicts(left: dict, right: dict) -> dict:
@@ -22,10 +21,13 @@ class AgentSignal(TypedDict):
 
 class AgentState(TypedDict):
     config: dict
-    general_prediction_by_all_reports: Literal["LONG", "SHORT"]
+    cached_dataset: pd.DataFrame
+    general_prediction_by_all_reports: Literal["LONG", "SHORT"] | None
+    general_reports_summary: str
+    general_reports_reasoning: str
+    general_reports_risks: str
     horizon: int
     messages: List[Union[HumanMessage, AIMessage, SystemMessage]]
-    cached_dataset: SharedBaseDataCache
     forecast_start_date: date
     reasoning: str
     agent_signals: Annotated[dict[str, AgentSignal], merge_dicts]

@@ -72,7 +72,6 @@ def agent_a_tech(state: AgentState):
 
 
 
-
     prev_feedback: list[str] = (
         state.get("agent_signals", {})
         .get("tech_analyser_agent", {})

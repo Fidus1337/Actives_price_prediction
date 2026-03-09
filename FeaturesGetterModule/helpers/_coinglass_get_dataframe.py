@@ -1,3 +1,4 @@
+import time
 import requests
 import pandas as pd
 import os
@@ -14,33 +15,57 @@ def _coinglass_get_dataframe(
     api_key: str,
     params: dict | None = None,
     timeout: int = 20,
+    retries: int = 3,
+    retry_delay: float = 5.0,
 ) -> pd.DataFrame:
     """
     Универсальный клиент: дергает endpoint, проверяет code/msg, возвращает DataFrame(data).
+    Retries on 500 server errors with exponential backoff.
     """
     url = f"{BASE_URL}{endpoint}"
     headers = {"accept": "application/json", "CG-API-KEY": api_key}
 
-    r = requests.get(url, headers=headers, params=params or {}, timeout=timeout)
-    try:
-        r.raise_for_status()
-    except requests.HTTPError as e:
-        raise CoinGlassError(f"HTTP error {r.status_code}: {r.text[:300]}") from e
+    last_exc: Exception | None = None
+    for attempt in range(retries):
+        try:
+            r = requests.get(url, headers=headers, params=params or {}, timeout=timeout)
+            try:
+                r.raise_for_status()
+            except requests.HTTPError as e:
+                raise CoinGlassError(f"HTTP error {r.status_code}: {r.text[:300]}") from e
 
-    j = r.json()
+            j = r.json()
 
-    # CoinGlass обычно возвращает code как строку: "0" = success
-    code = str(j.get("code", ""))
-    if code != "0":
-        raise CoinGlassError(f"CoinGlass error code={code}, msg={j.get('msg')}")
+            # CoinGlass обычно возвращает code как строку: "0" = success
+            code = str(j.get("code", ""))
+            if code != "0":
+                msg = j.get("msg")
+                exc = CoinGlassError(f"CoinGlass error code={code}, msg={msg}")
+                # Retry on server-side errors (code 500)
+                if code == "500":
+                    last_exc = exc
+                    wait = retry_delay * (2 ** attempt)
+                    print(f"  [retry {attempt + 1}/{retries}] {endpoint} → code=500, retrying in {wait:.0f}s...")
+                    time.sleep(wait)
+                    continue
+                raise exc
 
-    data = j.get("data")
-    if data is None:
-        # иногда data может быть [] — это ок; None — подозрительно
-        raise CoinGlassError("Response has no 'data' field")
+            data = j.get("data")
+            if data is None:
+                # иногда data может быть [] — это ок; None — подозрительно
+                raise CoinGlassError("Response has no 'data' field")
 
-    df = pd.DataFrame(data)
-    return df
+            return pd.DataFrame(data)
+
+        except CoinGlassError:
+            raise
+        except requests.RequestException as e:
+            last_exc = CoinGlassError(f"Request failed: {e}")
+            wait = retry_delay * (2 ** attempt)
+            print(f"  [retry {attempt + 1}/{retries}] {endpoint} → {e}, retrying in {wait:.0f}s...")
+            time.sleep(wait)
+
+    raise last_exc
 
 
 # ============================================================================

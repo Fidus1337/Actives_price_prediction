@@ -1,22 +1,19 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import cast
 
 import pandas as pd
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from multiagent_types import AgentState, get_agent_settings
-from typing import cast
 from pydantic import BaseModel
-
-import os
-from openai import AzureOpenAI
 
 class TechAnalysisResponse(BaseModel):
     reasoning: str        # пошаговый разбор всех индикаторов по структуре из промпта
     summary: str          # краткое итоговое заключение: прогноз + уверенность + диапазон
     risks: str            # риски и контраргументы к прогнозу (2–5 пунктов или "")
-    prediction: Optional[bool]  # True = ВЫШЕ, False = НИЖЕ, None = нейтральный (сигналы противоречивы)
+    prediction: bool      # True = ВЫШЕ, False = НИЖЕ (всегда выбирай направление)
+    confidence: str       # high / medium / low
 
 AGENT_DIR = Path(__file__).parent
 
@@ -65,10 +62,6 @@ def agent_a_tech(state: AgentState):
 
     # 6. Вызвать LLM с CoT: reasoning заполняется первым, summary — на его основе
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
-    
-    from langchain_openai import AzureChatOpenAI
-
-
 
     prev_feedback: list[str] = (
         state.get("agent_signals", {})
@@ -83,10 +76,10 @@ def agent_a_tech(state: AgentState):
             f"Текущая цена закрытия BTC: {close_price}\n"
             f"Горизонт прогноза: {horizon} дней (от {forecast_date})\n\n"
             f"Ответь по структуре:\n"
-            f"1. ПРОГНОЗ: будет ли цена выше, ниже или нейтрально через {horizon} дней?\n"
+            f"1. ПРОГНОЗ: будет ли цена выше или ниже через {horizon} дней?\n"
             f"   - True  = цена ВЫШЕ {close_price} через {horizon} дней\n"
             f"   - False = цена НИЖЕ {close_price} через {horizon} дней\n"
-            f"   - null  = уверенность НЕ высокая — воздержаться от прогноза (давай True/False ТОЛЬКО при высокой уверенности)\n"
+            f"   ВСЕГДА выбирай направление (True или False). Укажи уровень уверенности в поле confidence.\n"
             f"2. АРГУМЕНТЫ: какие индикаторы поддерживают твой прогноз?\n"
         )),
     ]
@@ -113,6 +106,8 @@ def agent_a_tech(state: AgentState):
         "reasoning": response.reasoning,
         "summary": response.summary,
         "risks": response.risks,
+        "prediction": response.prediction,
+        "confidence": response.confidence,
     }
     (AGENT_DIR / "tech_predict.json").write_text(
         json.dumps(tech_predict, ensure_ascii=False, indent=2),
@@ -125,4 +120,5 @@ def agent_a_tech(state: AgentState):
         "summary": response.summary,
         "risks": response.risks,
         "prediction": response.prediction,
+        "confidence": response.confidence,
     }}}

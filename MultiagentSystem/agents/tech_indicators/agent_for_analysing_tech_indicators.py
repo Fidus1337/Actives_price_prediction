@@ -22,14 +22,12 @@ AGENT_DIR = Path(__file__).parent
 
 
 def agent_a_tech(state: AgentState):
-    # We should try to find retry of the agent, by default, we have True value for retry
-    retry_entry = next(
-        (e for e in state["try_again_launch_agents"] if e["agent_name"] == "tech_analyser_agent"),
-        None,
-    )
-    if retry_entry is None or not retry_entry["recompose_report"]:
-        print("[agent_a_tech] recompose_report=False — пропускаем")
+    retry_agents = state.get("retry_agents", [])
+    is_first_run = state.get("retry_count", 0) <= 1
+    if not is_first_run and "tech_analyser_agent" not in retry_agents:
+        print("[agent_a_tech] retry не требуется — пропускаем")
         return {}
+        
     print("[agent_a_tech] Запускаем анализ технических индикаторов...")
     
     # 1. Достать настройки агента и общие параметры из конфига

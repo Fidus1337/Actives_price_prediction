@@ -20,32 +20,19 @@ class AgentSignal(TypedDict):
     risks: str        # риски и контраргументы к прогнозу
     prediction: bool | None  # True = ВЫШЕ, False = НИЖЕ, None = нейтральный/неопределённый
 
-class RetryAgentEntry(TypedDict):
-    agent_name: str
-    recompose_report: bool
-
 class AgentState(TypedDict):
     config: dict
+    general_prediction_by_all_reports: Literal["LONG", "SHORT"]
     horizon: int
     messages: List[Union[HumanMessage, AIMessage, SystemMessage]]
     cached_dataset: SharedBaseDataCache
     forecast_start_date: date
-    direction: Literal["LONG", "SHORT"]
     reasoning: str
     agent_signals: Annotated[dict[str, AgentSignal], merge_dicts]
     error_detected: bool
     error_reasoning: str
-    try_again_launch_agents: list[RetryAgentEntry]
+    retry_agents: list[str]   # имена агентов, которым нужен retry (пустой = первый запуск / всё ОК)
     retry_count: int
-
-def _default_retry_agents() -> list[RetryAgentEntry]:
-    return [
-        {"agent_name": "tech_analyser_agent", "recompose_report": True},
-        {"agent_name": "agent_b",             "recompose_report": True},
-        {"agent_name": "agent_c",             "recompose_report": True},
-        {"agent_name": "agent_d",             "recompose_report": True},
-    ]
-
 
 def get_agent_settings(state: AgentState, agent_name: str) -> dict:
     """Получить настройки конкретного агента из state."""

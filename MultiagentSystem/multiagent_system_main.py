@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
 
 from langgraph.graph import StateGraph, START, END
-from multiagent_types import AgentState, _default_retry_agents
+from multiagent_types import AgentState
 from agents.tech_indicators import agent_a_tech
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 from agents.verdicts_validator import agent_for_verdicts_validation
@@ -24,13 +24,11 @@ warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
 # Node for starting analysis by agents
 def supervisor_node(state: AgentState):
-    # How much retries we have
     retry = state.get("retry_count", 0) + 1
-    # Trying to detect agents to retry, check if the agent laucnhes first time
-    agents_to_run = [e["agent_name"] for e in state["try_again_launch_agents"] if e["recompose_report"]]
-    
-    if agents_to_run:
-        print(f"\n[supervisor] Итерация #{retry} — повторный запуск агентов: {agents_to_run}")
+    retry_agents = state.get("retry_agents", [])
+
+    if retry_agents:
+        print(f"\n[supervisor] Итерация #{retry} — повторный запуск агентов: {retry_agents}")
     else:
         print(f"\n[supervisor] Итерация #{retry} — первый запуск всех агентов")
     return {"retry_count": retry}
@@ -40,17 +38,18 @@ MAX_RETRIES = 2
 
 def _should_retry(state: AgentState) -> str:
     retry_count = state.get("retry_count", 0)
-    agents_with_problems = [e["agent_name"] for e in state["try_again_launch_agents"] if e["recompose_report"]]
+    retry_agents = state.get("retry_agents", [])
 
-    if agents_with_problems and retry_count < MAX_RETRIES:
-        print(f"\n[router] Проблемы у агентов: {agents_with_problems} — retry #{retry_count + 1}/{MAX_RETRIES}")
+    if retry_agents and retry_count < MAX_RETRIES:
+        print(f"\n[router] Проблемы у агентов: {retry_agents} — retry #{retry_count + 1}/{MAX_RETRIES}")
         return "supervisor"
 
-    if agents_with_problems:
-        print(f"\n[router] Лимит retry ({MAX_RETRIES}) исчерпан. Проблемные агенты: {agents_with_problems} — завершаем.")
+    if retry_agents:
+        print(f"\n[router] Лимит retry ({MAX_RETRIES}) исчерпан. Проблемные агенты: {retry_agents} — завершаем.")
     else:
         print(f"\n[router] Все агенты прошли валидацию — завершаем.")
-    return END
+
+    return "agent_reports_analyser"
 
 def agent_b_onchain(state: AgentState):
     print("[agent_b] stub — пропускаем")
@@ -63,6 +62,9 @@ def agent_c_news(state: AgentState):
 def agent_d_twitter(state: AgentState):
     print("[agent_d] stub — пропускаем")
     return {"agent_signals": {"agent_d": {"summary": None}}}
+
+def agent_reports_analyser(state: AgentState):
+    return {}
 
 # ==========================================
 # ШАГ 1: ИНИЦИАЛИЗАЦИЯ И ДОБАВЛЕНИЕ УЗЛОВ
@@ -77,6 +79,7 @@ builder.add_node("agent_b", agent_b_onchain)
 builder.add_node("agent_c", agent_c_news)
 builder.add_node("agent_d", agent_d_twitter)
 builder.add_node("validator", agent_for_verdicts_validation)
+builder.add_node("agent_reports_analyser", agent_reports_analyser)
 # Агента E пока нет в коде, но его узел будет добавляться аналогично
 
 # ==========================================
@@ -100,6 +103,8 @@ builder.add_edge(["agent_a", "agent_b", "agent_c", "agent_d"], "validator")
 
 # 4. Условный выход: если есть агенты с recompose_report=True — повторяем с супервизора
 builder.add_conditional_edges("validator", _should_retry)
+
+builder.add_edge("agent_reports_analyser", END)
 
 # ==========================================
 # ШАГ 3: КОМПИЛЯЦИЯ ГРАФА
@@ -149,8 +154,8 @@ if __name__ == "__main__":
         initial_input = {
             "config": config,
             "cached_dataset": cache,
-            "forecast_start_date": forecast_date,            # правильный тип
-            "try_again_launch_agents": _default_retry_agents(),
+            "forecast_start_date": forecast_date,
+            "retry_agents": [],
             "retry_count": 0,
         }
 

@@ -3,7 +3,7 @@ from typing import cast
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
-from multiagent_types import AgentState, AgentSignal, RetryAgentEntry
+from multiagent_types import AgentState, AgentSignal
 from pydantic import BaseModel
 
 
@@ -17,19 +17,12 @@ _PROMPT_PATH = Path(__file__).parent / "system_prompt.md"
 VALIDATOR_SYSTEM_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 
-def _set_retry_flag(retry_list: list[RetryAgentEntry], agent_name: str, value: bool) -> None:
-    for entry in retry_list:
-        if entry["agent_name"] == agent_name:
-            entry["recompose_report"] = value
-            break
-
-
 def agent_for_verdicts_validation(state: AgentState):
     print(f"\n[validator] Начинаем валидацию {len(state['agent_signals'])} сигналов...")
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 
     updated_signals: dict[str, AgentSignal] = {}
-    updated_retry: list[RetryAgentEntry] = [RetryAgentEntry(**e) for e in state["try_again_launch_agents"]]
+    retry_agents: list[str] = []
 
     for agent_name, signal in state["agent_signals"].items():
         reasoning = signal.get("reasoning") or ""
@@ -40,9 +33,8 @@ def agent_for_verdicts_validation(state: AgentState):
         prev_descriptions = [raw] if isinstance(raw, str) and raw else (raw or [])
 
         if not reasoning and not summary:
-            print(f"[validator] {agent_name}: stub — пропускаем, флаг сброшен")
+            print(f"[validator] {agent_name}: stub — пропускаем")
             updated_signals[agent_name] = signal
-            _set_retry_flag(updated_retry, agent_name, False)
             continue
 
         print(f"[validator] {agent_name}: проверяем отчёт...")
@@ -78,6 +70,8 @@ def agent_for_verdicts_validation(state: AgentState):
             "prediction": final_prediction,
             "description_of_the_reports_problem": prev_descriptions + ([result.description] if result.has_problem else []),
         }
-        _set_retry_flag(updated_retry, agent_name, result.has_problem)
 
-    return {"agent_signals": updated_signals, "try_again_launch_agents": updated_retry}
+        if result.has_problem:
+            retry_agents.append(agent_name)
+
+    return {"agent_signals": updated_signals, "retry_agents": retry_agents}

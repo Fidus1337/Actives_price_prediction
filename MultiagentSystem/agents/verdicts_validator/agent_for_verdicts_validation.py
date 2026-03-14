@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 class AgentValidationResult(BaseModel):
     has_problem: bool
-    description: str        # Конкретное описание проблемы или "" если проблем нет
+    description: str        # Specific problem description or "" if no problems
 
 
 _PROMPT_PATH = Path(__file__).parent / "system_prompt.md"
@@ -17,8 +17,8 @@ VALIDATOR_SYSTEM_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 
 def agent_for_verdicts_validation(state: AgentState):
-    print(f"\n[validator] Начинаем валидацию {len(state['agent_signals'])} сигналов...")
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+    print(f"\n[validator] Starting validation of {len(state['agent_signals'])} signals...")
+    llm = ChatOpenAI(model="gpt-5.1", temperature=0.1)
 
     updated_signals: dict[str, AgentSignal] = {}
     retry_agents: list[str] = []
@@ -32,33 +32,33 @@ def agent_for_verdicts_validation(state: AgentState):
         prev_descriptions = [raw] if isinstance(raw, str) and raw else (raw or [])
 
         if not reasoning and not summary:
-            print(f"[validator] {agent_name}: stub — пропускаем")
+            print(f"[validator] {agent_name}: stub — skipping")
             updated_signals[agent_name] = signal
             continue
 
-        print(f"[validator] {agent_name}: проверяем отчёт...")
+        print(f"[validator] {agent_name}: checking report...")
 
         confidence = signal.get("confidence", "unknown")
-        pred_label = "ВЫШЕ (True)" if prediction is True else "НИЖЕ (False)"
+        pred_label = "HIGHER (True)" if prediction is True else "LOWER (False)"
         messages = [
             SystemMessage(content=VALIDATOR_SYSTEM_PROMPT),
             HumanMessage(content=(
-                f"Отчёт агента «{agent_name}»:\n\n"
+                f"Report from agent '{agent_name}':\n\n"
                 f"**reasoning:**\n{reasoning}\n\n"
                 f"**summary:**\n{summary}\n\n"
-                f"**risks:**\n{risks or '(не указаны)'}\n\n"
+                f"**risks:**\n{risks or '(not specified)'}\n\n"
                 f"**prediction:** {pred_label}\n"
                 f"**confidence:** {confidence}"
             )),
         ]
 
         if prev_descriptions:
-            history = "\n".join(f"Итерация {i+1}: {d}" for i, d in enumerate(prev_descriptions))
-            messages.append(HumanMessage(content=f"История предыдущих замечаний валидатора:\n{history}"))
+            history = "\n".join(f"Iteration {i+1}: {d}" for i, d in enumerate(prev_descriptions))
+            messages.append(HumanMessage(content=f"History of previous validator feedback:\n{history}"))
 
         result = cast(AgentValidationResult, llm.with_structured_output(AgentValidationResult).invoke(messages))
 
-        print(f"[validator] {agent_name}: {'ПРОБЛЕМА — ' + result.description[:1000] if result.has_problem else 'OK'}")
+        print(f"[validator] {agent_name}: {'PROBLEM — ' + result.description[:1000] if result.has_problem else 'OK'}")
 
         updated_signals[agent_name] = {
             **signal,

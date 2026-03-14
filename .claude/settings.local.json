@@ -3,7 +3,10 @@
     "allow": [
       "Bash(ls:*)",
       "Bash(test:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "WebFetch(domain:docs.coinglass.com)",
+      "WebSearch",
+      "WebFetch(domain:www.coinglass.com)"
     ]
   }
 }

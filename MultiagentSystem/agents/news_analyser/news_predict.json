@@ -1,0 +1,330 @@
+{
+  "date": "2026-02-20",
+  "horizon": 1,
+  "window": 14,
+  "total_articles": 79,
+  "relevant_articles": 46,
+  "classifications": [
+    {
+      "title": "Bitcoin options market structure leans toward $60K retest in February",
+      "category": "high"
+    },
+    {
+      "title": "Kraken’s xStocks tops $25B in volume with more than 80K onchain holders",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Bitcoin Lightning Network exceeds $1B in monthly volume: Report",
+      "category": "high"
+    },
+    {
+      "title": "Bitcoin’s monthly losses break records, but history says a turnaround is brewing",
+      "category": "middle"
+    },
+    {
+      "title": "SEC leaders seek to clarify how tokenized securities interact with existing regulation",
+      "category": "middle"
+    },
+    {
+      "title": "Community banks see net deposit outflows to Coinbase: Study",
+      "category": "low"
+    },
+    {
+      "title": "Tightening Bitcoin Bollinger Bands forecast explosive price move, but which way?",
+      "category": "high"
+    },
+    {
+      "title": "ProShares seeks stablecoin reserves with GENIUS Act-compliant Treasury ETF",
+      "category": "middle"
+    },
+    {
+      "title": "‘More to come,’ crypto leaders say after third White House stablecoin meeting",
+      "category": "middle"
+    },
+    {
+      "title": "Ripple CEO confirms White House meeting between crypto, banking reps",
+      "category": "middle"
+    },
+    {
+      "title": "exclusive Fintech firm Newity raises $11 million to bring small business loans onchain",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Onchain analytics tool Parsec winding down operations",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Gemini stock slump may already factor in leadership exits, Mizuho says",
+      "category": "low"
+    },
+    {
+      "title": "SEC's Peirce and Atkins outline 'incremental' path forward for tokenized securities as agency readies innovation exemption",
+      "category": "middle"
+    },
+    {
+      "title": "‘Resilient’ Bitcoin holders defend BTC, but bear floor sits 20% lower: Glassnode",
+      "category": "high"
+    },
+    {
+      "title": "Tokenized xStocks surpass $25 billion in total transaction volume: Kraken",
+      "category": "not_correlated"
+    },
+    {
+      "title": "From Coinbase Super Bowl ad to upcoming earnings report, with crypto M&A expert Christian Lopez",
+      "category": "not_correlated"
+    },
+    {
+      "title": "The Daily: Hacker returns $21 million in stolen bitcoin, Robinhood Chain testnet hits four million transactions in first week, and more",
+      "category": "middle"
+    },
+    {
+      "title": "Bitcoin 'roadmap to bottom' says $58.7K Binance cost basis now crucial",
+      "category": "high"
+    },
+    {
+      "title": "CME targets May launch for 24/7 crypto derivatives trading",
+      "category": "middle"
+    },
+    {
+      "title": "Bitcoin miners chase 30 GW AI capacity to offset hashprice pressure",
+      "category": "middle"
+    },
+    {
+      "title": "Consensys-backed Ethereum treasury firm Sharplink now holds 867,798 ETH",
+      "category": "not_correlated"
+    },
+    {
+      "title": "ProShares launches first stablecoin-ready money market ETF under GENIUS Act",
+      "category": "middle"
+    },
+    {
+      "title": "Bitcoin price forecast sees new breakdown as crypto liquidates over $200M",
+      "category": "high"
+    },
+    {
+      "title": "Crypto investment firm DBA raises $68 million for its second venture fund",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Dash Evolution chain integrates Zcash Orchard privacy pool",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Bitdeer shares slip amid $300 million note offering to scale high-performance computing",
+      "category": "not_correlated"
+    },
+    {
+      "title": "CME Group to launch 24/7 crypto futures and options trading on May 29",
+      "category": "middle"
+    },
+    {
+      "title": "Banks can’t seem to service crypto, even as it goes mainstream",
+      "category": "low"
+    },
+    {
+      "title": "Voltage rolls out USD-settled Bitcoin Lightning credit line for businesses",
+      "category": "high"
+    },
+    {
+      "title": "Voltage expands bitcoin infrastructure with USD-settled revolving credit line on Lightning Network",
+      "category": "high"
+    },
+    {
+      "title": "Soil launches RLUSD yield protocol on XRP Ledger, expanding utility for Ripple's stablecoin",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Deutsche Börse exec says tokenization is an evolution, not a threat",
+      "category": "low"
+    },
+    {
+      "title": "Google searches for ‘Bitcoin going to zero’ at highest since 2022",
+      "category": "middle"
+    },
+    {
+      "title": "Blockchain data may predict drug overdose surges months in advance: Chainalysis",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Polymarket’s lawsuit could decide who regulates US prediction markets",
+      "category": "low"
+    },
+    {
+      "title": "Robinhood’s L2 testnet hits 4M transactions in first week, CEO says",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Hacker returns $21M in Bitcoin stolen from South Korean authorities: Report",
+      "category": "high"
+    },
+    {
+      "title": "Morgan Stanley, other top holders add Bitmine exposure amid sell-off",
+      "category": "low"
+    },
+    {
+      "title": "Uniswap governance considers activating protocol fees on all v3 pools, expanding to eight additional chains",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Hacker returns $21 million in stolen bitcoin to South Korean authorities: report",
+      "category": "high"
+    },
+    {
+      "title": "Ledn raises $188M in first Bitcoin-backed loan securitization: Bloomberg",
+      "category": "high"
+    },
+    {
+      "title": "UAE-linked bitcoin mining amasses $344 million unrealized profit excluding energy costs: Arkham",
+      "category": "low"
+    },
+    {
+      "title": "Bitcoin ETFs see $133M outflows as sentiment stays in ‘extreme fear’",
+      "category": "high"
+    },
+    {
+      "title": "Robinhood's Layer 2 testnet sees four million transactions in first week, CEO Vlad Tenev says",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Why address poisoning works without stealing private keys",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Ethereum Foundation lists ‘quantum readiness,’ gas limits in 2026 priorities",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Fed minutes suggest rate hikes on table again amid inflation jitters",
+      "category": "middle"
+    },
+    {
+      "title": "US CLARITY Act to pass 'hopefully by April': Senator Bernie Moreno",
+      "category": "middle"
+    },
+    {
+      "title": "Kalshi data could inform Federal Reserve policy: Fed researchers",
+      "category": "middle"
+    },
+    {
+      "title": "Warren warns crypto bailout would enrich Trump family biz: Report",
+      "category": "low"
+    },
+    {
+      "title": "Aptos eyes tokenomics overhaul to scale APT deflation",
+      "category": "not_correlated"
+    },
+    {
+      "title": "LONGTITUDE recap: Bitcoin's 2-step quantum plan, US crypto policy",
+      "category": "middle"
+    },
+    {
+      "title": "Hyperliquid launches DeFi lobby amid ‘critical time’ for US policy",
+      "category": "middle"
+    },
+    {
+      "title": "Bitcoin’s consolidation nears ‘turning point’ as $70K comes in focus: Analyst",
+      "category": "high"
+    },
+    {
+      "title": "Solana futures data shows panicked bulls: Will $80 SOL hold?",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Bitcoin bottom signal that preceded 1,900% rally flashes again",
+      "category": "high"
+    },
+    {
+      "title": "Ledn sells $188 million worth of bitcoin-backed bonds: Bloomberg",
+      "category": "high"
+    },
+    {
+      "title": "Coinbase's Base transitions to its own architecture with eye on streamlining",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Kraken acquires tokenization platform Magna ahead of potential IPO",
+      "category": "not_correlated"
+    },
+    {
+      "title": "SOL’s path of least resistance tilts toward $50 but onchain data hints at a bottom",
+      "category": "not_correlated"
+    },
+    {
+      "title": "$209B exited altcoins over the last 13 months: Did traders rotate into Bitcoin?",
+      "category": "middle"
+    },
+    {
+      "title": "Ether.fi shifts non-custodial crypto card product to OP Mainnet from Scroll",
+      "category": "not_correlated"
+    },
+    {
+      "title": "DerivaDEX launches Bermuda-licensed derivatives exchange under DAO governance",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Ether 'bear pennant' puts target on $1.1K ETH price: Here’s why",
+      "category": "not_correlated"
+    },
+    {
+      "title": "OpenAI and Paradigm partner on AI agent tool for smart contract security",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Riot Platform‘s AI/HPC push could net up to $21B, says activist holder",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Price predictions 2/18: BTC, ETH, XRP, BNB, SOL, DOGE, BCH, ADA, HYPE, XMR",
+      "category": "middle"
+    },
+    {
+      "title": "Coinbase adds XRP, Dogecoin, Cardano and Litecoin as collateral for onchain loans via Morpho",
+      "category": "not_correlated"
+    },
+    {
+      "title": "World Liberty Forum opens with 18% WLFI rally as Eric Trump says crypto industry still at ‘one-yard line’",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Goldman Sachs CEO David Solomon reveals he owns 'very little' amount of bitcoin",
+      "category": "low"
+    },
+    {
+      "title": "Treasury bills seen as primary driver of Bitcoin's price: Report",
+      "category": "high"
+    },
+    {
+      "title": "The Daily: Peter Thiel and Founders Fund exit ETHZilla, K33 says bitcoin is approaching 'late bear market territory,' and more",
+      "category": "middle"
+    },
+    {
+      "title": "Bitcoin 2024 buyers steady BTC price as trader sees $52K 'next week or so'",
+      "category": "high"
+    },
+    {
+      "title": "SocGen's FORGE expands euro stablecoin to XRP Ledger in multi-chain push",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Coinbase-incubated Base network to ditch Optimism for 'unified solution'",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Loyalty becomes lifestyle: Rain and Uptop on stablecoin rewards",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Mystery Hong Kong firm emerges as largest new IBIT holder after building $436 million stake in late 2025",
+      "category": "not_correlated"
+    },
+    {
+      "title": "Trump family-backed WLFI token surges 23% ahead of Mar-a-Lago crypto forum",
+      "category": "not_correlated"
+    }
+  ],
+  "reasoning": "Новостной фон в совокупности медвежий на очень коротком горизонте. Ключевые high-коррелированные сигналы: (1) усиливающийся спрос на защиту в опционах и ожидание ретеста $60K – профучастники платят премию за путы, что отражает страх дальнейшей просадки; (2) крупные и продолжающиеся оттоки из спотовых BTC‑ETF (сотни миллионов долларов, в т.ч. из IBIT), уже несколько недель подряд, при слабой торговой активности — это явно охлаждение институционального интереса; (3) статьи о возможном новом «breakdown», высокой ликвидации (200+ млн) и сценариях теста зон $58–60K и даже ниже ($52K) делают короткий горизонт уязвимым к ещё одному импульсу вниз. \n\nДополняют негатив: Fed minutes с обсуждением возможного повышения ставок (давление на риск-активы), экстремальный страх по индикатору Fear & Greed и всплеск запросов «Bitcoin going to zero». Да, есть бычьи структурные новости: рекордное сжатие Bollinger Bands (намёк на крупное движение, часто после дна), сигналы капитуляции краткосрочных держателей, рост Lightning Network и институциональные продукты (Ledn ABS, CME 24/7 деривативы, CLARITY Act, инновационный SEC‑режим). Но это, скорее, средне‑/долгосрочные драйверы и не отменяют текущей фазы снижения и «extreme fear».\n\nНа горизонте одного дня рынок, вероятнее, продолжит или хотя бы протестирует более низкие уровни в рамках текущего нисходящего импульса и ETF‑оттоков, чем покажет устойчивый разворот вверх от ~$66K–67K уже завтра.",
+  "summary": "Баланс новостей смещён в медвежью сторону: усиливающийся спрос на защитные опционы, крупные оттоки из спотовых BTC‑ETF и прогнозы ретеста $60K–58K указывают на продолжение давления на цену. Хотя структурные и регуляторные новости позитивны и формируют бычий фон на более длённый срок, за 1 день они вряд ли перевесят текущий страх и ликвидации. Ожидаю, что через сутки BTC будет ближе к нижней части текущего диапазона, с ценой ниже сегодняшнего уровня, с умеренной уверенностью.",
+  "risks": "1) Экстремальный страх и капитуляционные метрики могут спровоцировать резкий шорт‑сквиз и «V‑образный» отскок именно в ближайшие сутки.\n2) Любой позитивный макро‑катализатор (смягчающие комментарии ФРС, улучшение ликвидности) либо политическая новость по CLARITY Act/регуляциям может резко развернуть настроения.\n3) Техническое сжатие волатильности (узкие Bollinger Bands) делает направление рывка неопределённым: пробой вверх может оказаться сильнее, чем ожидает рынок.",
+  "prediction": false,
+  "confidence": "medium"
+}

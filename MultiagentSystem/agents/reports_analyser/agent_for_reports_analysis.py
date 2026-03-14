@@ -1,91 +1,70 @@
-from pathlib import Path
-from typing import Optional, cast
-
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage
 from multiagent_types import AgentState
-from pydantic import BaseModel
 
 
-class ReportsAnalysisResponse(BaseModel):
-    reasoning: str
-    summary: str
-    risks: str
-    prediction: Optional[bool]  # True = ВЫШЕ, False = НИЖЕ, None = неопределённо
+CONFIDENCE_WEIGHTS = {"high": 3, "medium": 2, "low": 1}
 
 
-_PROMPT_PATH = Path(__file__).parent / "system_prompt.md"
-ANALYSER_SYSTEM_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8").strip()
+def compute_confidence_score(
+    agent_signals: dict,
+    neutral_threshold: int = 1,
+) -> tuple[int, str | None, str]:
+    """
+    Mathematical aggregation of agent predictions.
 
+    Returns (score, direction, breakdown_text).
+    - score: sum of weighted predictions (+high=3, +medium=2, +low=1 for HIGHER; negative for LOWER)
+    - direction: "LONG" | "SHORT" | None
+    - breakdown_text: text breakdown of the calculation
+    """
+    score = 0
+    parts = []
 
-def _prediction_to_direction(prediction: Optional[bool]) -> str | None:
-    if prediction is True:
-        return "LONG"
-    if prediction is False:
-        return "SHORT"
-    return None
+    for name, signal in agent_signals.items():
+        # Skip stub agents (agent_c, agent_d)
+        if signal.get("summary") is None or not signal.get("reasoning"):
+            continue
+
+        confidence = signal.get("confidence", "low")
+        weight = CONFIDENCE_WEIGHTS.get(confidence, 1)
+        prediction = signal.get("prediction")
+
+        if prediction is True:
+            score += weight
+            parts.append(f"{name}: HIGHER ({confidence}) -> +{weight}")
+        else:
+            score -= weight
+            parts.append(f"{name}: LOWER ({confidence}) -> -{weight}")
+
+    breakdown = " | ".join(parts) if parts else "No real reports"
+
+    # Determine direction with neutral zone
+    if score > neutral_threshold:
+        direction = "LONG"
+    elif score < -neutral_threshold:
+        direction = "SHORT"
+    else:
+        direction = None
+
+    return score, direction, breakdown
 
 
 def agent_reports_analyser(state: AgentState):
     signals = state.get("agent_signals", {})
+    threshold = state.get("config", {}).get("neutral_threshold", 1)
 
-    # Собираем только реальные отчёты (не стабы)
-    real_reports = {
-        name: signal for name, signal in signals.items()
-        if signal.get("summary") is not None and signal.get("reasoning")
-    }
+    score, direction, breakdown = compute_confidence_score(signals, threshold)
 
-    if not real_reports:
-        print("[reports_analyser] Нет реальных отчётов — пропускаем")
-        return {
-            "general_prediction_by_all_reports": None,
-            "general_reports_summary": "",
-            "general_reports_reasoning": "Нет отчётов агентов для анализа",
-            "general_reports_risks": "",
-        }
-
-    print(f"[reports_analyser] Анализируем {len(real_reports)} отчёт(ов): {list(real_reports.keys())}")
-
-    # Формируем текст отчётов для промпта
-    reports_text_parts = []
-    for name, signal in real_reports.items():
-        pred = signal.get("prediction")
-        pred_label = "ВЫШЕ (True)" if pred is True else "НИЖЕ (False)"
-        confidence = signal.get("confidence", "unknown")
-        reports_text_parts.append(
-            f"### Агент: {name}\n"
-            f"**reasoning:** {signal.get('reasoning', '')}\n\n"
-            f"**summary:** {signal.get('summary', '')}\n\n"
-            f"**risks:** {signal.get('risks', '(не указаны)')}\n\n"
-            f"**prediction:** {pred_label}\n"
-            f"**confidence:** {confidence}"
-        )
-
-    reports_text = "\n\n---\n\n".join(reports_text_parts)
-
-    horizon = state.get("config", {}).get("horizon", "?")
-
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
-    messages = [
-        SystemMessage(content=ANALYSER_SYSTEM_PROMPT),
-        HumanMessage(content=(
-            f"Горизонт прогноза: {horizon} дней\n\n"
-            f"Отчёты агентов:\n\n{reports_text}"
-        )),
-    ]
-
-    response = cast(
-        ReportsAnalysisResponse,
-        llm.with_structured_output(ReportsAnalysisResponse).invoke(messages),
-    )
-
-    direction = _prediction_to_direction(response.prediction)
     direction_label = direction or "NEUTRAL"
-    print(f"[reports_analyser] Общий вердикт: {direction_label} | {response.summary[:120]}...")
+    print(f"[reports_analyser] Score: {score} (threshold: +/-{threshold}) -> {direction_label}")
+    print(f"[reports_analyser] Breakdown: {breakdown}")
+
+    reasoning = f"Confidence score: {score} (neutral zone: +/-{threshold}). {breakdown}"
+    summary = f"{direction_label} (score={score})"
 
     return {
         "general_prediction_by_all_reports": direction,
-        "general_reports_summary": response.summary,
-        "general_reports_reasoning": response.reasoning,
-        "general_reports_risks": response.risks,
+        "general_reports_summary": summary,
+        "general_reports_reasoning": reasoning,
+        "general_reports_risks": "",
+        "confidence_score": score,
     }

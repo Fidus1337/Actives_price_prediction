@@ -43,28 +43,38 @@ warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
 # Node for starting analysis by agents
 def supervisor_node(state: AgentState):
-    retry = state.get("retry_count", 0) + 1
     retry_agents = state.get("retry_agents", [])
+    retry_counts = state.get("retry_counts", {})
 
     if retry_agents:
-        print(f"\n[supervisor] Iteration #{retry} — restarting agents: {retry_agents}")
+        # Increment counters only for agents that need retry
+        updated_counts = {a: retry_counts.get(a, 0) + 1 for a in retry_agents}
+        print(f"\n[supervisor] Restarting agents: {retry_agents}, counts: {updated_counts}")
+        return {"retry_counts": updated_counts}
     else:
-        print(f"\n[supervisor] Iteration #{retry} — first run of all agents")
-    return {"retry_count": retry}
+        print(f"\n[supervisor] First run of all agents")
+        return {}
 
-# How much times is allowed to repeat predicting, after finding problems by verdicts_validator
+# Max retries per agent (default 2)
 MAX_RETRIES = 2
 # Router for retry (look schema at miro)
 def _should_retry(state: AgentState) -> str:
-    retry_count = state.get("retry_count", 0)
     retry_agents = state.get("retry_agents", [])
+    retry_counts = state.get("retry_counts", {})
 
-    if retry_agents and retry_count < MAX_RETRIES:
-        print(f"\n[router] Issues with agents: {retry_agents} — retry #{retry_count + 1}/{MAX_RETRIES}")
+    # Filter to agents that still have retries left
+    agents_with_budget = [
+        a for a in retry_agents
+        if retry_counts.get(a, 0) < MAX_RETRIES
+    ]
+
+    if agents_with_budget:
+        print(f"\n[router] Agents need retry: {agents_with_budget} — counts: {retry_counts}")
         return "supervisor"
 
     if retry_agents:
-        print(f"\n[router] Retry limit ({MAX_RETRIES}) exhausted. Problematic agents: {retry_agents} — finishing.")
+        exhausted = [a for a in retry_agents if retry_counts.get(a, 0) >= MAX_RETRIES]
+        print(f"\n[router] Retry limit ({MAX_RETRIES}) exhausted for: {exhausted}")
     else:
         print(f"\n[router] All agents passed validation — finishing.")
 
@@ -84,7 +94,7 @@ builder = StateGraph(AgentState)
 # Register all nodes (node names are defined as strings)
 builder.add_node("supervisor", supervisor_node)
 builder.add_node("agent_a_tech", agent_a_tech)
-# builder.add_node("agent_b_onchain", agent_b_onchain)
+builder.add_node("agent_b_onchain", agent_b_onchain)
 builder.add_node("agent_c_news", agent_c_news)
 builder.add_node("agent_d_twitter", agent_d_twitter)
 builder.add_node("validator", agent_for_verdicts_validation)
@@ -101,12 +111,12 @@ builder.add_edge(START, "supervisor")
 # LangGraph will detect this and run them simultaneously!
 builder.add_edge("supervisor", "agent_a_tech")
 # builder.add_edge("supervisor", "agent_b_onchain")
-builder.add_edge("supervisor", "agent_c_news")
+# builder.add_edge("supervisor", "agent_c_news")
 
 # 3. MERGE (Fan-in)
 # The array means: "Wait for all these nodes to complete,
 # and only then pass control to validator"
-builder.add_edge(["agent_a_tech", "agent_c_news"], "validator")
+builder.add_edge(["agent_a_tech"], "validator")
 
 # 4. Conditional exit: if there are agents with recompose_report=True — retry from supervisor
 builder.add_conditional_edges("validator", _should_retry)
@@ -125,7 +135,7 @@ app = builder.compile()
 # ==========================================
 if __name__ == "__main__":
     # Building matrix by N last days
-    N_last_dates = 22
+    N_last_dates = 100
     
     # Load multiagent system config
     config_path = Path(__file__).parent / "multiagent_config.json"
@@ -146,23 +156,36 @@ if __name__ == "__main__":
     print("Loaded dataset, look at the last date allowed for building counfusion matrix: \n")
     print(dataset_with_target[["date", "spot_price_history__close", f"y_up_{horizon}d"]].tail(1))
     
-    results_dataset = dataset_with_target[["date", f"y_up_{horizon}d"]].tail(N_last_dates).copy()
+    # Use forecast_start_date from config as the anchor: take N_last_dates ending at that date
+    forecast_anchor = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d")
+    eligible = dataset_with_target[dataset_with_target["date"] <= forecast_anchor]
+    results_dataset = eligible[["date", f"y_up_{horizon}d"]].tail(N_last_dates).copy()
+    print(f"\nUsing forecast_start_date={config['forecast_start_date']} as anchor")
+    print(f"Eligible rows (date <= anchor): {len(eligible)} | Taking last {N_last_dates}")
     results_dataset["y_predictions"] = None
     results_dataset["confidence_score"] = None
 
     # Where we store confusion matrix
     cm_path = Path(__file__).parent / "agents" / "tech_agent_confusion_matrix.png"
     done_count = 0
+    print(f"\nStarting predictions loop: {len(results_dataset)} dates, horizon={horizon}d")
+    print(f"Date range: {results_dataset['date'].iloc[0].date()} -> {results_dataset['date'].iloc[-1].date()}")
 
+    total_rows = len(results_dataset)
     for idx, row in results_dataset.iterrows():              # iterate over indices
         forecast_date = row["date"].date()                   # Python date, not datetime64
+        done_count += 1
+
+        print(f"\n{'#'*70}")
+        print(f"### PREDICTION {done_count}/{total_rows} | date={forecast_date} | y_true={row[f'y_up_{horizon}d']}")
+        print(f"{'#'*70}")
 
         initial_input = {
             "config": config,
             "cached_dataset": base_df,
             "forecast_start_date": forecast_date,
             "retry_agents": [],
-            "retry_count": 0,
+            "retry_counts": {},
         }
 
         final_state = app.invoke(initial_input)
@@ -173,7 +196,10 @@ if __name__ == "__main__":
         pred = 1 if direction == "LONG" else (0 if direction == "SHORT" else None)
         results_dataset.at[idx, "y_predictions"] = pred
         results_dataset.at[idx, "confidence_score"] = score
-        done_count += 1
+
+        actual = int(row[f"y_up_{horizon}d"])
+        correct = "CORRECT" if pred == actual else ("WRONG" if pred is not None else "SKIPPED")
+        print(f"\n>>> RESULT: prediction={direction or 'NEUTRAL'} (score={score}) | y_true={actual} | {correct}")
 
         # Update confusion matrix every 10 predictions
         if done_count % 10 == 0:

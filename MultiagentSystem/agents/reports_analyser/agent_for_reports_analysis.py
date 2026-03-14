@@ -49,17 +49,34 @@ def compute_confidence_score(
 
 
 def agent_reports_analyser(state: AgentState):
+    TAG = "[reports_analyser]"
     signals = state.get("agent_signals", {})
     threshold = state.get("config", {}).get("neutral_threshold", 1)
+
+    print(f"\n{'='*60}")
+    print(f"{TAG} === AGGREGATING FINAL VERDICT ===")
+    print(f"{'='*60}")
+    print(f"{TAG} Received {len(signals)} agent signals | neutral_threshold={threshold}")
+
+    for name, signal in signals.items():
+        pred = signal.get("prediction")
+        conf = signal.get("confidence", "?")
+        has_summary = bool(signal.get("summary"))
+        has_reasoning = bool(signal.get("reasoning"))
+        problems = signal.get("description_of_the_reports_problem", [])
+        pred_label = "HIGHER" if pred is True else ("LOWER" if pred is False else "N/A")
+        print(f"{TAG}   {name}: prediction={pred_label} confidence={conf} has_summary={has_summary} has_reasoning={has_reasoning} validation_issues={len(problems)}")
 
     score, direction, breakdown = compute_confidence_score(signals, threshold)
 
     direction_label = direction or "NEUTRAL"
-    print(f"[reports_analyser] Score: {score} (threshold: +/-{threshold}) -> {direction_label}")
-    print(f"[reports_analyser] Breakdown: {breakdown}")
+    print(f"{TAG} Score calculation: {breakdown}")
+    print(f"{TAG} Final score: {score} (neutral zone: +/-{threshold}) -> {direction_label}")
 
     reasoning = f"Confidence score: {score} (neutral zone: +/-{threshold}). {breakdown}"
     summary = f"{direction_label} (score={score})"
+
+    print(f"{TAG} Done. Final verdict: {direction_label}")
 
     return {
         "general_prediction_by_all_reports": direction,

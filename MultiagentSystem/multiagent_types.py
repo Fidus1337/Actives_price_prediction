@@ -34,7 +34,7 @@ class AgentState(TypedDict):
     forecast_start_date: date 
     agent_signals: Annotated[dict[str, AgentSignal], merge_dicts] # every agent returns signal
     retry_agents: list[str]   # agent names to retry (empty = first run or all OK)
-    retry_count: int
+    retry_counts: Annotated[dict[str, int], merge_dicts]  # per-agent retry counters
 
 def get_agent_settings(state: AgentState, agent_name: str) -> dict:
     """Get settings for a specific agent from state."""

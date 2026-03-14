@@ -7,25 +7,6 @@ from sklearn.metrics import (
 )
 from sklearn.inspection import permutation_importance
 
-def make_up7d_target_ret_threshold(
-    close: pd.Series,
-    horizon: int = 7,
-    ret_thr: float = 0.02,   # 2% за 7 дней
-    use_log: bool = True,
-) -> pd.Series:
-    close = close.astype(float)
-    if use_log:
-        fwd = np.log(close.shift(-horizon) / close)
-        thr = np.log(1.0 + ret_thr)
-    else:
-        fwd = close.shift(-horizon) / close - 1.0
-        thr = ret_thr
-
-    y = (fwd >= thr).astype(float)
-    y.iloc[-horizon:] = np.nan
-    return y
-
-
 def make_up7d_target_vol_scaled(
     close: pd.Series,
     horizon: int = 7,

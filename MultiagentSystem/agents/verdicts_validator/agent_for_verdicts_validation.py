@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import cast
 
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from multiagent_types import AgentState, AgentSignal
 from pydantic import BaseModel
@@ -17,13 +18,22 @@ VALIDATOR_SYSTEM_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 
 def agent_for_verdicts_validation(state: AgentState):
-    print(f"\n[validator] Starting validation of {len(state['agent_signals'])} signals...")
-    llm = ChatOpenAI(model="gpt-5.1", temperature=0.1)
+    TAG = "[validator]"
+    signals = state["agent_signals"]
+
+    print(f"\n{'='*60}")
+    print(f"{TAG} === VALIDATING {len(signals)} AGENT REPORTS ===")
+    print(f"{'='*60}")
+    print(f"{TAG} Agents to validate: {list(signals.keys())}")
+
+    llm = AzureChatOpenAI(azure_deployment="gpt-4o-mini", temperature=0.1)
 
     updated_signals: dict[str, AgentSignal] = {}
     retry_agents: list[str] = []
 
-    for agent_name, signal in state["agent_signals"].items():
+    for i, (agent_name, signal) in enumerate(signals.items(), 1):
+        print(f"\n{TAG} --- Checking agent {i}/{len(signals)}: {agent_name} ---")
+
         reasoning = signal.get("reasoning") or ""
         summary   = signal.get("summary") or ""
         risks     = signal.get("risks") or ""
@@ -32,14 +42,16 @@ def agent_for_verdicts_validation(state: AgentState):
         prev_descriptions = [raw] if isinstance(raw, str) and raw else (raw or [])
 
         if not reasoning and not summary:
-            print(f"[validator] {agent_name}: stub — skipping")
+            print(f"{TAG}   {agent_name}: No reasoning/summary found — stub agent, skipping")
             updated_signals[agent_name] = signal
             continue
 
-        print(f"[validator] {agent_name}: checking report...")
-
-        confidence = signal.get("confidence", "unknown")
         pred_label = "HIGHER (True)" if prediction is True else "LOWER (False)"
+        confidence = signal.get("confidence", "unknown")
+        print(f"{TAG}   Prediction: {pred_label} | Confidence: {confidence}")
+        print(f"{TAG}   Reasoning length: {len(reasoning)} chars | Summary length: {len(summary)} chars")
+        print(f"{TAG}   Previous feedback iterations: {len(prev_descriptions)}")
+
         messages = [
             SystemMessage(content=VALIDATOR_SYSTEM_PROMPT),
             HumanMessage(content=(
@@ -56,9 +68,15 @@ def agent_for_verdicts_validation(state: AgentState):
             history = "\n".join(f"Iteration {i+1}: {d}" for i, d in enumerate(prev_descriptions))
             messages.append(HumanMessage(content=f"History of previous validator feedback:\n{history}"))
 
+        print(f"{TAG}   Calling validator LLM with {len(messages)} messages...")
         result = cast(AgentValidationResult, llm.with_structured_output(AgentValidationResult).invoke(messages))
 
-        print(f"[validator] {agent_name}: {'PROBLEM — ' + result.description[:1000] if result.has_problem else 'OK'}")
+        if result.has_problem:
+            print(f"{TAG}   RESULT: PROBLEM FOUND")
+            print(f"{TAG}   Problem description: {result.description[:500]}")
+            retry_agents.append(agent_name)
+        else:
+            print(f"{TAG}   RESULT: OK — report passed validation")
 
         updated_signals[agent_name] = {
             **signal,
@@ -66,7 +84,5 @@ def agent_for_verdicts_validation(state: AgentState):
             "description_of_the_reports_problem": prev_descriptions + ([result.description] if result.has_problem else []),
         }
 
-        if result.has_problem:
-            retry_agents.append(agent_name)
-
+    print(f"\n{TAG} Validation complete: {len(retry_agents)} agent(s) need retry: {retry_agents if retry_agents else 'none'}")
     return {"agent_signals": updated_signals, "retry_agents": retry_agents}

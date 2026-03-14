@@ -1,6 +1,6 @@
 {
-  "date": "2026-03-05",
-  "horizon": 7,
+  "date": "2026-02-07",
+  "horizon": 1,
   "base_feats": [
     "spot_price_history__open",
     "spot_price_history__high",
@@ -28,9 +28,9 @@
     "index_btc_reserve_risk__rr_slope14"
   ],
   "window": 21,
-  "reasoning": "На текущий момент цена BTC составляет 70890.72. В последние 7 дней наблюдается рост LTH supply, что указывает на накопление со стороны \"умных денег\". LTH supply на 7 дней назад составила 14505839.90, а текущая LTH supply — 14530536.82, что подтверждает бычий сигнал (+3). STH supply также показывает снижение, что может указывать на капитуляцию розницы (+3). Однако, STH supply за 7 дней увеличилась, что может указывать на FOMO (+3). С точки зрения Reserve Risk, индекс находится в пределах умеренной недооценки (0.0013335767 < 0.005), что также поддерживает бычий сигнал (+1). В категории сетевой активности наблюдается рост активных адресов, что подтверждает интерес к сети (+1). В итоге, бычьих очков: 8, медвежьих: 3. Существует дивергенция между LTH и STH, что усиливает бычий сигнал.",
-  "summary": "Прогноз: цена BTC будет выше 70890.72 через 7 дней. Уверенность: high. Основные аргументы: накопление LTH, капитуляция STH, умеренная недооценка Reserve Risk.",
-  "risks": "1. Возможный рост STH supply может указывать на FOMO и медвежий сигнал. 2. Негативные тренды в сетевой активности могут ослабить бычий сигнал.",
+  "reasoning": "The current price of BTC is 69289.38, and the recent trend shows a decline. In the LTH/STH dynamics, LTH supply has increased from 14275392.80 to 14275392.80, indicating a slight accumulation, but the slope is decreasing, suggesting weakening momentum. STH supply has decreased from 5710487.62 to 5710487.62, indicating retail capitulation, which is a bullish signal. However, the overall momentum is weak. In terms of reserve risk, the reserve risk index is at 0.001326909, indicating a neutral zone, while the RR z-score is -2.2513003383, suggesting strong undervaluation, which is bullish. Active addresses show a z-score of -0.8617713222, indicating a normal range. Overall, the bullish signals from STH capitulation and reserve risk are countered by the weak LTH momentum. Thus, bullish points total 5, bearish points total 3. The LTH vs STH divergence indicates that while LTH is accumulating, STH is decreasing, which is a classic bullish pattern. Therefore, the prediction is that the price will be higher in 1 day.",
+  "summary": "The forecast is that the price of BTC will be higher in 1 day with high confidence. Key arguments include retail capitulation (STH supply decreasing) and strong undervaluation (RR z-score).",
+  "risks": "1. Weak LTH momentum could lead to further price declines.\n2. Active addresses are in a normal range, indicating no strong buying interest.",
   "prediction": true,
   "confidence": "high"
 }

@@ -63,6 +63,27 @@ You MUST copy both fields exactly:
 STRENGTH_WEIGHTS = {"low": 1, "medium": 2, "high": 3}
 
 
+def _pick_batch_size(total_articles: int) -> int:
+    """Adaptive batch size:
+    - <15   => use all in one call
+    - 15-60 => batches of 20 or 30
+    - >60   => batches of 30
+    """
+    if total_articles < 15:
+        return total_articles
+    if total_articles <= 30:
+        return 20
+    return 30
+
+
+def _confidence_from_distance(distance: float) -> str:
+    if distance >= 0.3:
+        return "high"
+    if distance >= 0.15:
+        return "medium"
+    return "low"
+
+
 def _compute_verdict(
     bull_weight: float, bear_weight: float,
 ) -> tuple[bool, str, float]:
@@ -86,6 +107,20 @@ def _compute_verdict(
         confidence = "low"
 
     return prediction, confidence, bull_ratio
+
+
+def _compute_verdict_from_normalized_score(
+    normalized_score: float,
+) -> tuple[bool, str, float]:
+    """Compute prediction from normalized score in [-1, 1].
+
+    Returns (prediction, confidence, bull_ratio_like) where
+    bull_ratio_like = (normalized_score + 1) / 2
+    """
+    bull_ratio_like = (normalized_score + 1.0) / 2.0
+    prediction = normalized_score > 0
+    confidence = _confidence_from_distance(abs(normalized_score) / 2.0)
+    return prediction, confidence, bull_ratio_like
 
 
 # -- Main agent function -------------------------------------------------------
@@ -157,25 +192,53 @@ def agent_c_news(state: AgentState):
         print(f"{TAG}   No news found in window — returning empty signal")
         return {"agent_signals": {"news_analyser_agent": {"summary": None}}}
 
-    # 4. LLM: Classify each article as bull / bear / not_correlated
-    print(f"{TAG} [STEP 4/5] Calling classifier LLM for {len(news_for_llm)} articles...")
-    news_json = json.dumps(news_for_llm, ensure_ascii=False)
+    # 4. LLM: Classify articles in adaptive batches
+    total_articles = len(news_for_llm)
+    batch_size = _pick_batch_size(total_articles)
+    print(f"{TAG} [STEP 4/5] Calling classifier LLM for {total_articles} articles (batch_size={batch_size})...")
     classifier_llm = AzureChatOpenAI(azure_deployment="gpt-4o-mini", temperature=0.0)
 
-    clf_response = cast(
-        NewsClassificationResponse,
-        classifier_llm.with_structured_output(NewsClassificationResponse).invoke([
-            SystemMessage(content=CLASSIFIER_PROMPT),
-            HumanMessage(content=(
-                f"Classify these {len(news_for_llm)} articles.\n"
-                f"Return fields article_id, title, category for each item:\n{news_json}"
-            )),
-        ])
-    )
+    all_classifications: list[NewsItem] = []
+    batch_scores: list[float] = []
+    batch_relevant_sizes: list[int] = []
+
+    for i in range(0, total_articles, max(batch_size, 1)):
+        batch = news_for_llm[i:i + max(batch_size, 1)]
+        news_json = json.dumps(batch, ensure_ascii=False)
+        batch_idx = i // max(batch_size, 1) + 1
+        print(f"{TAG}   Batch {batch_idx}: {len(batch)} articles")
+
+        clf_response = cast(
+            NewsClassificationResponse,
+            classifier_llm.with_structured_output(NewsClassificationResponse).invoke([
+                SystemMessage(content=CLASSIFIER_PROMPT),
+                HumanMessage(content=(
+                    f"Classify these {len(batch)} articles.\n"
+                    f"Return fields article_id, title, category, strength for each item:\n{news_json}"
+                )),
+            ])
+        )
+        all_classifications.extend(clf_response.classifications)
+
+        # For large windows (>60), aggregate by normalized per-batch score.
+        if total_articles > 60:
+            batch_bull_w = 0.0
+            batch_bear_w = 0.0
+            for item in clf_response.classifications:
+                w = STRENGTH_WEIGHTS.get(item.strength, 1)
+                if item.category == "bull":
+                    batch_bull_w += w
+                elif item.category == "bear":
+                    batch_bear_w += w
+            denom = batch_bull_w + batch_bear_w
+            if denom > 0:
+                batch_score = (batch_bull_w - batch_bear_w) / denom
+                batch_scores.append(batch_score)
+                batch_relevant_sizes.append(int(denom))
 
     # Prefer stable article_id mapping, with title fallback for partial responses.
-    clf_by_id = {item.article_id: item for item in clf_response.classifications}
-    clf_by_title = {item.title: item for item in clf_response.classifications}
+    clf_by_id = {item.article_id: item for item in all_classifications}
+    clf_by_title = {item.title: item for item in all_classifications}
 
     bull_count = 0
     bear_count = 0
@@ -217,8 +280,20 @@ def agent_c_news(state: AgentState):
         if art["sentiment"] != "not_correlated":
             print(f"{TAG}     [{art['sentiment']:>4} {art['strength']:>6}] {art['title'][:80]}")
 
-    # 5. Compute verdict from weighted bear/bull ratio
-    prediction, confidence, bull_ratio = _compute_verdict(bull_weight, bear_weight)
+    # 5. Compute verdict:
+    # - For large windows (>60), use weighted average of normalized per-batch scores.
+    # - Otherwise, use weighted global bull/bear ratio.
+    if total_articles > 60 and batch_scores:
+        weighted_sum = sum(s * w for s, w in zip(batch_scores, batch_relevant_sizes))
+        total_w = sum(batch_relevant_sizes)
+        normalized_score = weighted_sum / total_w if total_w else 0.0
+        prediction, confidence, bull_ratio = _compute_verdict_from_normalized_score(normalized_score)
+        print(
+            f"{TAG}   Batch-normalized aggregation enabled: "
+            f"{len(batch_scores)} relevant batches, normalized_score={normalized_score:.3f}"
+        )
+    else:
+        prediction, confidence, bull_ratio = _compute_verdict(bull_weight, bear_weight)
     prediction_label = "HIGHER" if prediction else "LOWER"
 
     summary = (
@@ -241,6 +316,7 @@ def agent_c_news(state: AgentState):
         "horizon": horizon,
         "window": window,
         "total_articles": len(news_for_llm),
+        "batch_size": batch_size,
         "bull_count": bull_count,
         "bull_weight": bull_weight,
         "bear_count": bear_count,

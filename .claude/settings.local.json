@@ -6,7 +6,15 @@
       "Bash(python:*)",
       "WebFetch(domain:docs.coinglass.com)",
       "WebSearch",
-      "WebFetch(domain:www.coinglass.com)"
+      "WebFetch(domain:www.coinglass.com)",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "WebFetch(domain:newsapi.org)",
+      "WebFetch(domain:cryptopanic.com)",
+      "WebFetch(domain:eakdigital.com)",
+      "WebFetch(domain:site.financialmodelingprep.com)",
+      "WebFetch(domain:apitube.io)",
+      "WebFetch(domain:finnhub.io)"
     ]
   }
 }

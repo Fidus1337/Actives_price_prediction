@@ -41,6 +41,32 @@ def agent_for_verdicts_validation(state: AgentState):
         raw = signal.get("description_of_the_reports_problem", [])
         prev_descriptions = [raw] if isinstance(raw, str) and raw else (raw or [])
 
+        # News agent is formula-based (ratio/counts) and does not need LLM validation.
+        # We only run a minimal deterministic sanity check.
+        if agent_name == "news_analyser_agent":
+            print(f"{TAG}   {agent_name}: skipping LLM validation (deterministic check only)")
+            deterministic_problem = ""
+            if not summary:
+                deterministic_problem = "Empty summary in news analyser report."
+            elif prediction not in (True, False):
+                deterministic_problem = "Prediction must be boolean for news analyser report."
+
+            if deterministic_problem:
+                print(f"{TAG}   RESULT: PROBLEM FOUND")
+                print(f"{TAG}   Problem description: {deterministic_problem}")
+                retry_agents.append(agent_name)
+                updated_signals[agent_name] = {
+                    **signal,
+                    "description_of_the_reports_problem": prev_descriptions + [deterministic_problem],
+                }
+            else:
+                print(f"{TAG}   RESULT: OK — deterministic checks passed")
+                updated_signals[agent_name] = {
+                    **signal,
+                    "description_of_the_reports_problem": prev_descriptions,
+                }
+            continue
+
         if not reasoning and not summary:
             print(f"{TAG}   {agent_name}: No reasoning/summary found — stub agent, skipping")
             updated_signals[agent_name] = signal

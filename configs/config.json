@@ -61,7 +61,7 @@
         {
             "name": "base_model_3d",
             "N_DAYS": 3,
-            "threshold": 0.5,
+            "threshold": 0.55,
             "base_feats": [
                 "index_btc_lth_supply__lth_supply__lag3",
                 "index_btc_lth_supply__lth_supply__lag1",

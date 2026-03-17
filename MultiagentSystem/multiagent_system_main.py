@@ -111,12 +111,12 @@ builder.add_edge(START, "supervisor")
 # LangGraph will detect this and run them simultaneously!
 builder.add_edge("supervisor", "agent_a_tech")
 # builder.add_edge("supervisor", "agent_b_onchain")
-# builder.add_edge("supervisor", "agent_c_news")
+builder.add_edge("supervisor", "agent_c_news")
 
 # 3. MERGE (Fan-in)
 # The array means: "Wait for all these nodes to complete,
 # and only then pass control to validator"
-builder.add_edge(["agent_a_tech"], "validator")
+builder.add_edge(["agent_c_news", "agent_a_tech"], "validator")
 
 # 4. Conditional exit: if there are agents with recompose_report=True — retry from supervisor
 builder.add_conditional_edges("validator", _should_retry)
@@ -135,7 +135,7 @@ app = builder.compile()
 # ==========================================
 if __name__ == "__main__":
     # Building matrix by N last days
-    N_last_dates = 100
+    N_last_dates = 25
     
     # Load multiagent system config
     config_path = Path(__file__).parent / "multiagent_config.json"

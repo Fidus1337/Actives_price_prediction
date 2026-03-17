@@ -1,7 +1,7 @@
 {
     "horizon": 1,
-    "forecast_start_date": "2025-12-04",
-    "neutral_threshold": 1,
+    "forecast_start_date": "2026-03-17",
+    "neutral_threshold": 0,
     "agent_settings": {
         "agent_for_analysing_tech_indicators": {
             "system_prompt_file": "agents/tech_indicators/system_prompt_1d.md",
@@ -34,7 +34,7 @@
         },
         "agent_for_news_analysis": {
             "system_prompt_file": "agents/news_analyser/system_prompt.md",
-            "window_to_analysis": 14
+            "window_to_analysis": 7
         },
         "agent_for_analysing_onchain_indicators": {
             "system_prompt_file": "agents/onchain_indicators/system_prompt_1d.md",

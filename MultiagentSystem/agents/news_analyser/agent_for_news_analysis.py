@@ -1,56 +1,91 @@
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
-# from langchain_openai import ChatOpenAI
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from multiagent_types import AgentState, get_agent_settings
 from pydantic import BaseModel, Field
-from agents.news_analyser.helpers import fetch_articles_in_window, parse_release_time, strip_html
+from agents.news_analyser.helpers import parse_release_time, strip_html
+from agents.news_analyser.news_collector import get_articles_in_range
 
 
 # -- Pydantic models ----------------------------------------------------------
 
 class NewsItem(BaseModel):
+    article_id: str = Field(description="Stable article identifier from input payload")
     title: str
-    category: str = Field(description="not_correlated | low | middle | high")
+    category: Literal["not_correlated", "bear", "bull"]
+    strength: Literal["low", "medium", "high"] = Field(
+        description="How strongly this news impacts BTC price. "
+        "Only meaningful when category is bear or bull."
+    )
 
 
 class NewsClassificationResponse(BaseModel):
     classifications: list[NewsItem]
 
 
-class NewsAnalysisResponse(BaseModel):
-    reasoning: str
-    summary: str
-    risks: str
-    prediction: bool      # True = HIGHER, False = LOWER
-    confidence: str       # high / medium / low
-
-
 AGENT_DIR = Path(__file__).parent
 
-# -- Classifier prompt (LLM #1) -----------------------------------------------
+# -- Classifier prompt --------------------------------------------------------
 
 CLASSIFIER_PROMPT = """\
-You are a crypto-news classifier. For each news article, determine how strongly \
-it correlates with the BTCUSDT price movement.
+You are a crypto-news classifier. For each news article, determine its likely \
+impact on the BTCUSDT price.
 
 Categories:
 - "not_correlated": news about altcoins, NFTs, specific DeFi protocols, or events \
 with no meaningful impact on BTC price.
-- "low": indirectly related — general crypto market sentiment, minor exchange news, \
-small regulatory updates in non-major countries.
-- "middle": moderately related — major exchange events (Binance, Coinbase), \
-significant regulatory actions (SEC, EU), macroeconomic news that affects risk assets.
-- "high": directly impacts BTC — Bitcoin ETF decisions, Fed rate decisions, \
-BTC-specific on-chain events, major institutional adoption, BTC halving-related news.
+- "bull": news that is likely POSITIVE for BTC price — institutional adoption, \
+ETF approvals, favorable regulation, dovish Fed signals, major partnerships, \
+positive on-chain metrics, supply shocks, etc.
+- "bear": news that is likely NEGATIVE for BTC price — exchange hacks, \
+regulatory crackdowns, hawkish Fed signals, large sell-offs, negative macro data, \
+security breaches, bans, bankruptcies, etc.
 
-Return a classification for EVERY article provided. Use the exact article title \
-in the "title" field.
+For each article also estimate the STRENGTH of its impact on BTC price:
+- "low": minor or indirect influence, unlikely to move price significantly.
+- "medium": notable event that could contribute to a price move.
+- "high": major catalyst that can directly drive significant price movement \
+(e.g. ETF decision, Fed rate change, large-scale hack, institutional buy).
+
+Return a classification for EVERY article provided.
+You MUST copy both fields exactly:
+- "article_id" from the input payload
+- "title" from the input payload
 """
+
+
+# -- Helpers ------------------------------------------------------------------
+
+STRENGTH_WEIGHTS = {"low": 1, "medium": 2, "high": 3}
+
+
+def _compute_verdict(
+    bull_weight: float, bear_weight: float,
+) -> tuple[bool, str, float]:
+    """Compute prediction, confidence and bull_ratio from weighted scores.
+
+    Returns (prediction, confidence, bull_ratio).
+    """
+    total = bull_weight + bear_weight
+    if total == 0:
+        return False, "low", 0.5
+
+    bull_ratio = bull_weight / total
+    prediction = bull_ratio > 0.5
+    distance = abs(bull_ratio - 0.5)
+
+    if distance >= 0.3:
+        confidence = "high"
+    elif distance >= 0.15:
+        confidence = "medium"
+    else:
+        confidence = "low"
+
+    return prediction, confidence, bull_ratio
 
 
 # -- Main agent function -------------------------------------------------------
@@ -75,37 +110,41 @@ def agent_c_news(state: AgentState):
     horizon = state["config"]["horizon"]
     forecast_date = state["forecast_start_date"]
     window = settings["window_to_analysis"]
-    print(f"{TAG} [STEP 1/6] Settings loaded | horizon={horizon}d | forecast_date={forecast_date} | window={window}d")
+    print(f"{TAG} [STEP 1/5] Settings loaded | horizon={horizon}d | forecast_date={forecast_date} | window={window}d")
 
     # 2. Date boundaries for filtering
     if isinstance(forecast_date, str):
-        dt_to = datetime.strptime(forecast_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        dt_end_day = datetime.strptime(forecast_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     else:
-        dt_to = datetime.combine(forecast_date, datetime.min.time()).replace(tzinfo=timezone.utc)
-    dt_from = dt_to - timedelta(days=window)
-    print(f"{TAG} [STEP 2/6] Date boundaries: {dt_from.date()} -> {dt_to.date()}")
+        dt_end_day = datetime.combine(forecast_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+    dt_to_exclusive = dt_end_day + timedelta(days=1)
+    dt_to_inclusive = dt_to_exclusive - timedelta(microseconds=1)
+    dt_from = dt_to_exclusive - timedelta(days=window)
+    print(f"{TAG} [STEP 2/5] Date boundaries: {dt_from.date()} -> {dt_end_day.date()} (inclusive)")
 
-    # 3. Fetch news from CoinGlass API (with pagination)
-    print(f"{TAG} [STEP 3/6] Fetching articles from CoinGlass API...")
-    all_articles = fetch_articles_in_window(dt_from, dt_to)
-    print(f"{TAG}   Fetched {len(all_articles)} raw articles")
+    # 3. Load news from local archive (with API fallback)
+    print(f"{TAG} [STEP 3/5] Loading articles from archive/API...")
+    archive = get_articles_in_range(
+        dt_from=dt_from,
+        dt_to=dt_to_inclusive,
+        fallback_to_api=True,
+    )
 
-    # 4. Filter by date and strip HTML
     news_for_llm = []
-    for item in all_articles:
+    for idx, item in enumerate(archive):
         dt = parse_release_time(item.get("article_release_time"))
-        if dt is None or not (dt_from <= dt <= dt_to):
+        if dt is None or not (dt_from <= dt < dt_to_exclusive):
             continue
         news_for_llm.append({
+            "article_id": f"news_{idx}",
             "date": dt.strftime("%Y-%m-%d %H:%M"),
             "title": item.get("article_title", "—"),
             "source": item.get("source_name", "—"),
             "content": strip_html(item.get("article_content", ""))[:500],
         })
 
-    # Sort by date (newest first)
     news_for_llm.sort(key=lambda x: x["date"], reverse=True)
-    print(f"{TAG} [STEP 4/6] After date filtering: {len(news_for_llm)} articles in window {dt_from.date()} -> {dt_to.date()}")
+    print(f"{TAG}   Found {len(news_for_llm)} articles in window {dt_from.date()} -> {dt_end_day.date()}")
 
     # Save for debugging
     (AGENT_DIR / "input_data.json").write_text(
@@ -118,8 +157,8 @@ def agent_c_news(state: AgentState):
         print(f"{TAG}   No news found in window — returning empty signal")
         return {"agent_signals": {"news_analyser_agent": {"summary": None}}}
 
-    # -- LLM #1: Classification ------------------------------------------------
-    print(f"{TAG} [STEP 5/6] Calling classifier LLM to categorize {len(news_for_llm)} articles...")
+    # 4. LLM: Classify each article as bull / bear / not_correlated
+    print(f"{TAG} [STEP 4/5] Calling classifier LLM for {len(news_for_llm)} articles...")
     news_json = json.dumps(news_for_llm, ensure_ascii=False)
     classifier_llm = AzureChatOpenAI(azure_deployment="gpt-4o-mini", temperature=0.0)
 
@@ -127,90 +166,74 @@ def agent_c_news(state: AgentState):
         NewsClassificationResponse,
         classifier_llm.with_structured_output(NewsClassificationResponse).invoke([
             SystemMessage(content=CLASSIFIER_PROMPT),
-            HumanMessage(content=f"Classify these {len(news_for_llm)} articles:\n{news_json}"),
+            HumanMessage(content=(
+                f"Classify these {len(news_for_llm)} articles.\n"
+                f"Return fields article_id, title, category for each item:\n{news_json}"
+            )),
         ])
     )
 
-    # Map title -> category
-    category_map = {item.title: item.category for item in clf_response.classifications}
+    # Prefer stable article_id mapping, with title fallback for partial responses.
+    clf_by_id = {item.article_id: item for item in clf_response.classifications}
+    clf_by_title = {item.title: item for item in clf_response.classifications}
 
-    # Filter: keep low + middle + high
-    relevant_news = []
+    bull_count = 0
+    bear_count = 0
+    not_correlated_count = 0
+    bull_weight = 0.0
+    bear_weight = 0.0
+    classified_articles = []
+    fallback_matches = 0
+
     for article in news_for_llm:
-        cat = category_map.get(article["title"], "not_correlated")
-        article["btc_correlation"] = cat
-        if cat != "not_correlated":
-            relevant_news.append(article)
+        clf_item = clf_by_id.get(article["article_id"])
+        if clf_item is None:
+            clf_item = clf_by_title.get(article["title"])
+            if clf_item is not None:
+                fallback_matches += 1
 
-    cat_counts = {}
-    for art in news_for_llm:
-        cat = art.get("btc_correlation", "?")
-        cat_counts[cat] = cat_counts.get(cat, 0) + 1
-    print(f"{TAG}   Classification results: {cat_counts}")
-    print(f"{TAG}   Relevant articles (low+middle+high): {len(relevant_news)} / {len(news_for_llm)}")
-    for art in relevant_news:
-        print(f"{TAG}     [{art.get('btc_correlation', '?'):>6}] {art['title'][:80]}")
+        cat = clf_item.category if clf_item else "not_correlated"
+        strength = clf_item.strength if clf_item else "low"
+        w = STRENGTH_WEIGHTS.get(strength, 1)
 
-    # If all news is not_correlated — return empty signal
-    if not relevant_news:
-        print(f"{TAG}   No relevant news found — returning empty signal")
-        return {"agent_signals": {"news_analyser_agent": {"summary": None}}}
+        article["sentiment"] = cat
+        article["strength"] = strength
+        classified_articles.append(article)
 
-    # -- LLM #2: Analysis -----------------------------------------------------
-    # Load system prompt
-    if "system_prompt_file" in settings:
-        prompt_path = Path(__file__).parent.parent.parent / settings["system_prompt_file"]
-        system_prompt = prompt_path.read_text(encoding="utf-8")
-    else:
-        system_prompt = settings.get("system_prompt", "")
+        if cat == "bull":
+            bull_count += 1
+            bull_weight += w
+        elif cat == "bear":
+            bear_count += 1
+            bear_weight += w
+        else:
+            not_correlated_count += 1
 
-    analyst_llm = AzureChatOpenAI(azure_deployment="gpt-4o-mini", temperature=0.2)
+    if fallback_matches:
+        print(f"{TAG}   Warning: {fallback_matches} items matched by title fallback (missing article_id in LLM output)")
 
-    relevant_json = json.dumps(relevant_news, ensure_ascii=False)
+    print(f"{TAG}   Classification: bull={bull_count} (weight={bull_weight}), bear={bear_count} (weight={bear_weight}), not_correlated={not_correlated_count}")
+    for art in classified_articles:
+        if art["sentiment"] != "not_correlated":
+            print(f"{TAG}     [{art['sentiment']:>4} {art['strength']:>6}] {art['title'][:80]}")
 
-    prev_feedback: list[str] = (
-        state.get("agent_signals", {})
-        .get("news_analyser_agent", {})
-        .get("description_of_the_reports_problem", [])
+    # 5. Compute verdict from weighted bear/bull ratio
+    prediction, confidence, bull_ratio = _compute_verdict(bull_weight, bear_weight)
+    prediction_label = "HIGHER" if prediction else "LOWER"
+
+    summary = (
+        f"Bull: {bull_count} (w={bull_weight}), Bear: {bear_count} (w={bear_weight}), "
+        f"Not correlated: {not_correlated_count}. "
+        f"Weighted bull ratio: {bull_ratio:.2f} → {prediction_label}, confidence: {confidence}."
+    )
+    reasoning = (
+        f"Out of {len(news_for_llm)} articles, {bull_count} are bullish (weight={bull_weight}) "
+        f"and {bear_count} are bearish (weight={bear_weight}) "
+        f"(+{not_correlated_count} not correlated). "
+        f"Weighted bull/bear ratio = {bull_ratio:.2f}."
     )
 
-    messages = [
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=(
-            f"Relevant news for {window} days up to {forecast_date} "
-            f"(filtered by BTC correlation):\n{relevant_json}\n\n"
-            f"Forecast horizon: {horizon} days\n"
-            f"Forecast date: {forecast_date}\n\n"
-            f"Analyze the news and provide a forecast."
-        )),
-    ]
-
-    if prev_feedback:
-        history_text = "\n".join(
-            f"Iteration {i+1}: {d}" for i, d in enumerate(prev_feedback)
-        )
-        messages.append(HumanMessage(content=(
-            f"VALIDATOR FEEDBACK ON PREVIOUS REPORT VERSIONS:\n{history_text}\n\n"
-            f"Take this feedback into account when composing the new report."
-        )))
-        print(f"{TAG}   Including {len(prev_feedback)} previous validator feedback(s)")
-    else:
-        print(f"{TAG}   No previous validator feedback")
-
-    print(f"{TAG} [STEP 6/6] Calling analyst LLM (gpt-4o-mini) with {len(messages)} messages...")
-
-    response = cast(
-        NewsAnalysisResponse,
-        analyst_llm.with_structured_output(NewsAnalysisResponse).invoke(messages)
-    )
-
-    prediction_label = "HIGHER" if response.prediction else "LOWER"
-    print(f"{TAG} LLM response received:")
-    print(f"{TAG}   Prediction: {prediction_label}")
-    print(f"{TAG}   Confidence: {response.confidence}")
-    print(f"{TAG}   Reasoning: {response.reasoning[:200]}...")
-    print(f"{TAG}   Summary: {response.summary[:200]}")
-    print(f"{TAG}   Risks: {response.risks[:200]}")
+    print(f"{TAG} [STEP 5/5] Verdict: {prediction_label} | confidence={confidence} | bull_ratio={bull_ratio:.2f}")
 
     # Save debug JSON
     news_predict = {
@@ -218,16 +241,18 @@ def agent_c_news(state: AgentState):
         "horizon": horizon,
         "window": window,
         "total_articles": len(news_for_llm),
-        "relevant_articles": len(relevant_news),
+        "bull_count": bull_count,
+        "bull_weight": bull_weight,
+        "bear_count": bear_count,
+        "bear_weight": bear_weight,
+        "not_correlated_count": not_correlated_count,
+        "bull_ratio_weighted": round(bull_ratio, 4),
+        "prediction": prediction,
+        "confidence": confidence,
         "classifications": [
-            {"title": a["title"], "category": a.get("btc_correlation", "?")}
-            for a in news_for_llm
+            {"article_id": a["article_id"], "title": a["title"], "sentiment": a.get("sentiment", "?"), "strength": a.get("strength", "?")}
+            for a in classified_articles
         ],
-        "reasoning": response.reasoning,
-        "summary": response.summary,
-        "risks": response.risks,
-        "prediction": response.prediction,
-        "confidence": response.confidence,
     }
     (AGENT_DIR / "news_predict.json").write_text(
         json.dumps(news_predict, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -236,9 +261,9 @@ def agent_c_news(state: AgentState):
     print(f"{TAG} Done. Returning signal to graph.")
 
     return {"agent_signals": {"news_analyser_agent": {
-        "reasoning": response.reasoning,
-        "summary": response.summary,
-        "risks": response.risks,
-        "prediction": response.prediction,
-        "confidence": response.confidence,
+        "reasoning": reasoning,
+        "summary": summary,
+        "risks": "",
+        "prediction": prediction,
+        "confidence": confidence,
     }}}

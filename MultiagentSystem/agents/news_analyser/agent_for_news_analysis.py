@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal, cast
 
@@ -28,6 +28,7 @@ class NewsClassificationResponse(BaseModel):
 
 
 AGENT_DIR = Path(__file__).parent
+LOG_TAG = "[news_agent]"
 
 # -- Classifier prompt --------------------------------------------------------
 
@@ -58,17 +59,15 @@ You MUST copy both fields exactly:
 """
 
 
-# -- Helpers ------------------------------------------------------------------
+# -- Pure helpers --------------------------------------------------------------
 
+# Weighted scoring ensures high-impact news has proportional influence over noise
 STRENGTH_WEIGHTS = {"low": 1, "medium": 2, "high": 3}
 
 
-def _pick_batch_size(total_articles: int) -> int:
-    """Adaptive batch size:
-    - <15   => use all in one call
-    - 15-60 => batches of 20 or 30
-    - >60   => batches of 30
-    """
+def _choose_batch_size(total_articles: int) -> int:
+    """Smaller batches improve LLM classification accuracy;
+    single call avoids overhead for small sets."""
     if total_articles < 15:
         return total_articles
     if total_articles <= 30:
@@ -76,7 +75,8 @@ def _pick_batch_size(total_articles: int) -> int:
     return 30
 
 
-def _confidence_from_distance(distance: float) -> str:
+def _distance_to_confidence(distance: float) -> str:
+    """Map distance from neutral (0.5) to a confidence label."""
     if distance >= 0.3:
         return "high"
     if distance >= 0.15:
@@ -84,29 +84,23 @@ def _confidence_from_distance(distance: float) -> str:
     return "low"
 
 
-def _compute_verdict(
+def _compute_verdict_from_weights(
     bull_weight: float, bear_weight: float,
 ) -> tuple[bool, str, float]:
-    """Compute prediction, confidence and bull_ratio from weighted scores.
+    """Compute prediction from absolute weighted scores.
 
-    Returns (prediction, confidence, bull_ratio).
+    Returns (is_bullish, confidence, bull_ratio).
     """
-    total = bull_weight + bear_weight
-    if total == 0:
+    total_weight = bull_weight + bear_weight
+    if total_weight == 0:
         return False, "low", 0.5
 
-    bull_ratio = bull_weight / total
-    prediction = bull_ratio > 0.5
-    distance = abs(bull_ratio - 0.5)
+    # Neutral point: equal bull and bear weight means no directional signal
+    bull_ratio = bull_weight / total_weight
+    is_bullish = bull_ratio > 0.5
+    confidence = _distance_to_confidence(abs(bull_ratio - 0.5))
 
-    if distance >= 0.3:
-        confidence = "high"
-    elif distance >= 0.15:
-        confidence = "medium"
-    else:
-        confidence = "low"
-
-    return prediction, confidence, bull_ratio
+    return is_bullish, confidence, bull_ratio
 
 
 def _compute_verdict_from_normalized_score(
@@ -114,101 +108,90 @@ def _compute_verdict_from_normalized_score(
 ) -> tuple[bool, str, float]:
     """Compute prediction from normalized score in [-1, 1].
 
-    Returns (prediction, confidence, bull_ratio_like) where
-    bull_ratio_like = (normalized_score + 1) / 2
+    Returns (is_bullish, confidence, bull_ratio_equivalent).
     """
-    bull_ratio_like = (normalized_score + 1.0) / 2.0
-    prediction = normalized_score > 0
-    confidence = _confidence_from_distance(abs(normalized_score) / 2.0)
-    return prediction, confidence, bull_ratio_like
+    bull_ratio_equivalent = (normalized_score + 1.0) / 2.0
+    is_bullish = normalized_score > 0
+    confidence = _distance_to_confidence(abs(normalized_score) / 2.0)
+    return is_bullish, confidence, bull_ratio_equivalent
 
 
-# -- Main agent function -------------------------------------------------------
+# -- Extracted single-responsibility functions ---------------------------------
 
-def agent_c_news(state: AgentState):
-    TAG = "[agent_c_news]"
+def _parse_forecast_window(
+    forecast_date: str | date | datetime,
+    window_days: int,
+) -> tuple[datetime, datetime, datetime]:
+    """Convert forecast_date + window into (window_start, forecast_end_date, window_end_exclusive).
 
-    retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get("news_analyser_agent", 0)
-    is_first_run = my_retries == 0
-    if not is_first_run and "news_analyser_agent" not in retry_agents:
-        print(f"{TAG} Retry not required — skipping (retries so far: {my_retries})")
-        return {}
-
-    run_label = "FIRST RUN" if is_first_run else f"RETRY #{my_retries}"
-    print(f"\n{'='*60}")
-    print(f"{TAG} === {run_label} ===")
-    print(f"{'='*60}")
-
-    # 1. Settings from config
-    settings = get_agent_settings(state, "agent_for_news_analysis")
-    horizon = state["config"]["horizon"]
-    forecast_date = state["forecast_start_date"]
-    window = settings["window_to_analysis"]
-    print(f"{TAG} [STEP 1/5] Settings loaded | horizon={horizon}d | forecast_date={forecast_date} | window={window}d")
-
-    # 2. Date boundaries for filtering
+    Uses exclusive upper bound to avoid double-counting articles published
+    exactly at midnight on the boundary date.
+    """
     if isinstance(forecast_date, str):
-        dt_end_day = datetime.strptime(forecast_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        forecast_end_date = datetime.strptime(forecast_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     else:
-        dt_end_day = datetime.combine(forecast_date, datetime.min.time()).replace(tzinfo=timezone.utc)
-    dt_to_exclusive = dt_end_day + timedelta(days=1)
-    dt_to_inclusive = dt_to_exclusive - timedelta(microseconds=1)
-    dt_from = dt_to_exclusive - timedelta(days=window)
-    print(f"{TAG} [STEP 2/5] Date boundaries: {dt_from.date()} -> {dt_end_day.date()} (inclusive)")
+        forecast_end_date = datetime.combine(forecast_date, datetime.min.time()).replace(tzinfo=timezone.utc)
 
-    # 3. Load news from local archive (with API fallback)
-    print(f"{TAG} [STEP 3/5] Loading articles from archive/API...")
+    window_end_exclusive = forecast_end_date + timedelta(days=1)
+    window_start = window_end_exclusive - timedelta(days=window_days)
+    return window_start, forecast_end_date, window_end_exclusive
+
+
+def _load_articles_in_window(
+    window_start: datetime,
+    window_end_inclusive: datetime,
+    window_end_exclusive: datetime,
+) -> list[dict]:
+    """Fetch articles from local archive (with API fallback), filter to window,
+    and format them for LLM classification."""
     archive = get_articles_in_range(
-        dt_from=dt_from,
-        dt_to=dt_to_inclusive,
+        dt_from=window_start,
+        dt_to=window_end_inclusive,
         fallback_to_api=True,
     )
 
-    news_for_llm = []
+    articles_to_classify = []
     for idx, item in enumerate(archive):
-        dt = parse_release_time(item.get("article_release_time"))
-        if dt is None or not (dt_from <= dt < dt_to_exclusive):
+        release_time = parse_release_time(item.get("article_release_time"))
+        if release_time is None or not (window_start <= release_time < window_end_exclusive):
             continue
-        news_for_llm.append({
+        articles_to_classify.append({
             "article_id": f"news_{idx}",
-            "date": dt.strftime("%Y-%m-%d %H:%M"),
+            "date": release_time.strftime("%Y-%m-%d %H:%M"),
             "title": item.get("article_title", "—"),
             "source": item.get("source_name", "—"),
             "content": strip_html(item.get("article_content", ""))[:500],
         })
 
-    news_for_llm.sort(key=lambda x: x["date"], reverse=True)
-    print(f"{TAG}   Found {len(news_for_llm)} articles in window {dt_from.date()} -> {dt_end_day.date()}")
+    articles_to_classify.sort(key=lambda x: x["date"], reverse=True)
+    return articles_to_classify
 
-    # Save for debugging
-    (AGENT_DIR / "input_data.json").write_text(
-        json.dumps(news_for_llm, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    print(f"{TAG}   Input data saved to input_data.json")
 
-    # If no news — return empty signal
-    if not news_for_llm:
-        print(f"{TAG}   No news found in window — returning empty signal")
-        return {"agent_signals": {"news_analyser_agent": {"summary": None}}}
+def _classify_articles_in_batches(
+    articles_to_classify: list[dict],
+    batch_size: int,
+) -> tuple[list[NewsItem], list[float], list[int]]:
+    """Send articles to LLM in adaptive batches.
 
-    # 4. LLM: Classify articles in adaptive batches
-    total_articles = len(news_for_llm)
-    batch_size = _pick_batch_size(total_articles)
-    print(f"{TAG} [STEP 4/5] Calling classifier LLM for {total_articles} articles (batch_size={batch_size})...")
+    Returns (all_classifications, batch_normalized_scores, batch_relevant_sizes).
+    batch_normalized_scores/batch_relevant_sizes are only populated when
+    total_articles > 60 (per-batch normalization mode).
+    """
     classifier_llm = AzureChatOpenAI(azure_deployment="gpt-4o-mini", temperature=0.0)
+    total_articles = len(articles_to_classify)
 
     all_classifications: list[NewsItem] = []
-    batch_scores: list[float] = []
+    batch_normalized_scores: list[float] = []
     batch_relevant_sizes: list[int] = []
+    effective_batch_size = max(batch_size, 1)
 
-    for i in range(0, total_articles, max(batch_size, 1)):
-        batch = news_for_llm[i:i + max(batch_size, 1)]
+    for batch_start in range(0, total_articles, effective_batch_size):
+        batch = articles_to_classify[batch_start:batch_start + effective_batch_size]
+        batch_number = batch_start // effective_batch_size + 1
+        print(f"{LOG_TAG}   Batch {batch_number}: {len(batch)} articles")
+
         news_json = json.dumps(batch, ensure_ascii=False)
-        batch_idx = i // max(batch_size, 1) + 1
-        print(f"{TAG}   Batch {batch_idx}: {len(batch)} articles")
-
-        clf_response = cast(
+        classification_result = cast(
             NewsClassificationResponse,
             classifier_llm.with_structured_output(NewsClassificationResponse).invoke([
                 SystemMessage(content=CLASSIFIER_PROMPT),
@@ -218,27 +201,41 @@ def agent_c_news(state: AgentState):
                 )),
             ])
         )
-        all_classifications.extend(clf_response.classifications)
+        all_classifications.extend(classification_result.classifications)
 
-        # For large windows (>60), aggregate by normalized per-batch score.
+        # Per-batch normalization prevents a single large batch
+        # from dominating the signal when many articles exist
         if total_articles > 60:
-            batch_bull_w = 0.0
-            batch_bear_w = 0.0
-            for item in clf_response.classifications:
-                w = STRENGTH_WEIGHTS.get(item.strength, 1)
+            batch_bull_weight = 0.0
+            batch_bear_weight = 0.0
+            for item in classification_result.classifications:
+                weight = STRENGTH_WEIGHTS.get(item.strength, 1)
                 if item.category == "bull":
-                    batch_bull_w += w
+                    batch_bull_weight += weight
                 elif item.category == "bear":
-                    batch_bear_w += w
-            denom = batch_bull_w + batch_bear_w
-            if denom > 0:
-                batch_score = (batch_bull_w - batch_bear_w) / denom
-                batch_scores.append(batch_score)
-                batch_relevant_sizes.append(int(denom))
+                    batch_bear_weight += weight
+            total_weight = batch_bull_weight + batch_bear_weight
+            if total_weight > 0:
+                batch_score = (batch_bull_weight - batch_bear_weight) / total_weight
+                batch_normalized_scores.append(batch_score)
+                batch_relevant_sizes.append(int(total_weight))
 
-    # Prefer stable article_id mapping, with title fallback for partial responses.
-    clf_by_id = {item.article_id: item for item in all_classifications}
-    clf_by_title = {item.title: item for item in all_classifications}
+    return all_classifications, batch_normalized_scores, batch_relevant_sizes
+
+
+def _merge_classifications_with_articles(
+    articles_to_classify: list[dict],
+    all_classifications: list[NewsItem],
+) -> tuple[list[dict], float, float, int, int, int]:
+    """Match LLM classifications back to original articles and compute sentiment scores.
+
+    Returns (classified_articles, bull_weight, bear_weight,
+             bull_count, bear_count, not_correlated_count).
+    """
+    # Primary lookup by article_id, with title fallback because
+    # LLM sometimes modifies article_id in structured output
+    classifications_by_id = {item.article_id: item for item in all_classifications}
+    classifications_by_title = {item.title: item for item in all_classifications}
 
     bull_count = 0
     bear_count = 0
@@ -246,76 +243,58 @@ def agent_c_news(state: AgentState):
     bull_weight = 0.0
     bear_weight = 0.0
     classified_articles = []
-    fallback_matches = 0
+    title_fallback_count = 0
 
-    for article in news_for_llm:
-        clf_item = clf_by_id.get(article["article_id"])
-        if clf_item is None:
-            clf_item = clf_by_title.get(article["title"])
-            if clf_item is not None:
-                fallback_matches += 1
+    for article in articles_to_classify:
+        matched_classification = classifications_by_id.get(article["article_id"])
+        if matched_classification is None:
+            matched_classification = classifications_by_title.get(article["title"])
+            if matched_classification is not None:
+                title_fallback_count += 1
 
-        cat = clf_item.category if clf_item else "not_correlated"
-        strength = clf_item.strength if clf_item else "low"
-        w = STRENGTH_WEIGHTS.get(strength, 1)
+        category = matched_classification.category if matched_classification else "not_correlated"
+        strength = matched_classification.strength if matched_classification else "low"
+        weight = STRENGTH_WEIGHTS.get(strength, 1)
 
-        article["sentiment"] = cat
+        article["sentiment"] = category
         article["strength"] = strength
         classified_articles.append(article)
 
-        if cat == "bull":
+        if category == "bull":
             bull_count += 1
-            bull_weight += w
-        elif cat == "bear":
+            bull_weight += weight
+        elif category == "bear":
             bear_count += 1
-            bear_weight += w
+            bear_weight += weight
         else:
             not_correlated_count += 1
 
-    if fallback_matches:
-        print(f"{TAG}   Warning: {fallback_matches} items matched by title fallback (missing article_id in LLM output)")
+    if title_fallback_count:
+        print(f"{LOG_TAG}   Warning: {title_fallback_count} items matched by title fallback (missing article_id in LLM output)")
 
-    print(f"{TAG}   Classification: bull={bull_count} (weight={bull_weight}), bear={bear_count} (weight={bear_weight}), not_correlated={not_correlated_count}")
-    for art in classified_articles:
-        if art["sentiment"] != "not_correlated":
-            print(f"{TAG}     [{art['sentiment']:>4} {art['strength']:>6}] {art['title'][:80]}")
+    return classified_articles, bull_weight, bear_weight, bull_count, bear_count, not_correlated_count
 
-    # 5. Compute verdict:
-    # - For large windows (>60), use weighted average of normalized per-batch scores.
-    # - Otherwise, use weighted global bull/bear ratio.
-    if total_articles > 60 and batch_scores:
-        weighted_sum = sum(s * w for s, w in zip(batch_scores, batch_relevant_sizes))
-        total_w = sum(batch_relevant_sizes)
-        normalized_score = weighted_sum / total_w if total_w else 0.0
-        prediction, confidence, bull_ratio = _compute_verdict_from_normalized_score(normalized_score)
-        print(
-            f"{TAG}   Batch-normalized aggregation enabled: "
-            f"{len(batch_scores)} relevant batches, normalized_score={normalized_score:.3f}"
-        )
-    else:
-        prediction, confidence, bull_ratio = _compute_verdict(bull_weight, bear_weight)
-    prediction_label = "HIGHER" if prediction else "LOWER"
 
-    summary = (
-        f"Bull: {bull_count} (w={bull_weight}), Bear: {bear_count} (w={bear_weight}), "
-        f"Not correlated: {not_correlated_count}. "
-        f"Weighted bull ratio: {bull_ratio:.2f} → {prediction_label}, confidence: {confidence}."
-    )
-    reasoning = (
-        f"Out of {len(news_for_llm)} articles, {bull_count} are bullish (weight={bull_weight}) "
-        f"and {bear_count} are bearish (weight={bear_weight}) "
-        f"(+{not_correlated_count} not correlated). "
-        f"Weighted bull/bear ratio = {bull_ratio:.2f}."
+def _save_input_debug(articles_to_classify: list[dict]) -> None:
+    """Debug artifact: raw articles before classification."""
+    (AGENT_DIR / "input_data.json").write_text(
+        json.dumps(articles_to_classify, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
-    print(f"{TAG} [STEP 5/5] Verdict: {prediction_label} | confidence={confidence} | bull_ratio={bull_ratio:.2f}")
 
-    # Save debug JSON
+def _save_prediction_debug(
+    forecast_date, horizon: int, window_days: int,
+    articles_to_classify: list[dict], classified_articles: list[dict],
+    batch_size: int, bull_count: int, bull_weight: float,
+    bear_count: int, bear_weight: float, not_correlated_count: int,
+    bull_ratio: float, is_bullish: bool, confidence: str,
+) -> None:
+    """Debug artifact for post-mortem analysis of classification quality."""
     news_predict = {
         "date": str(forecast_date),
         "horizon": horizon,
-        "window": window,
-        "total_articles": len(news_for_llm),
+        "window": window_days,
+        "total_articles": len(articles_to_classify),
         "batch_size": batch_size,
         "bull_count": bull_count,
         "bull_weight": bull_weight,
@@ -323,23 +302,128 @@ def agent_c_news(state: AgentState):
         "bear_weight": bear_weight,
         "not_correlated_count": not_correlated_count,
         "bull_ratio_weighted": round(bull_ratio, 4),
-        "prediction": prediction,
+        "prediction": is_bullish,
         "confidence": confidence,
         "classifications": [
-            {"article_id": a["article_id"], "title": a["title"], "sentiment": a.get("sentiment", "?"), "strength": a.get("strength", "?")}
+            {
+                "article_id": a["article_id"],
+                "title": a["title"],
+                "sentiment": a.get("sentiment", "?"),
+                "strength": a.get("strength", "?"),
+            }
             for a in classified_articles
         ],
     }
     (AGENT_DIR / "news_predict.json").write_text(
         json.dumps(news_predict, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print(f"{TAG} news_predict.json saved to {AGENT_DIR}")
-    print(f"{TAG} Done. Returning signal to graph.")
+
+
+# -- Main agent function -------------------------------------------------------
+
+def analyze_news_sentiment(state: AgentState):
+    """LangGraph node: classify recent crypto news and produce a bull/bear signal."""
+
+    retry_agents = state.get("retry_agents", [])
+    my_retries = state.get("retry_counts", {}).get("news_analyser_agent", 0)
+    is_first_run = my_retries == 0
+
+    if not is_first_run and "news_analyser_agent" not in retry_agents:
+        print(f"{LOG_TAG} Retry not required — skipping (retries so far: {my_retries})")
+        return {}
+
+    run_label = "FIRST RUN" if is_first_run else f"RETRY #{my_retries}"
+    print(f"\n{'='*60}")
+    print(f"{LOG_TAG} === {run_label} ===")
+    print(f"{'='*60}")
+
+    # --- Settings ---
+    settings = get_agent_settings(state, "agent_for_news_analysis")
+    horizon = state["config"]["horizon"]
+    forecast_date = state["forecast_start_date"]
+    window_days = settings["window_to_analysis"]
+    print(f"{LOG_TAG} [1/5] Settings loaded | horizon={horizon}d | forecast_date={forecast_date} | window={window_days}d")
+
+    # --- Date boundaries ---
+    window_start, forecast_end_date, window_end_exclusive = _parse_forecast_window(forecast_date, window_days)
+    window_end_inclusive = window_end_exclusive - timedelta(microseconds=1)
+    print(f"{LOG_TAG} [2/5] Date window: {window_start.date()} -> {forecast_end_date.date()} (inclusive)")
+
+    # --- Load & filter articles ---
+    print(f"{LOG_TAG} [3/5] Loading articles from archive/API...")
+    articles_to_classify = _load_articles_in_window(window_start, window_end_inclusive, window_end_exclusive)
+    print(f"{LOG_TAG}   Found {len(articles_to_classify)} articles in window")
+
+    # _save_input_debug(articles_to_classify)
+    # print(f"{LOG_TAG}   input_data.json saved")
+
+    if not articles_to_classify:
+        print(f"{LOG_TAG}   No articles found — returning empty signal")
+        return {"agent_signals": {"news_analyser_agent": {"summary": None}}}
+
+    # --- Classify via LLM ---
+    total_articles = len(articles_to_classify)
+    batch_size = _choose_batch_size(total_articles)
+    print(f"{LOG_TAG} [4/5] Classifying {total_articles} articles (batch_size={batch_size})...")
+
+    all_classifications, batch_normalized_scores, batch_relevant_sizes = (
+        _classify_articles_in_batches(articles_to_classify, batch_size)
+    )
+
+    # --- Match classifications & compute scores ---
+    classified_articles, bull_weight, bear_weight, bull_count, bear_count, not_correlated_count = (
+        _merge_classifications_with_articles(articles_to_classify, all_classifications)
+    )
+
+    print(f"{LOG_TAG}   bull={bull_count} (w={bull_weight}), bear={bear_count} (w={bear_weight}), neutral={not_correlated_count}")
+    for article in classified_articles:
+        if article["sentiment"] != "not_correlated":
+            print(f"{LOG_TAG}     [{article['sentiment']:>4} {article['strength']:>6}] {article['title'][:80]}")
+
+    # --- Compute verdict ---
+    # Two aggregation paths: per-batch normalization for >60 articles,
+    # global weighted ratio otherwise
+    if total_articles > 60 and batch_normalized_scores:
+        weighted_sum = sum(s * w for s, w in zip(batch_normalized_scores, batch_relevant_sizes))
+        total_relevant_weight = sum(batch_relevant_sizes)
+        normalized_score = weighted_sum / total_relevant_weight if total_relevant_weight else 0.0
+        is_bullish, confidence, bull_ratio = _compute_verdict_from_normalized_score(normalized_score)
+        print(
+            f"{LOG_TAG}   Batch-normalized: {len(batch_normalized_scores)} batches, "
+            f"score={normalized_score:.3f}"
+        )
+    else:
+        is_bullish, confidence, bull_ratio = _compute_verdict_from_weights(bull_weight, bear_weight)
+
+    prediction_label = "HIGHER" if is_bullish else "LOWER"
+    print(f"{LOG_TAG} [5/5] Verdict: {prediction_label} | confidence={confidence} | bull_ratio={bull_ratio:.2f}")
+
+    # --- Save debug output ---
+    _save_prediction_debug(
+        forecast_date, horizon, window_days,
+        articles_to_classify, classified_articles, batch_size,
+        bull_count, bull_weight, bear_count, bear_weight, not_correlated_count,
+        bull_ratio, is_bullish, confidence,
+    )
+    print(f"{LOG_TAG}   news_predict.json saved")
+
+    # --- Build agent signal ---
+    summary = (
+        f"Bull: {bull_count} (w={bull_weight}), Bear: {bear_count} (w={bear_weight}), "
+        f"Not correlated: {not_correlated_count}. "
+        f"Weighted bull ratio: {bull_ratio:.2f} → {prediction_label}, confidence: {confidence}."
+    )
+    reasoning = (
+        f"Out of {len(articles_to_classify)} articles, {bull_count} are bullish (weight={bull_weight}) "
+        f"and {bear_count} are bearish (weight={bear_weight}) "
+        f"(+{not_correlated_count} not correlated). "
+        f"Weighted bull/bear ratio = {bull_ratio:.2f}."
+    )
 
     return {"agent_signals": {"news_analyser_agent": {
         "reasoning": reasoning,
         "summary": summary,
         "risks": "",
-        "prediction": prediction,
+        "prediction": is_bullish,
         "confidence": confidence,
     }}}

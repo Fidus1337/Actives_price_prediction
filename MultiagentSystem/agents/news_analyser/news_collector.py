@@ -6,19 +6,12 @@ and merges them into a local JSON archive, deduplicating by
 (article_title, article_release_time).
 
 Usage:
-    cd MultiagentSystem
-    python agents/news_analyser/news_collector.py
+    python -m MultiagentSystem.agents.news_analyser.news_collector
 """
 
 import json
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
-
-# Enable standalone execution (same pattern as multiagent_system_main.py)
-_MULTIAGENT_ROOT = Path(__file__).resolve().parent.parent.parent
-if str(_MULTIAGENT_ROOT) not in sys.path:
-    sys.path.insert(0, str(_MULTIAGENT_ROOT))
 
 from agents.news_analyser.helpers import (
     coinglass_get_raw,

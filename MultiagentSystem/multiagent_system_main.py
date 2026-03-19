@@ -21,7 +21,7 @@ from agents.tech_indicators import agent_a_tech
 # On-chain agent
 from agents.onchain_indicators import agent_b_onchain
 # Agent for analysing news related to crypto (Coinglass endpoint)
-from agents.news_analyser import agent_c_news
+from agents.news_analyser.agent_for_news_analysis import analyze_news_sentiment
 
 # This agent checks if the report of the agent is logic and structured by all requirements
 from agents.verdicts_validator import agent_for_verdicts_validation
@@ -95,7 +95,7 @@ builder = StateGraph(AgentState)
 builder.add_node("supervisor", supervisor_node)
 builder.add_node("agent_a_tech", agent_a_tech)
 builder.add_node("agent_b_onchain", agent_b_onchain)
-builder.add_node("agent_c_news", agent_c_news)
+builder.add_node("agent_c_news", analyze_news_sentiment)
 builder.add_node("agent_d_twitter", agent_d_twitter)
 builder.add_node("validator", agent_for_verdicts_validation)
 builder.add_node("agent_reports_analyser", agent_reports_analyser)

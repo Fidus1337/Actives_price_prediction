@@ -205,8 +205,34 @@ def backfill_classifications() -> dict:
     return {"backfilled": len(unclassified)}
 
 
+def reclassify_all() -> dict:
+    """Re-classify ALL articles in the archive from scratch.
+
+    Strips existing category/strength fields and runs classification
+    again with current logic (date-grouped batches).
+    """
+    archive = _load_archive()
+    if not archive:
+        print("[news_collector] Archive is empty — nothing to reclassify")
+        return {"reclassified": 0}
+
+    for article in archive:
+        article.pop("category", None)
+        article.pop("strength", None)
+
+    print(f"[news_collector] Reclassifying all {len(archive)} articles...")
+    classify_articles(archive)
+    _save_archive(archive)
+
+    print(f"[news_collector] Reclassification complete: {len(archive)} articles")
+    return {"reclassified": len(archive)}
+
+
 if __name__ == "__main__":
-    if "--backfill" in sys.argv:
+    if "--reclassify" in sys.argv:
+        result = reclassify_all()
+        print(f"\nDone. Result: {json.dumps(result, indent=2)}")
+    elif "--backfill" in sys.argv:
         result = backfill_classifications()
         print(f"\nDone. Result: {json.dumps(result, indent=2)}")
     else:

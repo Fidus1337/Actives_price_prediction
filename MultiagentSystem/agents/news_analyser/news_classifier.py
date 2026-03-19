@@ -10,6 +10,7 @@ Used by:
 """
 
 import json
+from collections import defaultdict
 from typing import Literal, cast
 
 from langchain_openai import AzureChatOpenAI
@@ -103,8 +104,72 @@ def _prepare_for_classification(articles: list[dict]) -> list[dict]:
     return prepared
 
 
+def _group_by_date(articles: list[dict]) -> list[tuple[str, list[dict]]]:
+    """Group articles by date (YYYY-MM-DD) to prevent cross-date lookahead.
+
+    Articles without a parseable date are grouped under '9999-unknown'
+    so they are processed last.
+    """
+    from agents.news_analyser.helpers import parse_release_time
+
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for article in articles:
+        dt = parse_release_time(article.get("article_release_time"))
+        date_key = dt.strftime("%Y-%m-%d") if dt else article.get("date", "9999-unknown")
+        groups[date_key].append(article)
+
+    return sorted(groups.items(), key=lambda x: x[0])
+
+
+def _classify_batch(
+    classifier_llm,
+    batch_prepared: list[dict],
+    batch_articles: list[dict],
+    batch_label: str,
+) -> None:
+    """Send a single batch to the LLM and write results back in-place."""
+    print(f"{LOG_TAG} {batch_label}: {len(batch_prepared)} articles")
+    try:
+        news_json = json.dumps(batch_prepared, ensure_ascii=False)
+        classification_result = cast(
+            NewsClassificationResponse,
+            classifier_llm.with_structured_output(NewsClassificationResponse).invoke([
+                SystemMessage(content=CLASSIFIER_PROMPT),
+                HumanMessage(content=(
+                    f"Classify these {len(batch_prepared)} articles.\n"
+                    f"Return fields article_id, title, category, strength for each item:\n{news_json}"
+                )),
+            ])
+        )
+
+        classifications_by_id = {item.article_id: item for item in classification_result.classifications}
+        classifications_by_title = {item.title: item for item in classification_result.classifications}
+
+        for prep_item, orig_article in zip(batch_prepared, batch_articles):
+            matched = classifications_by_id.get(prep_item["article_id"])
+            if matched is None:
+                matched = classifications_by_title.get(prep_item["title"])
+            if matched is not None:
+                orig_article["category"] = matched.category
+                orig_article["strength"] = matched.strength
+            else:
+                orig_article["category"] = "not_correlated"
+                orig_article["strength"] = "low"
+
+    except Exception as e:
+        print(f"{LOG_TAG} ERROR in {batch_label}: {e}")
+        for article in batch_articles:
+            if "category" not in article:
+                article["category"] = "unclassified"
+                article["strength"] = None
+
+
 def classify_articles(articles: list[dict]) -> None:
     """Classify articles in-place, adding 'category' and 'strength' fields.
+
+    Articles are grouped by date before batching so the LLM never sees
+    articles from different days in the same request.  This prevents
+    cross-date lookahead bias during classification.
 
     Args:
         articles: list of archive-format article dicts.
@@ -115,57 +180,24 @@ def classify_articles(articles: list[dict]) -> None:
     if not articles:
         return
 
-    total = len(articles)
-    batch_size = _choose_batch_size(total)
-    effective_batch_size = max(batch_size, 1)
-
-    # Prepare LLM input format
-    prepared = _prepare_for_classification(articles)
-
-    # Build index mapping: article_id -> original article dict
-    id_to_article = {prepared[i]["article_id"]: articles[i] for i in range(total)}
-    title_to_article = {articles[i].get("article_title", ""): articles[i] for i in range(total)}
-
     classifier_llm = AzureChatOpenAI(azure_deployment="gpt-4o-mini", temperature=0.0)
 
-    for batch_start in range(0, total, effective_batch_size):
-        batch_prepared = prepared[batch_start:batch_start + effective_batch_size]
-        batch_articles = articles[batch_start:batch_start + effective_batch_size]
-        batch_number = batch_start // effective_batch_size + 1
-        print(f"{LOG_TAG} Batch {batch_number}: {len(batch_prepared)} articles")
+    date_groups = _group_by_date(articles)
+    batch_counter = 0
 
-        try:
-            news_json = json.dumps(batch_prepared, ensure_ascii=False)
-            classification_result = cast(
-                NewsClassificationResponse,
-                classifier_llm.with_structured_output(NewsClassificationResponse).invoke([
-                    SystemMessage(content=CLASSIFIER_PROMPT),
-                    HumanMessage(content=(
-                        f"Classify these {len(batch_prepared)} articles.\n"
-                        f"Return fields article_id, title, category, strength for each item:\n{news_json}"
-                    )),
-                ])
+    for date_key, group_articles in date_groups:
+        group_size = len(group_articles)
+        batch_size = max(_choose_batch_size(group_size), 1)
+
+        prepared = _prepare_for_classification(group_articles)
+
+        for batch_start in range(0, group_size, batch_size):
+            batch_counter += 1
+            batch_prepared = prepared[batch_start:batch_start + batch_size]
+            batch_articles = group_articles[batch_start:batch_start + batch_size]
+            _classify_batch(
+                classifier_llm,
+                batch_prepared,
+                batch_articles,
+                batch_label=f"Batch {batch_counter} (date={date_key})",
             )
-
-            # Match classifications back to original articles
-            classifications_by_id = {item.article_id: item for item in classification_result.classifications}
-            classifications_by_title = {item.title: item for item in classification_result.classifications}
-
-            for prep_item, orig_article in zip(batch_prepared, batch_articles):
-                matched = classifications_by_id.get(prep_item["article_id"])
-                if matched is None:
-                    matched = classifications_by_title.get(prep_item["title"])
-                if matched is not None:
-                    orig_article["category"] = matched.category
-                    orig_article["strength"] = matched.strength
-                else:
-                    orig_article["category"] = "not_correlated"
-                    orig_article["strength"] = "low"
-
-        except Exception as e:
-            print(f"{LOG_TAG} ERROR in batch {batch_number}: {e}")
-            # Mark entire batch as unclassified on failure
-            for article in batch_articles:
-                if "category" not in article:
-                    article["category"] = "unclassified"
-                    article["strength"] = None

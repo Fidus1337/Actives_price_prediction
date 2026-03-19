@@ -134,19 +134,23 @@ app = builder.compile()
 # STEP 4: RUN (INVOKE)
 # ==========================================
 if __name__ == "__main__":
-    # Building matrix by N last days
-    N_last_dates = 25
-    
     # Load multiagent system config
     config_path = Path(__file__).parent / "multiagent_config.json"
     with open(config_path, encoding="utf-8") as f:
         config = json.load(f)
 
+    # N_last_dates = max unique days in news archive minus horizon
+    from agents.news_analyser.news_collector import _load_archive
+    from agents.news_analyser.helpers import parse_release_time as _prt
+    _archive = _load_archive()
+    _unique_dates = {a["date"] for a in _archive if "date" in a}
+    horizon = config["horizon"]
+    N_last_dates = max(len(_unique_dates) - horizon, 1)
+    print(f"N_last_dates = {N_last_dates} (archive has {len(_unique_dates)} unique days, horizon={horizon})")
+
     # Build dataset without last {horizon} samples
     cache = SharedBaseDataCache(api_key=os.environ["COINGLASS_API_KEY"])
     forecast_date = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d").date()
-
-    horizon = config["horizon"]
     base_df = cache.get_base_df()
     dataset_with_target = FeaturesEngineer().add_y_up_custom(
         base_df, horizon=horizon, close_col="spot_price_history__close"

@@ -14,7 +14,8 @@
       "WebFetch(domain:eakdigital.com)",
       "WebFetch(domain:site.financialmodelingprep.com)",
       "WebFetch(domain:apitube.io)",
-      "WebFetch(domain:finnhub.io)"
+      "WebFetch(domain:finnhub.io)",
+      "Bash(jq .[0:2])"
     ]
   }
 }

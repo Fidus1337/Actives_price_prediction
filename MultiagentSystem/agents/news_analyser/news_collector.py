@@ -5,11 +5,17 @@ Fetches the latest articles from CoinGlass API (~24 day rolling window)
 and merges them into a local JSON archive, deduplicating by
 (article_title, article_release_time).
 
+New articles are classified (bull/bear/not_correlated + strength) at
+collection time via news_classifier.py, so downstream agents can skip
+LLM calls and aggregate pre-classified data directly.
+
 Usage:
     python -m MultiagentSystem.agents.news_analyser.news_collector
+    python -m MultiagentSystem.agents.news_analyser.news_collector --backfill
 """
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,6 +25,7 @@ from agents.news_analyser.helpers import (
     parse_release_time,
     strip_html,
 )
+from agents.news_analyser.news_classifier import classify_articles
 
 ARCHIVE_PATH = Path(__file__).parent / "news_archive.json"
 
@@ -111,6 +118,13 @@ def collect_news() -> dict:
             existing_keys.add(key)
             new_count += 1
 
+    # Classify new articles before saving
+    if new_count > 0:
+        unclassified = [a for a in archive if "category" not in a]
+        if unclassified:
+            print(f"[news_collector] Classifying {len(unclassified)} new articles...")
+            classify_articles(unclassified)
+
     _save_archive(archive)
 
     # Compute date range in archive
@@ -169,6 +183,32 @@ def get_articles_in_range(
     return results
 
 
+def backfill_classifications() -> dict:
+    """Classify all articles in archive that lack category/strength fields.
+
+    Idempotent: safe to run multiple times. Re-attempts 'unclassified' articles too.
+    """
+    archive = _load_archive()
+    unclassified = [
+        a for a in archive
+        if a.get("category") in (None, "unclassified") or "category" not in a
+    ]
+    if not unclassified:
+        print("[news_collector] All articles already classified — nothing to backfill")
+        return {"backfilled": 0}
+
+    print(f"[news_collector] Backfilling {len(unclassified)} articles...")
+    classify_articles(unclassified)
+    _save_archive(archive)
+
+    print(f"[news_collector] Backfill complete: {len(unclassified)} articles classified")
+    return {"backfilled": len(unclassified)}
+
+
 if __name__ == "__main__":
-    stats = collect_news()
-    print(f"\nDone. Stats: {json.dumps(stats, indent=2)}")
+    if "--backfill" in sys.argv:
+        result = backfill_classifications()
+        print(f"\nDone. Result: {json.dumps(result, indent=2)}")
+    else:
+        stats = collect_news()
+        print(f"\nDone. Stats: {json.dumps(stats, indent=2)}")

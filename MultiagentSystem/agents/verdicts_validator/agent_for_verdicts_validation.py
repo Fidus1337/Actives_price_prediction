@@ -1,8 +1,7 @@
 from pathlib import Path
 from typing import cast
 
-# from langchain_openai import ChatOpenAI
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from multiagent_types import AgentState, AgentSignal
 from pydantic import BaseModel
@@ -26,7 +25,7 @@ def agent_for_verdicts_validation(state: AgentState):
     print(f"{'='*60}")
     print(f"{TAG} Agents to validate: {list(signals.keys())}")
 
-    llm = AzureChatOpenAI(azure_deployment="gpt-4o-mini", temperature=0.1)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 
     updated_signals: dict[str, AgentSignal] = {}
     retry_agents: list[str] = []

@@ -3,8 +3,7 @@ from pathlib import Path
 from typing import cast
 
 import pandas as pd
-# from langchain_openai import ChatOpenAI
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from multiagent_types import AgentState, get_agent_settings
 from pydantic import BaseModel
@@ -95,7 +94,7 @@ def agent_a_tech(state: AgentState):
         print(f"{TAG} [STEP 5/6] System prompt loaded from config ({len(system_prompt)} chars)")
 
     # 6. Call LLM with CoT: reasoning is filled first, summary is based on it
-    llm = AzureChatOpenAI(azure_deployment="gpt-4o-mini", temperature=0.2)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
 
     prev_feedback: list[str] = (
         state.get("agent_signals", {})

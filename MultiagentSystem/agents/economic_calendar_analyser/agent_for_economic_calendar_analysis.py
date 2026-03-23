@@ -1,0 +1,222 @@
+"""
+LangGraph node: analyze macro-economic calendar events for BTC signal.
+
+Unlike the news agent, there is NO pre-classification step.
+All filtered events (Major all countries + Medium US only) are sent
+to the LLM in a single prompt. The LLM aggregates and returns a verdict.
+
+Flow:
+    calendar_archive → filter → format prompt → LLM → AgentSignal
+"""
+
+import json
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from typing import Literal
+
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import BaseModel, Field
+
+from multiagent_types import AgentState, get_agent_settings
+from agents.economic_calendar_analyser.calendar_collector import get_events_in_range
+
+
+AGENT_DIR = Path(__file__).parent
+LOG_TAG = "[calendar_agent]"
+
+SYSTEM_PROMPT = """\
+You are a macro-economic analyst evaluating the impact of recent \
+economic events on Bitcoin price over the next {horizon} days.
+
+Below are economic calendar events from the last {window} days.
+Each event has: importance level (Major/Medium), country, \
+actual/forecast/previous values, and data_effect \
+(the impact on the local currency as assessed by the data provider).
+
+Your task:
+1. Analyze ALL events together — consider interactions and which signals dominate
+2. Translate currency/commodity impacts into BTC impact \
+(e.g. bullish USD = generally bearish BTC, bullish gold ≈ bullish BTC)
+3. Weigh Major events more heavily than Medium events
+4. Consider surprise magnitude (actual vs forecast difference)
+
+Respond strictly in JSON:
+{{
+  "direction": "bullish" | "bearish" | "neutral",
+  "confidence": "high" | "medium" | "low",
+  "reasoning": "2-3 sentences explaining which events dominate and why"
+}}"""
+
+
+class CalendarVerdict(BaseModel):
+    direction: Literal["bullish", "bearish", "neutral"]
+    confidence: Literal["high", "medium", "low"]
+    reasoning: str = Field(description="2-3 sentences explaining which events dominate and why")
+
+
+# -- Helpers -------------------------------------------------------------------
+
+def _parse_forecast_window(
+    forecast_date: str | date | datetime,
+    window_days: int,
+) -> tuple[datetime, datetime, datetime]:
+    """Convert forecast_date + window into (window_start, forecast_end_date, window_end_exclusive)."""
+    if isinstance(forecast_date, str):
+        forecast_end_date = datetime.strptime(forecast_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    else:
+        forecast_end_date = datetime.combine(forecast_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+
+    window_end_exclusive = forecast_end_date + timedelta(days=1)
+    window_start = window_end_exclusive - timedelta(days=window_days)
+    return window_start, forecast_end_date, window_end_exclusive
+
+
+def _filter_events(events: list[dict]) -> list[dict]:
+    """Major (imp>=3) all countries only.
+    Exclude 'Waiting' and events without published_value."""
+    filtered = []
+    for e in events:
+        if not e.get("published_value") or e.get("data_effect") == "Waiting":
+            continue
+        if e.get("importance_level", 0) >= 3:
+            filtered.append(e)
+    return filtered
+
+
+def _format_event(event: dict) -> str:
+    """Format a single event as a compact string for the LLM prompt."""
+    name = event.get("calendar_name", "?")
+    country = event.get("country_name", "?")
+    imp = "Major" if event.get("importance_level", 0) >= 3 else "Medium"
+    actual = event.get("published_value", "—")
+    forecast = event.get("forecast_value", "") or "—"
+    previous = event.get("previous_value", "") or "—"
+    effect = event.get("data_effect", "—")
+    dt = event.get("date", "?")
+    return (
+        f"[{imp}] {dt} [{country}] {name}\n"
+        f"  actual: {actual} | forecast: {forecast} | previous: {previous}\n"
+        f"  data_effect: {effect}"
+    )
+
+
+def _format_all_events(events: list[dict]) -> str:
+    """Format all events into a single text block."""
+    return "\n\n".join(_format_event(e) for e in events)
+
+
+def _save_prediction_debug(
+    forecast_date,
+    horizon: int,
+    window_days: int,
+    events: list[dict],
+    verdict: CalendarVerdict | None,
+) -> None:
+    """Save debug artifact for post-mortem analysis."""
+    debug = {
+        "date": str(forecast_date),
+        "horizon": horizon,
+        "window": window_days,
+        "total_events": len(events),
+        "events": [
+            {
+                "date": e.get("date", "?"),
+                "name": e.get("calendar_name", "?"),
+                "country": e.get("country_name", "?"),
+                "importance": e.get("importance_level", 0),
+                "actual": e.get("published_value", ""),
+                "forecast": e.get("forecast_value", ""),
+                "previous": e.get("previous_value", ""),
+                "data_effect": e.get("data_effect", ""),
+            }
+            for e in events
+        ],
+        "verdict": {
+            "direction": verdict.direction,
+            "confidence": verdict.confidence,
+            "reasoning": verdict.reasoning,
+        } if verdict else None,
+    }
+    (AGENT_DIR / "calendar_predict.json").write_text(
+        json.dumps(debug, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+# -- Main agent function -------------------------------------------------------
+
+def analyze_economic_calendar(state: AgentState):
+    """LangGraph node: analyze macro-economic calendar events for BTC signal.
+
+    All filtered events are sent to the LLM in a single prompt.
+    No pre-classification — the LLM receives raw events and decides.
+    """
+
+    retry_agents = state.get("retry_agents", [])
+    my_retries = state.get("retry_counts", {}).get("economic_calendar_agent", 0)
+    is_first_run = my_retries == 0
+
+    if not is_first_run and "economic_calendar_agent" not in retry_agents:
+        print(f"{LOG_TAG} Retry not required — skipping (retries so far: {my_retries})")
+        return {}
+
+    run_label = "FIRST RUN" if is_first_run else f"RETRY #{my_retries}"
+    print(f"\n{'='*60}")
+    print(f"{LOG_TAG} === {run_label} ===")
+    print(f"{'='*60}")
+
+    # --- Settings ---
+    settings = get_agent_settings(state, "agent_for_economic_calendar_analysis")
+    horizon = state["config"]["horizon"]
+    forecast_date = state["forecast_start_date"]
+    window_days = settings["window_to_analysis"]
+    print(f"{LOG_TAG} [1/4] Settings | horizon={horizon}d | forecast_date={forecast_date} | window={window_days}d")
+
+    # --- Date boundaries ---
+    window_start, forecast_end_date, window_end_exclusive = _parse_forecast_window(forecast_date, window_days)
+    window_end_inclusive = window_end_exclusive - timedelta(microseconds=1)
+    print(f"{LOG_TAG} [2/4] Date window: {window_start.date()} -> {forecast_end_date.date()} (inclusive)")
+
+    # --- Load and filter events ---
+    print(f"{LOG_TAG} [3/4] Loading events from archive...")
+    all_events = get_events_in_range(dt_from=window_start, dt_to=window_end_inclusive)
+    filtered = _filter_events(all_events)
+    print(f"{LOG_TAG}   Raw: {len(all_events)} events | After filter (Major only): {len(filtered)}")
+
+    if not filtered:
+        print(f"{LOG_TAG}   No events found — returning empty signal")
+        return {"agent_signals": {"economic_calendar_agent": {"summary": None}}}
+
+    # --- LLM call ---
+    events_text = _format_all_events(filtered)
+    system_msg = SYSTEM_PROMPT.format(horizon=horizon, window=window_days)
+
+    print(f"{LOG_TAG}   Sending {len(filtered)} events to LLM...")
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
+    verdict = llm.with_structured_output(CalendarVerdict).invoke([
+        SystemMessage(content=system_msg),
+        HumanMessage(content=f"Analyze these {len(filtered)} economic calendar events:\n\n{events_text}"),
+    ])
+
+    is_bullish = verdict.direction == "bullish"
+    prediction_label = "HIGHER" if is_bullish else "LOWER"
+    print(f"{LOG_TAG} [4/4] Verdict: {verdict.direction} | confidence={verdict.confidence} | → {prediction_label}")
+    print(f"{LOG_TAG}   Reasoning: {verdict.reasoning}")
+
+    # --- Save debug output ---
+    _save_prediction_debug(forecast_date, horizon, window_days, filtered, verdict)
+    print(f"{LOG_TAG}   calendar_predict.json saved")
+
+    # --- Build agent signal ---
+    summary = (
+        f"{len(filtered)} macro events analyzed. "
+        f"LLM verdict: {verdict.direction}, confidence: {verdict.confidence}."
+    )
+
+    return {"agent_signals": {"economic_calendar_agent": {
+        "reasoning": verdict.reasoning,
+        "summary": summary,
+        "risks": "",
+        "prediction": is_bullish,
+        "confidence": verdict.confidence,
+    }}}

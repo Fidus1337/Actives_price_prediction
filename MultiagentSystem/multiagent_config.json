@@ -1,6 +1,6 @@
 {
     "horizon": 1,
-    "forecast_start_date": "2026-03-17",
+    "forecast_start_date": "2026-03-19",
     "neutral_threshold": 0,
     "agent_settings": {
         "agent_for_analysing_tech_indicators": {
@@ -34,6 +34,9 @@
         },
         "agent_for_news_analysis": {
             "system_prompt_file": "agents/news_analyser/system_prompt.md",
+            "window_to_analysis": 7
+        },
+        "agent_for_economic_calendar_analysis": {
             "window_to_analysis": 7
         },
         "agent_for_analysing_onchain_indicators": {

@@ -22,6 +22,8 @@ from agents.tech_indicators import agent_a_tech
 from agents.onchain_indicators import agent_b_onchain
 # Agent for analysing news related to crypto (Coinglass endpoint)
 from agents.news_analyser.agent_for_news_analysis import analyze_news_sentiment
+# Agent for analysing macro-economic calendar events
+from agents.economic_calendar_analyser.agent_for_economic_calendar_analysis import analyze_economic_calendar
 
 # This agent checks if the report of the agent is logic and structured by all requirements
 from agents.verdicts_validator import agent_for_verdicts_validation
@@ -97,6 +99,7 @@ builder.add_node("agent_a_tech", agent_a_tech)
 builder.add_node("agent_b_onchain", agent_b_onchain)
 builder.add_node("agent_c_news", analyze_news_sentiment)
 builder.add_node("agent_d_twitter", agent_d_twitter)
+builder.add_node("agent_e_calendar", analyze_economic_calendar)
 builder.add_node("validator", agent_for_verdicts_validation)
 builder.add_node("agent_reports_analyser", agent_reports_analyser)
 
@@ -112,11 +115,12 @@ builder.add_edge(START, "supervisor")
 builder.add_edge("supervisor", "agent_a_tech")
 # builder.add_edge("supervisor", "agent_b_onchain")
 builder.add_edge("supervisor", "agent_c_news")
+builder.add_edge("supervisor", "agent_e_calendar")
 
 # 3. MERGE (Fan-in)
 # The array means: "Wait for all these nodes to complete,
 # and only then pass control to validator"
-builder.add_edge(["agent_c_news", "agent_a_tech"], "validator")
+builder.add_edge(["agent_c_news", "agent_a_tech", "agent_e_calendar"], "validator")
 
 # 4. Conditional exit: if there are agents with recompose_report=True — retry from supervisor
 builder.add_conditional_edges("validator", _should_retry)

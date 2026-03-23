@@ -2,7 +2,7 @@
 Shared news classification logic.
 
 Classifies crypto news articles as bull/bear/not_correlated with strength
-using Azure OpenAI (gpt-4o-mini) structured output.
+using OpenAI (gpt-4o-mini) structured output.
 
 Used by:
 - news_collector.py — classify articles at collection time
@@ -13,7 +13,7 @@ import json
 from collections import defaultdict
 from typing import Literal, cast
 
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
@@ -180,7 +180,7 @@ def classify_articles(articles: list[dict]) -> None:
     if not articles:
         return
 
-    classifier_llm = AzureChatOpenAI(azure_deployment="gpt-4o-mini", temperature=0.0)
+    classifier_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
 
     date_groups = _group_by_date(articles)
     batch_counter = 0

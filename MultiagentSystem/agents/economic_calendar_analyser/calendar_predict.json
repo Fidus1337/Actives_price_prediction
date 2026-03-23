@@ -1,0 +1,23 @@
+{
+  "date": "2026-02-21",
+  "horizon": 1,
+  "window": 7,
+  "total_events": 1,
+  "events": [
+    {
+      "date": "2026-02-20",
+      "name": "Total number of oil wells in the week (rigs)(to 0220)",
+      "country": "US",
+      "importance": 3,
+      "actual": "409",
+      "forecast": "",
+      "previous": "409",
+      "data_effect": "Minor Impact"
+    }
+  ],
+  "verdict": {
+    "direction": "neutral",
+    "confidence": "low",
+    "reasoning": "The event regarding the total number of oil wells in the US had a minor impact and did not deviate from the previous value, indicating stability in the oil sector. Since this event is categorized as Major but has a minor data effect, it does not significantly influence Bitcoin's price direction."
+  }
+}

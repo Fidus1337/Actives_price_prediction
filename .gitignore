@@ -190,3 +190,6 @@ dev.env
 Models/plots/
 
 Models/
+
+MultiagentSystem/agents/twitter_analyser/twitter_scrapper/chrome_profile/
+*.db

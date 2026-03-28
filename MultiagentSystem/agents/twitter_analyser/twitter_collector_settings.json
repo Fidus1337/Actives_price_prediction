@@ -1,0 +1,172 @@
+{
+  "accounts": [
+    {
+      "username": "glassnode",
+      "enabled": true
+    },
+    {
+      "username": "cryptoquant_com",
+      "enabled": true
+    },
+    {
+      "username": "_1woonomic",
+      "enabled": true
+    },
+    {
+      "username": "lookonchain",
+      "enabled": true
+    },
+    {
+      "username": "bitcoinarchive",
+      "enabled": true
+    },
+    {
+      "username": "apsk32",
+      "enabled": true
+    },
+    {
+      "username": "alicharts",
+      "enabled": true
+    },
+    {
+      "username": "rektcapital",
+      "enabled": true
+    },
+    {
+      "username": "Pentosh1",
+      "enabled": true
+    },
+    {
+      "username": "CryptoMichNL",
+      "enabled": true
+    },
+    {
+      "username": "ericbalchunas",
+      "enabled": true
+    },
+    {
+      "username": "eleanorterrett",
+      "enabled": true
+    },
+    {
+      "username": "cgasparino",
+      "enabled": true
+    },
+    {
+      "username": "scottmelker",
+      "enabled": true
+    },
+    {
+      "username": "radarhits",
+      "enabled": true
+    },
+    {
+      "username": "LynAldenContact",
+      "enabled": true
+    },
+    {
+      "username": "RaoulGMI",
+      "enabled": true
+    },
+    {
+      "username": "saylor",
+      "enabled": true
+    },
+    {
+      "username": "APompliano",
+      "enabled": true
+    },
+    {
+      "username": "BarrySilbert",
+      "enabled": true
+    },
+    {
+      "username": "paoloardoino",
+      "enabled": true
+    },
+    {
+      "username": "adam3us",
+      "enabled": true
+    },
+    {
+      "username": "senlummis",
+      "enabled": true
+    },
+    {
+      "username": "a16zcrypto",
+      "enabled": true
+    },
+    {
+      "username": "grayscale",
+      "enabled": true
+    },
+    {
+      "username": "binance",
+      "enabled": true
+    },
+    {
+      "username": "cz_binance",
+      "enabled": true
+    },
+    {
+      "username": "brian_armstrong",
+      "enabled": true
+    },
+    {
+      "username": "whale_alert",
+      "enabled": true
+    },
+    {
+      "username": "vitalikbuterin",
+      "enabled": true
+    },
+    {
+      "username": "100trillionUSD",
+      "enabled": true
+    },
+    {
+      "username": "CryptoCred",
+      "enabled": true
+    },
+    {
+      "username": "DCinvestor",
+      "enabled": true
+    },
+    {
+      "username": "MartyBent",
+      "enabled": true
+    },
+    {
+      "username": "nic_carter",
+      "enabled": true
+    },
+    {
+      "username": "prestonpysh",
+      "enabled": true
+    },
+    {
+      "username": "ki_young_ju",
+      "enabled": true
+    },
+    {
+      "username": "michaeljburry",
+      "enabled": true
+    },
+    {
+      "username": "BitcoinMagazine",
+      "enabled": true
+    },
+    {
+      "username": "DocumentingBTC",
+      "enabled": true
+    }
+  ],
+  "scraper_settings": {
+    "max_tweets_per_author": -1,
+    "since_date": "2026-03-27",
+    "until_date": "2026-03-27",
+    "pause_min_sec": 20,
+    "pause_max_sec": 120,
+    "max_scrolls": 100
+  }
+}

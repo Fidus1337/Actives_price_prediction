@@ -1,6 +1,6 @@
 {
     "horizon": 1,
-    "forecast_start_date": "2026-03-19",
+    "forecast_start_date": "2026-03-28",
     "neutral_threshold": 0,
     "agent_settings": {
         "agent_for_analysing_tech_indicators": {
@@ -38,6 +38,22 @@
         },
         "agent_for_economic_calendar_analysis": {
             "window_to_analysis": 7
+        },
+        "agent_for_twitter_analysis": {
+            "window_to_analysis": 14,
+            "half_life_days": 4.0,
+            "authors": [
+                "CarpeNoctom",
+                "caprioleio",
+                "JSeyff",
+                "DonAlt",
+                "krugermacro",
+                "DavidDuong",
+                "TraderMercury",
+                "Yodaskk",
+                "_Checkmatey_",
+                "CrypNuevo"
+            ]
         },
         "agent_for_analysing_onchain_indicators": {
             "system_prompt_file": "agents/onchain_indicators/system_prompt_1d.md",

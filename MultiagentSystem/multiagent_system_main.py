@@ -24,6 +24,8 @@ from agents.onchain_indicators import agent_b_onchain
 from agents.news_analyser.agent_for_news_analysis import analyze_news_sentiment
 # Agent for analysing macro-economic calendar events
 from agents.economic_calendar_analyser.agent_for_economic_calendar_analysis import analyze_economic_calendar
+# Agent for analysing Twitter sentiment signals
+from agents.twitter_analyser.agent_for_twitter_analysis import analyze_twitter_sentiment
 
 # This agent checks if the report of the agent is logic and structured by all requirements
 from agents.verdicts_validator import agent_for_verdicts_validation
@@ -82,10 +84,6 @@ def _should_retry(state: AgentState) -> str:
 
     return "agent_reports_analyser"
 
-# FUTURE LOGIC FOR ANALYSIS TWITTER
-def agent_d_twitter(state: AgentState):
-    print("[agent_d] stub — skipping")
-    return {"agent_signals": {"agent_d": {"summary": None}}}
 
 # ==========================================
 # STEP 1: INITIALIZATION AND ADDING NODES
@@ -96,9 +94,9 @@ builder = StateGraph(AgentState)
 # Register all nodes (node names are defined as strings)
 builder.add_node("supervisor", supervisor_node)
 builder.add_node("agent_a_tech", agent_a_tech)
-builder.add_node("agent_b_onchain", agent_b_onchain)
+# builder.add_node("agent_b_onchain", agent_b_onchain)
 builder.add_node("agent_c_news", analyze_news_sentiment)
-builder.add_node("agent_d_twitter", agent_d_twitter)
+builder.add_node("agent_d_twitter", analyze_twitter_sentiment)
 builder.add_node("agent_e_calendar", analyze_economic_calendar)
 builder.add_node("validator", agent_for_verdicts_validation)
 builder.add_node("agent_reports_analyser", agent_reports_analyser)
@@ -115,12 +113,13 @@ builder.add_edge(START, "supervisor")
 builder.add_edge("supervisor", "agent_a_tech")
 # builder.add_edge("supervisor", "agent_b_onchain")
 builder.add_edge("supervisor", "agent_c_news")
+builder.add_edge("supervisor", "agent_d_twitter")
 builder.add_edge("supervisor", "agent_e_calendar")
 
 # 3. MERGE (Fan-in)
 # The array means: "Wait for all these nodes to complete,
 # and only then pass control to validator"
-builder.add_edge(["agent_c_news", "agent_a_tech", "agent_e_calendar"], "validator")
+builder.add_edge(["agent_d_twitter", "agent_a_tech", "agent_e_calendar", "agent_c_news"], "validator")
 
 # 4. Conditional exit: if there are agents with recompose_report=True — retry from supervisor
 builder.add_conditional_edges("validator", _should_retry)
@@ -149,7 +148,8 @@ if __name__ == "__main__":
     _archive = _load_archive()
     _unique_dates = {a["date"] for a in _archive if "date" in a}
     horizon = config["horizon"]
-    N_last_dates = max(len(_unique_dates) - horizon, 1)
+    # N_last_dates = max(len(_unique_dates) - horizon, 1)
+    N_last_dates = 38
     print(f"N_last_dates = {N_last_dates} (archive has {len(_unique_dates)} unique days, horizon={horizon})")
 
     # Build dataset without last {horizon} samples
@@ -215,7 +215,8 @@ if __name__ == "__main__":
             if len(valid) >= 2:
                 y_true = valid[f"y_up_{horizon}d"].astype(int)
                 y_pred = valid["y_predictions"].astype(int)
-                cm = confusion_matrix(y_true, y_pred)
+                # Force fixed 2x2 layout to handle single-class interim batches.
+                cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
                 disp = ConfusionMatrixDisplay(cm, display_labels=["LOWER (0)", "HIGHER (1)"])
                 disp.plot()
                 plt.title(f"Confusion Matrix ({done_count}/{N_last_dates} predictions, horizon={horizon}d)")
@@ -234,7 +235,8 @@ if __name__ == "__main__":
     if len(valid) >= 2:
         y_true = valid[f"y_up_{horizon}d"].astype(int)
         y_pred = valid["y_predictions"].astype(int)
-        cm = confusion_matrix(y_true, y_pred)
+        # Force fixed 2x2 layout to avoid shape mismatch when one class is absent.
+        cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
         disp = ConfusionMatrixDisplay(cm, display_labels=["LOWER (0)", "HIGHER (1)"])
         disp.plot()
         plt.title(f"Final Confusion Matrix ({len(valid)}/{N_last_dates} predictions, horizon={horizon}d)")

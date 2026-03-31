@@ -13,6 +13,7 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal
+import os
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -24,30 +25,6 @@ from agents.economic_calendar_analyser.calendar_collector import get_events_in_r
 
 AGENT_DIR = Path(__file__).parent
 LOG_TAG = "[calendar_agent]"
-
-SYSTEM_PROMPT = """\
-You are a macro-economic analyst evaluating the impact of recent \
-economic events on Bitcoin price over the next {horizon} days.
-
-Below are economic calendar events from the last {window} days.
-Each event has: importance level (Major/Medium), country, \
-actual/forecast/previous values, and data_effect \
-(the impact on the local currency as assessed by the data provider).
-
-Your task:
-1. Analyze ALL events together — consider interactions and which signals dominate
-2. Translate currency/commodity impacts into BTC impact \
-(e.g. bullish USD = generally bearish BTC, bullish gold ≈ bullish BTC)
-3. Weigh Major events more heavily than Medium events
-4. Consider surprise magnitude (actual vs forecast difference)
-
-Respond strictly in JSON:
-{{
-  "direction": "bullish" | "bearish" | "neutral",
-  "confidence": "high" | "medium" | "low",
-  "reasoning": "2-3 sentences explaining which events dominate and why"
-}}"""
-
 
 class CalendarVerdict(BaseModel):
     direction: Literal["bullish", "bearish", "neutral"]
@@ -62,6 +39,7 @@ def _parse_forecast_window(
     window_days: int,
 ) -> tuple[datetime, datetime, datetime]:
     """Convert forecast_date + window into (window_start, forecast_end_date, window_end_exclusive)."""
+    
     if isinstance(forecast_date, str):
         forecast_end_date = datetime.strptime(forecast_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     else:
@@ -72,7 +50,7 @@ def _parse_forecast_window(
     return window_start, forecast_end_date, window_end_exclusive
 
 
-def _filter_events(events: list[dict]) -> list[dict]:
+def _filter_events_by_importance(events: list[dict]) -> list[dict]:
     """Major (imp>=3) all countries only.
     Exclude 'Waiting' and events without published_value."""
     filtered = []
@@ -142,6 +120,17 @@ def _save_prediction_debug(
         json.dumps(debug, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
+def get_system_prompt()-> str:
+    """Getting the prompt txt, which we have in the folder where lay the file"""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(base_dir, "system_prompt.txt")
+    
+    with open(file_path, "r", encoding="utf-8") as f:
+        text = f.read()
+    
+    return text
+
+
 
 # -- Main agent function -------------------------------------------------------
 
@@ -180,7 +169,7 @@ def analyze_economic_calendar(state: AgentState):
     # --- Load and filter events ---
     print(f"{LOG_TAG} [3/4] Loading events from archive...")
     all_events = get_events_in_range(dt_from=window_start, dt_to=window_end_inclusive)
-    filtered = _filter_events(all_events)
+    filtered = _filter_events_by_importance(all_events)
     print(f"{LOG_TAG}   Raw: {len(all_events)} events | After filter (Major only): {len(filtered)}")
 
     if not filtered:
@@ -189,6 +178,7 @@ def analyze_economic_calendar(state: AgentState):
 
     # --- LLM call ---
     events_text = _format_all_events(filtered)
+    SYSTEM_PROMPT = get_system_prompt()
     system_msg = SYSTEM_PROMPT.format(horizon=horizon, window=window_days)
 
     print(f"{LOG_TAG}   Sending {len(filtered)} events to LLM...")

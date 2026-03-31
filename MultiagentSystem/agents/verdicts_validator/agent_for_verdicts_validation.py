@@ -42,13 +42,13 @@ def agent_for_verdicts_validation(state: AgentState):
 
         # News agent is formula-based (ratio/counts) and does not need LLM validation.
         # We only run a minimal deterministic sanity check.
-        if agent_name == "news_analyser_agent":
+        if agent_name in ("news_analyser_agent", "twitter_analyser_agent"):
             print(f"{TAG}   {agent_name}: skipping LLM validation (deterministic check only)")
             deterministic_problem = ""
             if not summary:
-                deterministic_problem = "Empty summary in news analyser report."
+                deterministic_problem = f"Empty summary in {agent_name} report."
             elif prediction not in (True, False):
-                deterministic_problem = "Prediction must be boolean for news analyser report."
+                deterministic_problem = f"Prediction must be boolean for {agent_name} report."
 
             if deterministic_problem:
                 print(f"{TAG}   RESULT: PROBLEM FOUND")

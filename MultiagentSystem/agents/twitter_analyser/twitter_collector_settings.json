@@ -33,12 +33,28 @@
       "enabled": true
     },
     {
+      "username": "CryptoKaleo",
+      "enabled": false
+    },
+    {
       "username": "Pentosh1",
       "enabled": true
     },
     {
       "username": "CryptoMichNL",
       "enabled": true
+    },
+    {
+      "username": "cryptorand",
+      "enabled": false
+    },
+    {
+      "username": "George1Trader",
+      "enabled": false
+    },
+    {
+      "username": "TXMtrades",
+      "enabled": false
     },
     {
       "username": "ericbalchunas",
@@ -129,6 +145,14 @@
       "enabled": true
     },
     {
+      "username": "HenrikZeberg",
+      "enabled": false
+    },
+    {
+      "username": "CryptoVizArt",
+      "enabled": false
+    },
+    {
       "username": "DCinvestor",
       "enabled": true
     },
@@ -159,14 +183,54 @@
     {
       "username": "DocumentingBTC",
       "enabled": true
+    },
+    {
+      "username": "CarpeNoctom",
+      "enabled": true
+    },
+    {
+      "username": "caprioleio",
+      "enabled": true
+    },
+    {
+      "username": "JSeyff",
+      "enabled": true
+    },
+    {
+      "username": "DonAlt",
+      "enabled": true
+    },
+    {
+      "username": "krugermacro",
+      "enabled": true
+    },
+    {
+      "username": "DavidDuong",
+      "enabled": true
+    },
+    {
+      "username": "TraderMercury",
+      "enabled": true
+    },
+    {
+      "username": "Yodaskk",
+      "enabled": true
+    },
+    {
+      "username": "_Checkmatey_",
+      "enabled": true
+    },
+    {
+      "username": "CrypNuevo",
+      "enabled": true
     }
   ],
   "scraper_settings": {
     "max_tweets_per_author": -1,
     "since_date": "2026-03-27",
-    "until_date": "2026-03-27",
+    "until_date": "2026-03-30",
     "pause_min_sec": 20,
-    "pause_max_sec": 120,
-    "max_scrolls": 100
+    "pause_max_sec": 40,
+    "max_scrolls": 500
   }
 }

@@ -3,9 +3,9 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from multiagent_types import AgentState, get_agent_settings
-from agents.news_analyser.helpers import parse_release_time
-from agents.news_analyser.news_collector import get_articles_in_range
-from agents.news_analyser.news_classifier import (
+from .helpers import parse_release_time
+from .news_collector import get_articles_in_range
+from .news_classifier import (
     STRENGTH_WEIGHTS,
     classify_articles,
 )
@@ -56,6 +56,19 @@ def _compute_verdict_from_normalized_score(
     is_bullish = normalized_score > 0
     confidence = _distance_to_confidence(abs(normalized_score) / 2.0)
     return is_bullish, confidence, bull_ratio_equivalent
+
+
+def _time_decay(article: dict, forecast_end_date: datetime, horizon: int) -> float:
+    """Exponential time decay: half-life = horizon days.
+
+    An article published exactly `horizon` days ago gets weight 0.5.
+    An article published today gets weight 1.0.
+    """
+    release_time = parse_release_time(article.get("article_release_time"))
+    if release_time is None or horizon <= 0:
+        return 1.0
+    age_days = max((forecast_end_date - release_time).total_seconds() / 86400.0, 0.0)
+    return 0.5 ** (age_days / horizon)
 
 
 # -- Extracted single-responsibility functions ---------------------------------
@@ -113,8 +126,16 @@ def _load_articles_in_window(
     return articles_in_window
 
 
-def _aggregate_sentiment(articles: list[dict]) -> tuple[float, float, int, int, int]:
+def _aggregate_sentiment(
+    articles: list[dict],
+    forecast_end_date: datetime,
+    horizon: int,
+) -> tuple[float, float, int, int, int]:
     """Aggregate pre-classified articles into weighted sentiment scores.
+
+    Weights are scaled by STRENGTH_WEIGHTS and multiplied by an exponential
+    time-decay factor (half-life = horizon days), so newer articles contribute
+    more to a short-horizon forecast than older ones.
 
     Returns (bull_weight, bear_weight, bull_count, bear_count, not_correlated_count).
     """
@@ -127,7 +148,7 @@ def _aggregate_sentiment(articles: list[dict]) -> tuple[float, float, int, int, 
     for article in articles:
         category = article.get("category", "not_correlated")
         strength = article.get("strength", "low")
-        weight = STRENGTH_WEIGHTS.get(strength, 1)
+        weight = STRENGTH_WEIGHTS.get(strength, 1) * _time_decay(article, forecast_end_date, horizon)
 
         if category == "bull":
             bull_count += 1
@@ -141,9 +162,15 @@ def _aggregate_sentiment(articles: list[dict]) -> tuple[float, float, int, int, 
     return bull_weight, bear_weight, bull_count, bear_count, not_correlated_count
 
 
-def _compute_batch_normalized_score(articles: list[dict], batch_size: int) -> float | None:
+def _compute_batch_normalized_score(
+    articles: list[dict],
+    batch_size: int,
+    forecast_end_date: datetime,
+    horizon: int,
+) -> float | None:
     """Per-batch normalization for >60 articles.
     Prevents a single large batch from dominating the signal.
+    Uses the same time-decay as _aggregate_sentiment.
 
     Returns normalized score in [-1, 1], or None if not applicable.
     """
@@ -153,7 +180,7 @@ def _compute_batch_normalized_score(articles: list[dict], batch_size: int) -> fl
 
     effective_batch_size = max(batch_size, 1)
     batch_scores: list[float] = []
-    batch_weights: list[int] = []
+    batch_weights: list[float] = []
 
     for batch_start in range(0, total, effective_batch_size):
         batch = articles[batch_start:batch_start + effective_batch_size]
@@ -161,7 +188,7 @@ def _compute_batch_normalized_score(articles: list[dict], batch_size: int) -> fl
         batch_bear = 0.0
         for a in batch:
             cat = a.get("category", "not_correlated")
-            w = STRENGTH_WEIGHTS.get(a.get("strength", "low"), 1)
+            w = STRENGTH_WEIGHTS.get(a.get("strength", "low"), 1) * _time_decay(a, forecast_end_date, horizon)
             if cat == "bull":
                 batch_bull += w
             elif cat == "bear":
@@ -169,7 +196,7 @@ def _compute_batch_normalized_score(articles: list[dict], batch_size: int) -> fl
         total_w = batch_bull + batch_bear
         if total_w > 0:
             batch_scores.append((batch_bull - batch_bear) / total_w)
-            batch_weights.append(int(total_w))
+            batch_weights.append(total_w)
 
     if not batch_scores:
         return None
@@ -240,7 +267,7 @@ def analyze_news_sentiment(state: AgentState):
 
     # --- Settings ---
     settings = get_agent_settings(state, "agent_for_news_analysis")
-    horizon = state["config"]["horizon"]
+    horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
     window_days = settings["window_to_analysis"]
     print(f"{LOG_TAG} [1/4] Settings loaded | horizon={horizon}d | forecast_date={forecast_date} | window={window_days}d")
@@ -260,9 +287,11 @@ def analyze_news_sentiment(state: AgentState):
         return {"agent_signals": {"news_analyser_agent": {"summary": None}}}
 
     # --- Aggregate pre-classified sentiment ---
-    bull_weight, bear_weight, bull_count, bear_count, not_correlated_count = _aggregate_sentiment(articles)
+    bull_weight, bear_weight, bull_count, bear_count, not_correlated_count = _aggregate_sentiment(
+        articles, forecast_end_date, horizon
+    )
 
-    print(f"{LOG_TAG}   bull={bull_count} (w={bull_weight}), bear={bear_count} (w={bear_weight}), neutral={not_correlated_count}")
+    print(f"{LOG_TAG}   bull={bull_count} (w={bull_weight:.2f}), bear={bear_count} (w={bear_weight:.2f}), neutral={not_correlated_count}")
     for article in articles:
         cat = article.get("category", "not_correlated")
         if cat in ("bull", "bear"):
@@ -272,7 +301,7 @@ def analyze_news_sentiment(state: AgentState):
 
     # --- Compute verdict ---
     total_articles = len(articles)
-    normalized_score = _compute_batch_normalized_score(articles, batch_size=30)
+    normalized_score = _compute_batch_normalized_score(articles, batch_size=30, forecast_end_date=forecast_end_date, horizon=horizon)
 
     if normalized_score is not None:
         is_bullish, confidence, bull_ratio = _compute_verdict_from_normalized_score(normalized_score)

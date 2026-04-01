@@ -1,6 +1,6 @@
 {
+    "forecast_start_date": "2026-04-01",
     "horizon": 1,
-    "forecast_start_date": "2026-03-28",
     "neutral_threshold": 0,
     "agent_settings": {
         "agent_for_analysing_tech_indicators": {

@@ -389,7 +389,7 @@ def analyze_twitter_sentiment(state: AgentState):
 
     # --- Settings ---
     settings = get_agent_settings(state, "agent_for_twitter_analysis")
-    horizon = state["config"]["horizon"]
+    horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
     window_days = settings["window_to_analysis"]
     half_life_days = float(settings.get("half_life_days", 2.0))

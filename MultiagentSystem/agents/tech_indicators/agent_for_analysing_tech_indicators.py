@@ -37,7 +37,7 @@ def agent_a_tech(state: AgentState):
 
     # 1. Get all agent settings
     settings = get_agent_settings(state, "agent_for_analysing_tech_indicators")
-    horizon = state["config"]["horizon"]
+    horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
     print(f"{TAG} [STEP 1/6] Settings loaded | horizon={horizon}d | forecast_date={forecast_date}")
     print(f"{TAG}   window_to_analysis={settings['window_to_analysis']} | base_feats count={len(settings['base_feats'])}")

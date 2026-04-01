@@ -143,13 +143,13 @@ if __name__ == "__main__":
         config = json.load(f)
 
     # N_last_dates = max unique days in news archive minus horizon
-    from agents.news_analyser.news_collector import _load_archive
+    from agents.news_analyser.news_archive_database_manipulator import load_all_articles as _load_archive
     from agents.news_analyser.helpers import parse_release_time as _prt
     _archive = _load_archive()
     _unique_dates = {a["date"] for a in _archive if "date" in a}
-    horizon = config["horizon"]
+    horizon = int(config["horizon"])
     # N_last_dates = max(len(_unique_dates) - horizon, 1)
-    N_last_dates = 38
+    N_last_dates = 5
     print(f"N_last_dates = {N_last_dates} (archive has {len(_unique_dates)} unique days, horizon={horizon})")
 
     # Build dataset without last {horizon} samples
@@ -191,6 +191,7 @@ if __name__ == "__main__":
         initial_input = {
             "config": config,
             "cached_dataset": base_df,
+            "horizon": horizon,
             "forecast_start_date": forecast_date,
             "retry_agents": [],
             "retry_counts": {},

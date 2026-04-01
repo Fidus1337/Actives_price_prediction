@@ -1,0 +1,223 @@
+{
+  "date": "2026-03-31",
+  "horizon": 1,
+  "window": 7,
+  "total_events": 21,
+  "events": [
+    {
+      "date": "2026-03-31",
+      "name": "API crude oil inventory transmutation last week (10,000 barrels)(to 0327)",
+      "country": "US",
+      "importance": 3,
+      "actual": "1026.3",
+      "forecast": "-130",
+      "previous": "234.8",
+      "data_effect": "Bearish for Crude Oil"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Conference Board Consumer Confidence Index(Mar)",
+      "country": "US",
+      "importance": 3,
+      "actual": "91.8",
+      "forecast": "88.0",
+      "previous": "91.2",
+      "data_effect": "bullish for the US dollar"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "GDP(MoM)(Jan)",
+      "country": "Canada",
+      "importance": 3,
+      "actual": "0.1%",
+      "forecast": "0.0%",
+      "previous": "0.2%",
+      "data_effect": "Bullish for the Canadian Dollar"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Consumer Price Index (MoM)(Preliminary)(Mar)",
+      "country": "Eurozone",
+      "importance": 3,
+      "actual": "1.2%",
+      "forecast": "",
+      "previous": "0.6%",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Consumer Price Index (YoY)(Preliminary)(Mar)",
+      "country": "Eurozone",
+      "importance": 3,
+      "actual": "2.5%",
+      "forecast": "2.7%",
+      "previous": "1.9%",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Seasonally adjusted unemployment rate (official)(Mar)",
+      "country": "Germany",
+      "importance": 3,
+      "actual": "6.3%",
+      "forecast": "6.3%",
+      "previous": "6.3%",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Consumer Price Index (MoM)(Preliminary)(Mar)",
+      "country": "France",
+      "importance": 3,
+      "actual": "0.9%",
+      "forecast": "",
+      "previous": "0.6%",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Current Account (billion GBP)(Q4)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "-18.4",
+      "forecast": "-23.4",
+      "previous": "-12.1",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "GDP(YoY)(Final)(Q4)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "1.0%",
+      "forecast": "",
+      "previous": "1.0%",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "GDP(Q)(Final)(Q4)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "0.1%",
+      "forecast": "0.1%",
+      "previous": "0.1%",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Official Manufacturing Purchasing Managers Index(Mar)",
+      "country": "China",
+      "importance": 3,
+      "actual": "50.4",
+      "forecast": "50.1",
+      "previous": "49.0",
+      "data_effect": "Bullish for the Australian Dollar"
+    },
+    {
+      "date": "2026-03-30",
+      "name": "Unemployment Rate(Feb)",
+      "country": "Japan",
+      "importance": 3,
+      "actual": "2.6%",
+      "forecast": "2.7%",
+      "previous": "2.7%",
+      "data_effect": "Bearish for the Japanese Yen"
+    },
+    {
+      "date": "2026-03-27",
+      "name": "Total number of oil wells in the week (rigs)(to 0327)",
+      "country": "US",
+      "importance": 3,
+      "actual": "409",
+      "forecast": "",
+      "previous": "414",
+      "data_effect": "Bearish for Crude Oil"
+    },
+    {
+      "date": "2026-03-27",
+      "name": "University of Michigan Consumer Confidence Index (Final)(Mar)",
+      "country": "US",
+      "importance": 3,
+      "actual": "53.3",
+      "forecast": "54.0",
+      "previous": "55.5",
+      "data_effect": "bullish for the US dollar,bearish for gold and silver"
+    },
+    {
+      "date": "2026-03-27",
+      "name": "Seasonally Adjusted Retail Sales (MoM)(Feb)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "-0.4%",
+      "forecast": "-0.7%",
+      "previous": "1.8%",
+      "data_effect": "Bullish for the British Pound"
+    },
+    {
+      "date": "2026-03-26",
+      "name": "Number of seasonally adjusted initial K'in claims last week (thousands)(to 0321)",
+      "country": "US",
+      "importance": 3,
+      "actual": "210",
+      "forecast": "210",
+      "previous": "205",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-03-25",
+      "name": "EIA crude oil inventory transmutation last week (10,000 barrels)(to 0320)",
+      "country": "US",
+      "importance": 3,
+      "actual": "692.6",
+      "forecast": "47.7",
+      "previous": "615.6",
+      "data_effect": "Bearish for Crude Oil"
+    },
+    {
+      "date": "2026-03-25",
+      "name": "IFO business climate Index(Mar)",
+      "country": "Germany",
+      "importance": 3,
+      "actual": "86.4",
+      "forecast": "86.1",
+      "previous": "88.6",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-25",
+      "name": "Non-seasonally adjusted Producer Input Price Index (YoY)(Feb)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "0.5%",
+      "forecast": "0.4%",
+      "previous": "-0.2%",
+      "data_effect": "Bullish for the British Pound"
+    },
+    {
+      "date": "2026-03-25",
+      "name": "Non-seasonally adjusted producer Output price index (YoY)(Feb)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "1.7%",
+      "forecast": "2.6%",
+      "previous": "2.5%",
+      "data_effect": "Bullish for the British Pound"
+    },
+    {
+      "date": "2026-03-25",
+      "name": "Consumer Price Index (YoY)(Feb)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "3.0%",
+      "forecast": "3.0%",
+      "previous": "3.0%",
+      "data_effect": "Minor Impact"
+    }
+  ],
+  "verdict": {
+    "direction": "bearish",
+    "confidence": "medium",
+    "reasoning": "The major bullish signals for the US dollar from the Consumer Confidence Index and the University of Michigan Consumer Confidence Index suggest a stronger dollar, which typically leads to bearish sentiment for Bitcoin. Additionally, the bearish data for crude oil inventories may indicate a weakening commodity market, which can also negatively impact Bitcoin as a risk asset. However, the mixed signals from other currencies and minor impacts from various events lead to a medium confidence in this bearish outlook."
+  }
+}

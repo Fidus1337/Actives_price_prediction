@@ -41,7 +41,7 @@ def agent_b_onchain(state: AgentState):
 
     # 1. Get all agent settings
     settings = get_agent_settings(state, CONFIG_KEY)
-    horizon = state["config"]["horizon"]
+    horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
     print(f"{TAG} [STEP 1/7] Settings loaded | horizon={horizon}d | forecast_date={forecast_date}")
     print(f"{TAG}   window_to_analysis={settings['window_to_analysis']} | base_feats count={len(settings['base_feats'])}")

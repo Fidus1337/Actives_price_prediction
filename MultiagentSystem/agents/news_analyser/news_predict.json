@@ -1,17 +1,1181 @@
 {
-  "date": "2026-03-28",
+  "date": "2026-03-31",
   "horizon": 1,
   "window": 7,
-  "total_articles": 427,
-  "bull_count": 120,
-  "bull_weight": 273.0,
-  "bear_count": 100,
-  "bear_weight": 234.0,
-  "not_correlated_count": 207,
-  "bull_ratio_weighted": 0.5385,
-  "prediction": true,
+  "total_articles": 440,
+  "bull_count": 91,
+  "bull_weight": 77.73582099446506,
+  "bear_count": 123,
+  "bear_weight": 133.75030105617378,
+  "not_correlated_count": 226,
+  "bull_ratio_weighted": 0.3676,
+  "prediction": false,
   "confidence": "low",
   "classifications": [
+    {
+      "title": "Bitcoin enters the public bond market as Moody’s gives a first-of-its-kind crypto deal a rating",
+      "category": "bull",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Trump says US will leave Iran within 2 to 3 weeks",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Crypto Fear and Greed Index stuck on ‘extreme fear,’ but is there a silver lining?",
+      "category": "not_correlated",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Texas Lt. Gov. lists crypto, prediction markets in charges for lawmakers",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Wall Street moves benchmarks onchain as S&P tokenizes Treasury index",
+      "category": "bull",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Fed's Barr invokes 'long and painful history' while encouraging strong stablecoin oversight",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "What's next after bitcoin's historic underperformance stretch against stocks",
+      "category": "not_correlated",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Chainalysis to add ‘blockchain intelligence‘ agents to platform",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin hits $68K but BTC futures, macro data show traders remain bearish",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Interactive Brokers expands crypto trading to retail investors in Europe",
+      "category": "bull",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Clarity Act ‘not a gatekeeper’ for crypto innovation, WisdomTree exec says",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin’s $10K range expected to hold until spot traders show up: Data",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "The post-quantum transition can’t be postponed any longer",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "feature 'No longer a drill': Google’s latest quantum breakthrough sparks fresh debate over Bitcoin’s long-term security",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin traders forecast short-term downside even as BTC price chases $68K",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "BitGo rolls out portfolio-based crypto lending platform for institutions",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Massachusetts city to weigh crypto ATM ban, citing financial risks",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "TRON Expands Enterprise Access to TRX and TRC-20 USDT",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin, stocks rise, oil slides, after report of Iran's willingness to end conflict",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Galaxy expands retail platform with SOL staking, targeting 6.5% yield",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Ethereum bulls must hold $2K: Volatility metric hints at ‘strong’ move next",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Charles Hoskinson not a fan of CLARITY Act, warns of 'weaponization' by future lawmakers",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "TD Cowen 'increasingly pessimistic' on crypto bill, sees one-in-three odds of passage this year",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Why 12 European banks are teaming up to save the euro from digital dollarization",
+      "category": "not_correlated",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitfarms stock rises 5% after posting $284 million net loss in AI transition year",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "The time for clear financial privacy rules is now",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Ripple partners with former Western Union unit to 'enhance' cross-border payments",
+      "category": "not_correlated",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "The stablecoin question is: Who gets paid?",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Mercado Libre shuts down Mercado Coin, ending its loyalty-driven crypto experiment",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Tether parts ways with ex-HSBC gold traders amid KPMG audit: Bloomberg",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "OpenFX raises $94M to speed up cross-border payments with stablecoins",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "CoinDesk 20 performance update: Bitcoin Cash (BCH) gains 1.5% as index trades flat",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Ethereum’s EEZ and the attempt to rebuild one Ethereum",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Coinbase’s Base to focus on tokenized markets, stablecoins, developers this year",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Chainalysis adds 'natural language' AI agents to its blockchain investigation platform",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Chainalysis introduces 'blockchain intelligence agents' trained on millions of investigations",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Base joins Ethereum, Tron, others in betting big on AI agent future",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "AI agents like OpenClaw could drain crypto wallets via ‘malicious skills’: CertiK",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Downside risk remains as bitcoin nears record-tying six-month losing streak",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Crypto dispute over Resupply exploit lands in Singapore harassment court",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Is $450B in Bitcoin vulnerable to the quantum threat? Analysts weigh in",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Faster settlement may make for poorer markets",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Standard Chartered says faster stablecoin turnover could curb demand",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Interactive Brokers launches crypto trading in EEA, including BTC, ETH, SOL and XRP",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bhutan government moves another $25 million in bitcoin as weekly transfers top 1,000 BTC: Arkham",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "exclusive MiCA-licensed crypto asset manager Tesseract unveils compliance-minded yield vaults",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Google warns five quantum attack paths could put $100 billion on Ethereum at risk",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Prediction markets backlash builds possible stormcloud for 2027",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Supply chain attack hits Axios npm releases, users urged to rotate keys",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Forex startup OpenFX raises $94 million to expand stablecoin-powered cross-border payments",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin flirts with $66K as geopolitical tensions, macro uncertainty keep market range-bound",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "CoinDCX plans anti-fraud push after founders cleared in impersonation case",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin whale selling cools as $60K becomes the focus for BTC price",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Quantum risk resurfaces at the worst time for bitcoin, but 1 token is loving it",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "exclusive Core Foundation franchises Satoshi Plus bitcoin consensus model for new Zcash scaling layer",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "A quantum computer may need just 10,000 qubits to empty your crypto wallets, researchers say",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Dynamic adds embedded wallet infrastructure to TON for Telegram apps",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Dubai's VARA imposes margin, governance, and disclosure rules on crypto trading and derivatives",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Russia moves to narrow crypto trading to regulated intermediaries",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bearish sentiment builds in crypto as volatility and hedging rise",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin price dips below $66K ahead of US Department of War press briefing",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Crypto market maker Keyrock reaches $1.1B valuation in SC Ventures-led round",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "'Unstable velocity': Standard Chartered says stablecoin usage rising faster than expected as new use cases emerge",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "David Bailey’s Nakamoto sells roughly 5% of its bitcoin holdings, offloading 284 BTC",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "F2Pool co-founder says Thailand condo bought for 2,900 Bitcoin sold for 7",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Hashdex’s diversified crypto ETF adds options for hedging, income generation",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "SC Ventures, Ripple back Keyrock's open Series C at $1.1 billion valuation",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "South Korea's KB Card taps Avalanche for 'hybrid' stablecoin credit card",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Nakamoto sells $20 million in Bitcoin and cuts Metaplanet stake",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Crypto investment firm Keyrock valued at $1.1 billion in Series C led by SC Ventures",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "KuCoin operator ordered to block US traders, pay $500,000 CFTC penalty",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Google warns quantum computing may break bitcoin earlier than thought, prepares 2029 transition",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Democrats press CFTC, ethics watchdog on prediction market insider trading",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Binance to launch prediction market feature within its wallet app via Predict.Fun",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin demand falters as 'real' interest rates surge",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Crypto exchange KuCoin agrees to $500K settlement, ending CFTC case",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Quantum computers need fewer qubits to crack crypto than thought: Google",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Dubai sets formal rules for crypto exchange-traded derivatives",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin holds $67,500 as Trump signals he may end Iran war with Hormuz still shut",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitmine scoops $147M of ETH in its biggest week of buying this year",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin treasury firm Nakamoto sells $20 million in BTC at 40% loss",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Maryland man charged in $50 million Uranium Finance hack after U.S. seized $31 million in crypto",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "KuCoin operator barred from U.S. after CFTC order, following $297 Million DOJ case",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Breaking Bitcoin with quantum may be easier than thought, with Taproot partly to blame, Google says",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "US Labor Department takes step toward including crypto in 401(k)s",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "US senators press SEC over enforcement chief exit, Justin Sun’s case",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "US Labor Department proposes opening 401(k) plans to crypto to implement Trump order",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Alleged $54M Uranium Finance hacker faces 30 years in prison",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Oil prices hit 3-year high above $105: Will Bitcoin crash again?",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "US senators float ‘Mined in America Act’ to boost BTC mining, codify reserve",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-31"
+    },
+    {
+      "title": "Bitcoin data points to ‘rare’ trading setup for relief rally to $71K",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Peter Brandt, Polymarket traders don’t see new Bitcoin highs this year",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "U.S. rule change may open trillions in 401(k) funds to crypto",
+      "category": "bull",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Price predictions 3/30: SPX, DXY, BTC, ETH, BNB, XRP, SOL, DOGE, ADA, HYPE",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Democrats urge warnings to federal officials against insider bets on prediction markets",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "NFL asks prediction markets to act on ‘easily manipulated‘ bets",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Senator raises alarm following former SEC enforcement lead's short tenure, decision to drop Justin Sun charges",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Why Consensus is crypto’s new ground zero",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Hyperliquid whale opens $53M Bitcoin short: Should traders take notice?",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Fed's Powell's comments sooth bond market, but oil continues rise, hitting crypto and stocks",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Maryland man charged in $54 million Uranium Finance hacks faces up to 30 years",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Square rolls out Bitcoin payments at POS for eligible US merchants",
+      "category": "bull",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Cardano's Charles Hoskinson unveils privacy-preserving Midnight partner chain",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Mitsubishi adopts JPMorgan blockchain for corporate payments",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "GOP senators unveil 'Mined in America Act' to expand crypto mining, cement strategic bitcoin reserve",
+      "category": "bull",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Chainlink and Anchorage Digital back launch of crypto-aligned PAC",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bitcoin accumulation addresses absorb 67K BTC as miner-led selling falls: Data",
+      "category": "bull",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "“I’m Confused About What Bitcoin Actually Is” — Ran Neuner Questions Crypto’s Core Narrative",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Jack Dorsey’s Square auto-enables bitcoin payments for millions of U.S. businesses",
+      "category": "bull",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Strategy pushes pause button on Bitcoin purchases, stock sales",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "CFTC to 'defer to leagues' as NFL calls for tighter prediction market guardrails",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Nium launches stablecoin card issuance platform across Visa and Mastercard",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Aster perps DEX switches to staking-only token emission model, reducing monthly unlocks by 97%",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Anchorage Digital, Chainlink back new crypto PAC as election season heats up",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "BitGo expands Canton Coin services with trading, onchain settlement",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "XRP price charts flash bottom signals as bulls defend $1.30",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Trump-linked American Bitcoin hits 7,000 BTC milestone as shares slide into penny stock territory",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "AI music needs blockchain infrastructure",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "The SEC’s latest crypto guidance still leaves too much unsaid",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Midas raises $50M to build instant liquidity layer for tokenized yield",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Strive and Tuttle file for ETF to invest in Strategy's preferred STRC stock and Strive's SATA",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bitcoin analysis says $65K 'entry zone' with oil back above $100",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bitmine makes biggest ether purchase in 2026 while other digital asset treasuries pull back",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bitdeer inks deal to build Norway's largest AI data center for Nvidia's next-gen chips",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bernstein says the 60% crash in crypto stocks is a rare chance to buy the dip at a 'big' discount",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Zcash upside hinges on repricing financial privacy in an AI-driven world, Grayscale says",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Strategic Selection: A Practical Guide to Choosing the Right Market Maker",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bitcoin hashrate falls after Iran conflict, HOOD down 16%: Month in charts",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Nearly half of all circulating bitcoin is underwater as long-term holders sell at a loss",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Charles Hoskinson’s $200 million bet: Midnight goes live to tackle crypto’s biggest flaws",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Midas raises $50 million Series A, launches liquidity layer for tokenized assets",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Coinbase survey finds many crypto users still misunderstand taxes",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "'Serious talks with new regime': Bitcoin gains on Trump's Iran comments as analysts warn of geopolitical risk and ETF outflows",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Lido DAO proposes $20 million LDO buyback to boost price after 95% slide",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Tom Lee says crypto is a 'good wartime store of value' as Bitmine buys another 71,179 ETH",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "CoinDesk 20 performance update: Ethereum (ETH) price rises 4.2% over weekend",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Why “Boring” Infrastructure Will Define Crypto’s Second Decade",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Aave rolls out v4 on Ethereum, aiming to expand DeFi into real-world credit markets",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Aave V4 launches on Ethereum mainnet with 'hub-and-spoke' architecture",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bernstein sees potential bottom for crypto stocks ahead of Q1 earnings",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Upbit operator Dunamu sees 10% revenue drop to $1 billion in 2025 as crypto trading cools",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Women creators reclaim ownership through Web3 payment rails",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Rate hike bets are building for the Fed – and now the Bank of Japan too",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Michael Saylor's Strategy pauses weekly bitcoin buys, retains total holdings at 762,099 BTC",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bitcoin rises as Trump says U.S. in talks with 'new regime' in Iran, threatens oil infrastructure if deal fails",
+      "category": "bull",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Naver delays deal with Upbit operator Dunamu as review drags on",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bitcoin, ether bounce is running low on fuel",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bernstein signals potential bottom into Q1 earnings for Coinbase, Robinhood and Figure as crypto equities trade at steep discounts",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "These Bitcoin price predictions put $40K as final bottom for BTC",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Midas raises $50 million to tackle pain point for tokenized asset investors",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Coinbase survey finds over half of customers don’t understand crypto tax",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Bitcoin steadies, altcoins jump in liquidity-driven relief rally",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Worst six months since 2018? Five things to know in Bitcoin this week",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "US Bitcoin ETFs see $296 million weekly outflows as global crypto funds snap four-week inflow streak",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Ethereum Foundation stakes additional $42 million of ether",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Crypto funds see first outflow in 5 weeks amid inflation fears, Iran tensions",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Polymarket trader exploits UFC blunder, turns $676 into $67,000 in under a minute",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Ethereum Foundation accelerates 70,000 ETH staking plan after BitMine sale",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "FTX payout, U.S. jobs: Crypto Week Ahead",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Ethereum Foundation stakes record $46 million worth of ETH: onchain data",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "White House app sparks concern over location tracking and privacy issues",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "The Bitcoin market remains boring. Investors chasing yields may be partly to blame",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Ethereum price risks falling to $1.2K next, analyst warns",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Polymarket trader makes $67K after UFC announcer briefly mixes up winner",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Hyperliquid traders in Tokyo get 200-millisecond edge, Glassnode research shows",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Aave goes live on X Layer, enabling onchain lending for OKX Wallet users",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "DeFi lending giant Aave launches on OKX's Ethereum L2, X Layer",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Fed's Warsh hearing could come as soon as April 13 week: Punchbowl",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Prediction market txs surge on geopolitical bets, media coverage",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "'More room to fall': Bitcoin trades near $67,000 as US-Iran deadlock persists",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Lido DAO proposes $20M LDO buyback to reverse historic price fall",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-30"
+    },
+    {
+      "title": "Lido DAO proposes $20 million one-off LDO buyback as token hovers near all-time low",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Stablecoin payments go 'invisible' in Southeast Asia as crypto card business surges",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Canada proposes ban on crypto political donations in election integrity bill",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Strategy may have paused bitcoin accumulation last week, ending a thirteen week buying streak",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "No one is 100% happy with the stablecoin yield agreement: State of Crypto",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Walmart-backed OnePay adds tokens in push to serve ‘new to crypto’ customers",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Bitcoin bullish bets hit a 28-month high on Bitfinex, and that's music to bears' ears",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Ethereum builders propose ‘economic zone’ to tackle L2 fragmentation",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Crypto's CLARITY Act could be a headwind for DeFi tokens ring-fencing yield, analyst says",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Markets move to price in rate hikes as inflation fears and geopolitics reshape Fed expectations",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Gnosis and Zisk announce 'Ethereum Economic Zone' rollup framework with Ethereum Foundation co-funding",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "New Ethereum project aims to fix network fragmentation and improve user experience",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "XRP tests $1.33 as rising leverage and weak price action create unstable setup",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Bittensor ecosystem tokens' value hit $1.5 billion as Jensen Huang endorsement supports TAO rally",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Inside Aave’s governance battle as DeFi giant prepares for upgrade",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Here’s what happened in crypto today",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Sam Altman’s World Foundation sells $65M in WLD as token hits new lows",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Institutions are paying Bitcoin custodians for the privilege of added risk",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Ethereum 'flippening' odds rise, but it won't involve Bitcoin",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Onchain commodity trading is here to stay, but liquidity remains an issue",
+      "category": "not_correlated",
+      "strength": "low",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "BNP Paribas adds six Bitcoin, Ether ETNs for retail clients in France",
+      "category": "bull",
+      "strength": "medium",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Future US governments could crack down on crypto without clear rules: Coin Center",
+      "category": "bear",
+      "strength": "medium",
+      "date": "2026-03-29"
+    },
+    {
+      "title": "Canada proposes crypto political donation ban over foreign interference fears",
+      "category": "bear",
+      "strength": "high",
+      "date": "2026-03-29"
+    },
     {
       "title": "Sen. Warren targets Bitmain-Trump family ties in letter to Commerce Secretary Lutnick: Bloomberg",
       "category": "bear",
@@ -769,13 +1933,13 @@
       "date": "2026-03-26"
     },
     {
-      "title": "Stand With Crypto launches voter hub, endorses candidates ahead of November midterm elections",
+      "title": "U.S. midterms pack major digital assets wallop as Stand With Crypto preps strategy",
       "category": "not_correlated",
       "strength": "low",
       "date": "2026-03-26"
     },
     {
-      "title": "U.S. midterms pack major digital assets wallop as Stand With Crypto preps strategy",
+      "title": "Stand With Crypto launches voter hub, endorses candidates ahead of November midterm elections",
       "category": "not_correlated",
       "strength": "low",
       "date": "2026-03-26"
@@ -1087,13 +2251,13 @@
       "date": "2026-03-25"
     },
     {
-      "title": "Startale raises $50M from SBI to complete $63M Series A",
+      "title": "SBI, Sony back Startale’s $63 million push to expand Japan’s tokenized finance stack",
       "category": "not_correlated",
       "strength": "low",
       "date": "2026-03-25"
     },
     {
-      "title": "SBI, Sony back Startale’s $63 million push to expand Japan’s tokenized finance stack",
+      "title": "Startale raises $50M from SBI to complete $63M Series A",
       "category": "not_correlated",
       "strength": "low",
       "date": "2026-03-25"
@@ -1117,15 +2281,15 @@
       "date": "2026-03-25"
     },
     {
-      "title": "exclusive Stablecoin startup Payy, focused on private transactions, raises $6 million in seed funding",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-25"
-    },
-    {
       "title": "Visa takes on Canton Super Validator role, marking major step in engaging with blockchain governance",
       "category": "bull",
       "strength": "medium",
+      "date": "2026-03-25"
+    },
+    {
+      "title": "exclusive Stablecoin startup Payy, focused on private transactions, raises $6 million in seed funding",
+      "category": "not_correlated",
+      "strength": "low",
       "date": "2026-03-25"
     },
     {
@@ -1243,13 +2407,13 @@
       "date": "2026-03-25"
     },
     {
-      "title": "Bitget Wallet debuts stablecoin payments infrastructure integrating with Ripple, Mastercard, Tether, and others",
+      "title": "Beyond dollarization? Visa and Dune report finds non-USD stablecoins increasingly being used as money",
       "category": "bull",
       "strength": "medium",
       "date": "2026-03-25"
     },
     {
-      "title": "Beyond dollarization? Visa and Dune report finds non-USD stablecoins increasingly being used as money",
+      "title": "Bitget Wallet debuts stablecoin payments infrastructure integrating with Ripple, Mastercard, Tether, and others",
       "category": "bull",
       "strength": "medium",
       "date": "2026-03-25"
@@ -1487,1092 +2651,6 @@
       "category": "not_correlated",
       "strength": "low",
       "date": "2026-03-25"
-    },
-    {
-      "title": "Rising US treasury yields, war in Iran, rising inflation risk pressure Bitcoin price",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Robinhood reloads stock repurchase plan to $1.5 billion as shares continue in downtrend",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Robinhood authorizes $1.5 billion buyback as shares rise nearly 80% in past year",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin jolted modestly higher on Iran ceasefire report; oil tumbles 4%",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "BlackRock sees AI driving crypto’s next bull phase as altcoin interest fades",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Circle taps African fintech Sasai to expand USDC adoption in cross-border payments",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Lido revenue dropped 23% last year as users withdrew funds and yields declined",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "CFTC chief launches innovation task force focused on crypto framework",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "BNY Mellon CEO says the future of crypto runs through big banks",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Lombard taps Bitwise to offer Bitcoin yield and lending to institutional custody",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "The Daily: Balancer Labs to wind down, Bernstein calls bitcoin bottom with $150K target for 2026, and more",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin holders shift from panic to cash-buffer discipline as volatility deepens",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "exclusive Ethereum block builder Eureka Labs raises $6.7 million, introduces 'programmable blocks'",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Circle falls 20% as stablecoin reward limits loom, Tether adds Big Four auditor and wallets frozen",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Ledger discloses $50 million Q4 secondary sale as IPO plans remain open",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Tether says ‘Big Four‘ firm to handle first audit of USDT reserves",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "BitGo, Susquehanna roll out institutional OTC access to prediction markets",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Wall Street’s crypto push has been years in the making, says Morgan Stanley",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Circle stock plunges 18% as a new draft of the Clarity Act threatens stablecoin rewards",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Crypto finance is beginning to look at lot more traditional, Aave and Ethena founders say",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Why cautious TradFi firms love staked ether",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin slips below $70,000, Circle's 16% slide leads crypto stock sell-off",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Hut 8 leans into modular ‘LEGO block’ model to switch between AI and bitcoin mining",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin hints at 'regime shift' as BTC price dips to $69.5K on Iran nerves",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "CFTC forms new innovation task force to shape crypto, artificial intelligence and prediction markets",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Silo V3 launches new liquidation mechanism opening door to new forms of crypto collateral",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "TD Cowen says prediction market bills unlikely to pass this year, flags 2028 election as 'real threat'",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Ethereum price rally pauses at $2.2K: What will trigger breakout?",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Longevity pharma and RAIN treasury Enlivex secures $21 million debt financing",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bernstein says bitcoin looks bottomed, sees 226% upside for Strategy",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Tether hires Big Four auditor for first full reserves audit",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "CoinDesk 20 performance update: Polkadot (DOT) drops 2.3% as index trades lower",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Tether hires a 'Big Four' firm for a full audit of USDT reserves",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin may have already bottomed out near $60,000. Here’s why.",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "NYSE taps Securitize for 24/7 tokenized securities platform",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Solana lands Mastercard, Western Union on new dev platform",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Mastercard, Western Union tap Solana Foundation's new enterprise developer toolbox",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Solana Foundation taps Mastercard, Western Union, Worldpay for institutional developer platform",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Coinbase says the 'second wave' of institutional money for crypto is here and it is all about yield",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Wall Street broker Bernstein calls bitcoin bottom, keeps $150,000 year-end target",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "ParaFi defies crypto market downturn with $125 million raise for new fund: Bloomberg",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "New York Stock Exchange taps Securitize to build its tokenized stock platform",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Wall Street will eventually submit to the rules of DeFi",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "NYSE taps Securitize to develop 24/7 tokenized securities platform",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin sees rare two-block reorg as Foundry overtakes AntPool and ViaBTC in mining race",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "FSB flags dollar stablecoins as bigger risk for emerging markets in annual report",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin hovers below key 'air gap' as geopolitical risks and Fed outlook cloud direction",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "BitGo, Susquehanna Crypto offering institutional OTC access to prediction markets",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "BitGo offers OTC prediction market access to institutions via Susquehanna Crypto partnership",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin finds stability at 2023 investor cost basis, echoing past cycle",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Invesco joins tokenization race as it takes over Superstate’s $900 million onchain fund",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "The $75,000 line in the sand: What it’ll take for bitcoin to go \"full bull\"",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "exclusive Zama and T-REX Network launch privacy layer for tokenized assets targeting Wall Street institutions",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Crypto-friendly fintech Revolut sees profit soar 57% to $2.3 billion in 2025",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Zama integrates with Apex-backed T-REX for private tokenized assets",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Siren token slides 70% after analysts flag concentrated holdings",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "What happens to Bitcoin if US bond yields soar above 5%?",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Resolv issues 72-hour ultimatum to exploiter for 90% return of $25 million in funds",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin leads crypto rebound to $71,000 as $550 million in shorts liquidated",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin value 'off the chart' as BTC price metric hits record lows in 2026",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Fund services giant Apex to tokenize Bitcoin mining note on Coinbase’s Base platform",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "ECB says stablecoins, tokenized deposits need central bank money to scale",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Delaware lawmakers introduce bills to license stablecoin issuers, digital asset firms",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Hyperliquid's HIP-3 open interest jumps 25% in one week to $1.74 billion",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Nasdaq, Talos target collateral bottleneck in institutional tokenization push",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "OKX launches equity perpetual swaps, offering 5x leverage to 'Mag 7' stocks",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Aave DAO backs V4 mainnet plan in near-unanimous vote",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "As mass adoption approaches, crypto has forgotten its roots",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Here’s where Treasuries could shape Trump’s Iran war — and bitcoin moves",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "SEC’s top enforcer clashed over Trump cases before quitting: Report",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Major Australian pension fund mulls crypto offerings amid growing demand",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Balancer Labs will shut down as corporate entity became 'a liability' after $110 million exploit",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Kalshi, Polymarket tighten insider trading controls amid Senate scrutiny",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Circle asks EU to ease crypto thresholds in proposed markets framework",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "TRON DAO expands AI fund to $1B as agentic economy race heats up",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin, ether, solana prices move higher as Gulf allies inch toward joining Iran war",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Delaware to regulate stablecoins under banking framework in new bill",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Balancer Labs to shut down after $128 million exploit; protocol eyes 'lean' restructuring",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitmine chair sees ‘mini-crypto winter’ thaw for ETH as it hits 77% of goal",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Bitcoin's mining concentration just showed up in a rare 2-block reorg",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Australian pension fund Hostplus eyes crypto offering for self-directed accounts: Bloomberg",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Digital asset manager ParaFi raises $125 million for new venture fund: Bloomberg",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Balancer Labs shuts down 4 months after $100M+ exploit, protocol to continue",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Eyecare biotech jumps 19% after stablecoin-focused rebrand",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Strategy seeks another $44.1B to accelerate Bitcoin buying",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-24"
-    },
-    {
-      "title": "Stablecoin yield in crypto Clarity Act won't allow rewards on balances, latest text says",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin’s battle for $70K continues as data shows traders avoiding bullish positioning",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin holds above $70,000, but future direction hinges on Iran-U.S. 'talks'",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Stripe protocol could mark turning point for micropayments, Forrester says",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Circle urges EU to fast-track DLT reforms, widen stablecoin settlement rules",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Glider, Ondo launch platform for custom tokenized stock portfolios",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Solana Foundation targets institutions with new privacy framework",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Prediction market boom spurs new VC fund backed by Polymarket, Kalshi CEOs",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "BlackRock CEO Larry Fink sees tokenization making investing with your phone as easy as payments",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "SEC sends proposed crypto interpretation to White House for review",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Sen. Warren requests details from MrBeast about its future plans for teens and crypto",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Polymarket tightens rules to curb manipulation, insider trading risks",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin spot volumes fall to 2023 lows as BTC rallies remain news-led",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "The Daily: Lawmakers move to ban sports betting on prediction markets, Polymarket and Kalshi CEOs back a new $35 million venture fund, and more",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "MoonPay releases open-source wallet standard for AI agents",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Traders say Bitcoin still due for ‘next leg lower’ targeting $46K BTC price",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Mizuho slashes Gemini price target by more than half as weaker trading outweighs card growth",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Deloitte, Stablecorp plan stablecoin infrastructure for Canadian institutions",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Aave DAO takes step closer V4 deployment with request for comment proposal",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "BlackRock is betting billions that tokenized funds will do for Wall Street what the internet did to mail",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Prediction market rivals Shayne Coplan and Tarek Mansour back new venture fund: Fortune",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Strategy expands ATM programs across stock lines to fund ongoing bitcoin buys",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "JPMorgan joins Morgan Stanley to expand Core Scientific credit line to $1 billion",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Senate bill to target sports betting ban on prediction markets: WSJ",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "MoonPay releases open-source cross-chain wallet standard for AI agents",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Backpack launches BP token on Solana with 25% airdrop, no insider allocation",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Crypto funds see inflows slow to $230M after FOMC ‘hawkish pause’ reading sparked midweek exit: CoinShares",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "'Ethereum is in the final stages of mini-crypto winter,' Tom Lee says as Bitmine adds another 65,341 ETH",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Crypto ETF inflows slow to $230M as Fed caution dents momentum: CoinShares",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "CoinDesk 20 performance update: Bitcoin Cash (BCH) gains 2.3%, leading index higher",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin 'TACO pumps' to $71K, oil crashes, as Trump pauses Iran strikes",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "ChangeNOW launches Fast-Track Program to solve the ‘zero-revenue’ trap for new crypto wallets",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Polygon-incubated Katana blockchain acquires IDEX, rolls out new perps offering",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Tom Lee's Bitmine extends buying streak with $138 million ETH purchase, betting on crypto slump ending",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "How a ‘Wrong Number’ message turned into a $3.4M crypto scam",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Siren token surges 340% in 7 days, draws scrutiny over concentrated supply",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "H100 eyes Europe’s largest bitcoin treasury with 3,500 BTC in proposed acquistions",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Strategy adds 1,031 Bitcoin for $77M as holdings top 762,000 BTC",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Sam Bankman-Fried retrial letter under scrutiny over FedEx shipment, address discrepancies",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Airdrops rewarded extraction and ended real communities",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Strategy returns to 'small' bitcoin purchases, adding $76.6 million in BTC last week",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "'The Orange March Continues': Michael Saylor's Strategy buys 1,031 bitcoin for $77 million as holdings hit 762,099 BTC",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Brazil’s finance minister delays divisive crypto tax plan",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin rebounds above $70K as Trump cites 'productive' Iran talks, easing immediate escalation fears",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin surges above $71,000 as Trump postpones Iran strikes for 5 days",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Polymarket traders bet on Iran ceasefire even as oil shock concerns persist",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin retreats to $68,000, leaving CME gap as traders eye $70,000 rebound",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin clings to monthly gains, historic losing streak still in play",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Circle, Coinbase seen as 'best proxies' for stablecoin upside as agentic payments emerge, Bernstein says",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Gold bear market and sub-$50K BTC: Five things to know in Bitcoin this week",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Ethereum OG sells $31 million worth of ETH after decade-long hold: onchain analysts",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin's momentum indicator is flashing a signal that should worry bulls",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Lawmakers move to ban sports betting on prediction markets in bipartisan Senate push: WSJ",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "ZachXBT says fake X accounts used viral war content to drive crypto scams",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Sweden’s H100 targets Norwegian firms in all-stock Bitcoin deal",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Fed's Miran speaks, Bitgo earnings, Casper hard fork: Crypto Week Ahead",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Prosecutors flag mail discrepancies in Sam Bankman-Fried’s retrial motion letter from prison",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Resolv stablecoin crashes 70% as attacker extracts $25 million in ETH",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Oil, silver trading is way more popular than XRP, solana on Hyperliquid",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Global turmoil pushes uptake of decentralized messengers, social media",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Stocks start catching up with bitcoin’s earlier price crash to $60,000 as bond yields rise",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Hong Kong’s Boyaa Interactive eyes $70M crypto treasury expansion",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Mark Zuckerberg is conjuring a CEO AI agent to help him run Meta",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "XRP drops 3.7% as break below $1.40 signals renewed downside risk",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Bitcoin holds $68,300 as gold crashes for a ninth day and Asian stocks drop",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Crypto, stocks fall as oil chops after Iran vows response to Trump threat",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Agentic AI commerce may spell the end of internet ads: a16z Crypto",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Sam Bankman-Fried’s parents tell CNN no customer money was lost. FTX creditors see it differently.",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "South Korea crypto liquidity tumbles as stablecoin balances plunge 55% and stock buying rises",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Fidelity urges SEC to refine rules for broker-dealers handling crypto assets",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Michael Saylor signals BTC buy as Strategy's stack slips 10% into the red",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "The Funding: Is a token-to-equity shift emerging in crypto?",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "NYSE exchanges scrap crypto options cap on 11 Bitcoin, Ether ETFs",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "Banks push tokenized deposits as onchain cash race intensifies: Report",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-23"
-    },
-    {
-      "title": "BTC and gold divergence reflects split between retail and central banks: Analyst",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "NYSE exchanges complete industry-wide removal of crypto ETF options caps",
-      "category": "bull",
-      "strength": "high",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "If one trader can force the outcome of a prediction market, it shouldn’t be tradable",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "CoinDCX co-founders arrested by Indian police for alleged fraud deny wrongdoing, blame impersonation scheme: reports",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Scaramucci says BTC's 4-year cycle still in play, forecasts rise in Q4",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Crypto liquidations near $400M after $68K Bitcoin price dip",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "The SEC explains how it's viewing a crypto security: State of Crypto",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Fidelity urges SEC to move further on crypto activity by broker-dealers",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Ethereum faces make-or-break moment in high-stakes balancing act as scaling, quantum and AI pressures mount",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "The genius and the danger of STRC: How Strategy’s new funding model bends so it doesn't break",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Resolv's USR stablecoin depegs after attacker mints 80 million unbacked tokens, extracts roughly $25 million",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Gold falters as macro pressures build, bitcoin holds liquidity trend",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Resolv says no assets lost as DeFi protocols respond to USR exploit",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Bitcoin risks 50% drop as BTC's positive correlation with US stocks grows",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Coinbase-backed CoinDCX founders questioned in fraud case: Report",
-      "category": "bear",
-      "strength": "medium",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "'Hawk Tuah' girl Hailey Welsh says memecoin implosion 'traumatized' her",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "XRP falls 3% as breakdown below $1.44 and bitcoin weakness caps recovery",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Bitcoin miners are losing $19,000 on every BTC produced as difficulty drops 7.8%",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Bitcoin drops below $69,200 as Trump gives 48-hour ultimatum on Iran power plants",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Resolv Labs’ stablecoin depegs as attacker mints millions of tokens",
-      "category": "bear",
-      "strength": "high",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "Nevada judge temporarily blocks Kalshi from operating in the state",
-      "category": "not_correlated",
-      "strength": "low",
-      "date": "2026-03-22"
-    },
-    {
-      "title": "CFTC staff clarify expectations on using crypto as collateral",
-      "category": "bull",
-      "strength": "medium",
-      "date": "2026-03-22"
     }
   ]
 }

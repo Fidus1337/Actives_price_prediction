@@ -156,7 +156,7 @@ def analyze_economic_calendar(state: AgentState):
 
     # --- Settings ---
     settings = get_agent_settings(state, "agent_for_economic_calendar_analysis")
-    horizon = state["config"]["horizon"]
+    horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
     window_days = settings["window_to_analysis"]
     print(f"{LOG_TAG} [1/4] Settings | horizon={horizon}d | forecast_date={forecast_date} | window={window_days}d")

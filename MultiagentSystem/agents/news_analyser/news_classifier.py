@@ -17,6 +17,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
+from .helpers import parse_release_time, strip_html
+
 
 # -- Pydantic models ----------------------------------------------------------
 
@@ -85,8 +87,6 @@ def _prepare_for_classification(articles: list[dict]) -> list[dict]:
     Each article gets an article_id based on its index and
     content truncated to 500 chars.
     """
-    from agents.news_analyser.helpers import parse_release_time, strip_html
-
     prepared = []
     for idx, item in enumerate(articles):
         dt = parse_release_time(item.get("article_release_time"))
@@ -110,8 +110,6 @@ def _group_by_date(articles: list[dict]) -> list[tuple[str, list[dict]]]:
     Articles without a parseable date are grouped under '9999-unknown'
     so they are processed last.
     """
-    from agents.news_analyser.helpers import parse_release_time
-
     groups: dict[str, list[dict]] = defaultdict(list)
     for article in articles:
         dt = parse_release_time(article.get("article_release_time"))

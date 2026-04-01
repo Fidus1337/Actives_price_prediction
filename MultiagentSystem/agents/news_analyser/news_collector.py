@@ -2,7 +2,7 @@
 Incremental CoinGlass news collector.
 
 Fetches the latest articles from CoinGlass API (~24 day rolling window)
-and merges them into a local JSON archive, deduplicating by
+and merges them into a local SQLite archive, deduplicating by
 (article_title, article_release_time).
 
 New articles are classified (bull/bear/not_correlated + strength) at
@@ -12,29 +12,30 @@ LLM calls and aggregate pre-classified data directly.
 Usage:
     python -m MultiagentSystem.agents.news_analyser.news_collector
     python -m MultiagentSystem.agents.news_analyser.news_collector --backfill
+    python -m MultiagentSystem.agents.news_analyser.news_collector --reclassify
 """
 
 import json
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
-from agents.news_analyser.helpers import (
-    coinglass_get_raw,
+from .helpers import (
     fetch_articles_in_window,
+    coinglass_get_raw,
     parse_release_time,
     strip_html,
 )
-from agents.news_analyser.news_classifier import classify_articles
-
-ARCHIVE_PATH = Path(__file__).parent / "news_archive.json"
-
-
-def _make_key(article: dict) -> str:
-    """Unique key for deduplication: title + release timestamp."""
-    title = article.get("article_title", "")
-    ts = article.get("article_release_time", "")
-    return f"{title}||{ts}"
+from .news_archive_database_manipulator import (
+    init_db,
+    insert_articles,
+    load_articles_in_range,
+    load_all_articles,
+    get_unclassified_articles,
+    reset_all_classifications,
+    update_classifications,
+    get_db_stats,
+)
+from .news_classifier import classify_articles
 
 
 def _prepare_for_archive(article: dict) -> dict:
@@ -47,33 +48,6 @@ def _prepare_for_archive(article: dict) -> dict:
     if dt:
         cleaned["date"] = dt.strftime("%Y-%m-%d")
     return cleaned
-
-
-def _load_archive() -> list[dict]:
-    """Load existing archive or return empty list. Backfills missing 'date' field."""
-    if ARCHIVE_PATH.exists():
-        articles = json.loads(ARCHIVE_PATH.read_text(encoding="utf-8"))
-        for a in articles:
-            if "date" not in a:
-                dt = parse_release_time(a.get("article_release_time"))
-                if dt:
-                    a["date"] = dt.strftime("%Y-%m-%d")
-        return articles
-    return []
-
-
-def _save_archive(articles: list[dict]) -> None:
-    """Save archive sorted by date (newest first)."""
-    def sort_key(a):
-        dt = parse_release_time(a.get("article_release_time"))
-        return dt if dt else datetime.min.replace(tzinfo=timezone.utc)
-
-    articles.sort(key=sort_key, reverse=True)
-
-    ARCHIVE_PATH.write_text(
-        json.dumps(articles, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
 
 
 def fetch_all_available(max_pages: int = 50) -> list[dict]:
@@ -98,57 +72,36 @@ def fetch_all_available(max_pages: int = 50) -> list[dict]:
 def collect_news() -> dict:
     """
     Main collection function.
-    Fetches all available articles from API, deduplicates against
-    existing archive, strips HTML, and saves.
+    Fetches all available articles from API, strips HTML, classifies,
+    and saves to SQLite archive (duplicates ignored).
 
     Returns stats: {before, fetched, new, after, date_range}.
     """
-    archive = _load_archive()
-    existing_keys = {_make_key(a) for a in archive}
-    before_count = len(archive)
+    init_db()
+    stats_before = get_db_stats()
 
     fresh = fetch_all_available()
+    prepared = [_prepare_for_archive(a) for a in fresh]
 
-    # Merge: add only new articles (with HTML stripped)
-    new_count = 0
-    for article in fresh:
-        key = _make_key(article)
-        if key not in existing_keys:
-            archive.append(_prepare_for_archive(article))
-            existing_keys.add(key)
-            new_count += 1
+    # Classify before inserting so new records land with category/strength set
+    if prepared:
+        print(f"[news_collector] Classifying {len(prepared)} fetched articles...")
+        classify_articles(prepared)
 
-    # Classify new articles before saving
-    if new_count > 0:
-        unclassified = [a for a in archive if "category" not in a]
-        if unclassified:
-            print(f"[news_collector] Classifying {len(unclassified)} new articles...")
-            classify_articles(unclassified)
+    new_count = insert_articles(prepared)
 
-    _save_archive(archive)
-
-    # Compute date range in archive
-    dates = []
-    for a in archive:
-        dt = parse_release_time(a.get("article_release_time"))
-        if dt:
-            dates.append(dt)
-
-    date_range = (
-        f"{min(dates).strftime('%Y-%m-%d')} → {max(dates).strftime('%Y-%m-%d')}"
-        if dates else "empty"
-    )
+    stats_after = get_db_stats()
 
     stats = {
-        "before": before_count,
+        "before": stats_before["count"],
         "fetched": len(fresh),
         "new": new_count,
-        "after": len(archive),
-        "date_range": date_range,
+        "after": stats_after["count"],
+        "date_range": stats_after["date_range"],
     }
 
-    print(f"[news_collector] Archive: {before_count} → {len(archive)} articles (+{new_count} new)")
-    print(f"[news_collector] Date range: {date_range}")
+    print(f"[news_collector] Archive: {stats_before['count']} → {stats_after['count']} articles (+{new_count} new)")
+    print(f"[news_collector] Date range: {stats_after['date_range']}")
 
     return stats
 
@@ -164,23 +117,14 @@ def get_articles_in_range(
     If the archive has no articles in this range and fallback_to_api=True,
     fetches directly from the CoinGlass API (limited to ~24 days of history).
     """
-    archive = _load_archive()
-    results = []
-    for article in archive:
-        dt = parse_release_time(article.get("article_release_time"))
-        if dt and dt_from <= dt <= dt_to:
-            results.append(article)
+    init_db()
+    articles = load_articles_in_range(dt_from, dt_to)
 
-    # Fallback: if archive is empty for this range, try the API directly
-    if not results and fallback_to_api:
+    if not articles and fallback_to_api:
         print(f"[news_collector] Archive empty for {dt_from.date()} → {dt_to.date()}, falling back to API")
-        results = fetch_articles_in_window(dt_from, dt_to)
+        articles = fetch_articles_in_window(dt_from, dt_to)
 
-    results.sort(
-        key=lambda a: parse_release_time(a.get("article_release_time")) or datetime.min.replace(tzinfo=timezone.utc),
-        reverse=True,
-    )
-    return results
+    return articles
 
 
 def backfill_classifications() -> dict:
@@ -188,18 +132,15 @@ def backfill_classifications() -> dict:
 
     Idempotent: safe to run multiple times. Re-attempts 'unclassified' articles too.
     """
-    archive = _load_archive()
-    unclassified = [
-        a for a in archive
-        if a.get("category") in (None, "unclassified") or "category" not in a
-    ]
+    init_db()
+    unclassified = get_unclassified_articles()
     if not unclassified:
         print("[news_collector] All articles already classified — nothing to backfill")
         return {"backfilled": 0}
 
     print(f"[news_collector] Backfilling {len(unclassified)} articles...")
     classify_articles(unclassified)
-    _save_archive(archive)
+    update_classifications(unclassified)
 
     print(f"[news_collector] Backfill complete: {len(unclassified)} articles classified")
     return {"backfilled": len(unclassified)}
@@ -208,24 +149,24 @@ def backfill_classifications() -> dict:
 def reclassify_all() -> dict:
     """Re-classify ALL articles in the archive from scratch.
 
-    Strips existing category/strength fields and runs classification
-    again with current logic (date-grouped batches).
+    Resets existing category/strength and runs classification again
+    with current logic (date-grouped batches).
     """
-    archive = _load_archive()
-    if not archive:
+    init_db()
+    stats = get_db_stats()
+    if stats["count"] == 0:
         print("[news_collector] Archive is empty — nothing to reclassify")
         return {"reclassified": 0}
 
-    for article in archive:
-        article.pop("category", None)
-        article.pop("strength", None)
+    reset_all_classifications()
+    all_articles = load_all_articles()
 
-    print(f"[news_collector] Reclassifying all {len(archive)} articles...")
-    classify_articles(archive)
-    _save_archive(archive)
+    print(f"[news_collector] Reclassifying all {len(all_articles)} articles...")
+    classify_articles(all_articles)
+    update_classifications(all_articles)
 
-    print(f"[news_collector] Reclassification complete: {len(archive)} articles")
-    return {"reclassified": len(archive)}
+    print(f"[news_collector] Reclassification complete: {len(all_articles)} articles")
+    return {"reclassified": len(all_articles)}
 
 
 if __name__ == "__main__":

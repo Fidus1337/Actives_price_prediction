@@ -1,6 +1,12 @@
 {
     "forecast_start_date": "2026-04-01",
     "horizon": 1,
+    "agent_envolved_in_prediction": [
+        "agent_for_analysing_tech_indicators",
+        "agent_for_news_analysis",
+        "agent_for_economic_calendar_analysis",
+        "agent_for_twitter_analysis"
+    ],
     "neutral_threshold": 0,
     "agent_settings": {
         "agent_for_analysing_tech_indicators": {

@@ -9,6 +9,7 @@ from multiagent_types import AgentState, get_agent_settings
 from pydantic import BaseModel
 
 AGENT_DIR = Path(__file__).parent
+AGENT_NAME = "agent_for_analysing_tech_indicators"
 
 # Agent cannot return None values or the value that does not match the schema
 class TechAnalysisResponse(BaseModel):
@@ -18,15 +19,15 @@ class TechAnalysisResponse(BaseModel):
     prediction: bool      # True = HIGHER, False = LOWER (always pick a direction)
     confidence: str       # high / medium / low
 
-def agent_a_tech(state: AgentState):
-    TAG = "[agent_a_tech]"
+def agent_for_analysing_tech_indicators(state: AgentState):
+    TAG = "[agent_for_analysing_tech_indicators]"
 
     # Is it first iteration for this agent?
     retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get("tech_analyser_agent", 0)
+    my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
     is_first_run = my_retries == 0
 
-    if not is_first_run and "tech_analyser_agent" not in retry_agents:
+    if not is_first_run and AGENT_NAME not in retry_agents:
         print(f"{TAG} Retry not required — skipping (retries so far: {my_retries})")
         return {}
 
@@ -76,7 +77,7 @@ def agent_a_tech(state: AgentState):
     if close_price == "N/A":
         msg = f"Cannot make prediction without close_price for date {forecast_date}"
         print(f"{TAG}   ERROR: {msg}")
-        return {"agent_signals": {"tech_analyser_agent": {
+        return {"agent_signals": {AGENT_NAME: {
             "reasoning": msg,
             "summary": msg,
             "risks": "",
@@ -98,7 +99,7 @@ def agent_a_tech(state: AgentState):
 
     prev_feedback: list[str] = (
         state.get("agent_signals", {})
-        .get("tech_analyser_agent", {})
+        .get(AGENT_NAME, {})
         .get("description_of_the_reports_problem", [])
     )
 
@@ -141,7 +142,7 @@ def agent_a_tech(state: AgentState):
     print(f"{TAG}   Risks: {response.risks[:200]}")
 
     print(f"{TAG} Done. Returning signal to graph.")
-    return {"agent_signals": {"tech_analyser_agent": {
+    return {"agent_signals": {AGENT_NAME: {
         "reasoning": response.reasoning,
         "summary": response.summary,
         "risks": response.risks,

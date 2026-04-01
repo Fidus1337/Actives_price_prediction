@@ -12,7 +12,8 @@ from .news_classifier import (
 
 
 AGENT_DIR = Path(__file__).parent
-LOG_TAG = "[news_agent]"
+LOG_TAG = "[agent_for_news_analysis]"
+AGENT_NAME = "agent_for_news_analysis"
 
 
 # -- Pure helpers --------------------------------------------------------------
@@ -244,7 +245,7 @@ def _save_prediction_debug(
 
 # -- Main agent function -------------------------------------------------------
 
-def analyze_news_sentiment(state: AgentState):
+def agent_for_news_analysis(state: AgentState):
     """LangGraph node: aggregate pre-classified crypto news into a bull/bear signal.
 
     Articles are pre-classified at collection time (see news_collector.py).
@@ -253,10 +254,10 @@ def analyze_news_sentiment(state: AgentState):
     """
 
     retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get("news_analyser_agent", 0)
+    my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
     is_first_run = my_retries == 0
 
-    if not is_first_run and "news_analyser_agent" not in retry_agents:
+    if not is_first_run and AGENT_NAME not in retry_agents:
         print(f"{LOG_TAG} Retry not required — skipping (retries so far: {my_retries})")
         return {}
 
@@ -284,7 +285,7 @@ def analyze_news_sentiment(state: AgentState):
 
     if not articles:
         print(f"{LOG_TAG}   No articles found — returning empty signal")
-        return {"agent_signals": {"news_analyser_agent": {"summary": None}}}
+        return {"agent_signals": {AGENT_NAME: {"summary": None}}}
 
     # --- Aggregate pre-classified sentiment ---
     bull_weight, bear_weight, bull_count, bear_count, not_correlated_count = _aggregate_sentiment(
@@ -334,7 +335,7 @@ def analyze_news_sentiment(state: AgentState):
         f"Weighted bull/bear ratio = {bull_ratio:.2f}."
     )
 
-    return {"agent_signals": {"news_analyser_agent": {
+    return {"agent_signals": {AGENT_NAME: {
         "reasoning": reasoning,
         "summary": summary,
         "risks": "",

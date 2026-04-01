@@ -24,7 +24,8 @@ from agents.economic_calendar_analyser.calendar_collector import get_events_in_r
 
 
 AGENT_DIR = Path(__file__).parent
-LOG_TAG = "[calendar_agent]"
+LOG_TAG = "[agent_for_economic_calendar_analysis]"
+AGENT_NAME = "agent_for_economic_calendar_analysis"
 
 class CalendarVerdict(BaseModel):
     direction: Literal["bullish", "bearish", "neutral"]
@@ -134,7 +135,7 @@ def get_system_prompt()-> str:
 
 # -- Main agent function -------------------------------------------------------
 
-def analyze_economic_calendar(state: AgentState):
+def agent_for_economic_calendar_analysis(state: AgentState):
     """LangGraph node: analyze macro-economic calendar events for BTC signal.
 
     All filtered events are sent to the LLM in a single prompt.
@@ -142,10 +143,10 @@ def analyze_economic_calendar(state: AgentState):
     """
 
     retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get("economic_calendar_agent", 0)
+    my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
     is_first_run = my_retries == 0
 
-    if not is_first_run and "economic_calendar_agent" not in retry_agents:
+    if not is_first_run and AGENT_NAME not in retry_agents:
         print(f"{LOG_TAG} Retry not required — skipping (retries so far: {my_retries})")
         return {}
 
@@ -174,7 +175,7 @@ def analyze_economic_calendar(state: AgentState):
 
     if not filtered:
         print(f"{LOG_TAG}   No events found — returning empty signal")
-        return {"agent_signals": {"economic_calendar_agent": {"summary": None}}}
+        return {"agent_signals": {AGENT_NAME: {"summary": None}}}
 
     # --- LLM call ---
     events_text = _format_all_events(filtered)
@@ -203,7 +204,7 @@ def analyze_economic_calendar(state: AgentState):
         f"LLM verdict: {verdict.direction}, confidence: {verdict.confidence}."
     )
 
-    return {"agent_signals": {"economic_calendar_agent": {
+    return {"agent_signals": {AGENT_NAME: {
         "reasoning": verdict.reasoning,
         "summary": summary,
         "risks": "",

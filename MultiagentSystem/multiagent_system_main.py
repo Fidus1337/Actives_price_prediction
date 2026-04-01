@@ -17,15 +17,15 @@ from langgraph.graph import StateGraph, START, END
 from multiagent_types import AgentState
 
 # Tech agent
-from agents.tech_indicators import agent_a_tech
+from agents.tech_indicators import agent_for_analysing_tech_indicators
 # On-chain agent
-from agents.onchain_indicators import agent_b_onchain
+from agents.onchain_indicators import agent_for_analysing_onchain_indicators
 # Agent for analysing news related to crypto (Coinglass endpoint)
-from agents.news_analyser.agent_for_news_analysis import analyze_news_sentiment
+from agents.news_analyser.agent_for_news_analysis import agent_for_news_analysis
 # Agent for analysing macro-economic calendar events
-from agents.economic_calendar_analyser.agent_for_economic_calendar_analysis import analyze_economic_calendar
+from agents.economic_calendar_analyser.agent_for_economic_calendar_analysis import agent_for_economic_calendar_analysis
 # Agent for analysing Twitter sentiment signals
-from agents.twitter_analyser.agent_for_twitter_analysis import analyze_twitter_sentiment
+from agents.twitter_analyser.agent_for_twitter_analysis import agent_for_twitter_analysis
 
 # This agent checks if the report of the agent is logic and structured by all requirements
 from agents.verdicts_validator import agent_for_verdicts_validation
@@ -93,11 +93,11 @@ builder = StateGraph(AgentState)
 
 # Register all nodes (node names are defined as strings)
 builder.add_node("supervisor", supervisor_node)
-builder.add_node("agent_a_tech", agent_a_tech)
-# builder.add_node("agent_b_onchain", agent_b_onchain)
-builder.add_node("agent_c_news", analyze_news_sentiment)
-builder.add_node("agent_d_twitter", analyze_twitter_sentiment)
-builder.add_node("agent_e_calendar", analyze_economic_calendar)
+builder.add_node("agent_for_analysing_tech_indicators", agent_for_analysing_tech_indicators)
+builder.add_node("agent_for_analysing_onchain_indicators", agent_for_analysing_onchain_indicators)
+builder.add_node("agent_for_news_analysis", agent_for_news_analysis)
+builder.add_node("agent_for_twitter_analysis", agent_for_twitter_analysis)
+builder.add_node("agent_for_economic_calendar_analysis", agent_for_economic_calendar_analysis)
 builder.add_node("validator", agent_for_verdicts_validation)
 builder.add_node("agent_reports_analyser", agent_reports_analyser)
 
@@ -110,16 +110,16 @@ builder.add_edge(START, "supervisor")
 # 2. PARALLEL BRANCHING (Fan-out)
 # Draw 4 edges from supervisor to agents.
 # LangGraph will detect this and run them simultaneously!
-builder.add_edge("supervisor", "agent_a_tech")
-# builder.add_edge("supervisor", "agent_b_onchain")
-builder.add_edge("supervisor", "agent_c_news")
-builder.add_edge("supervisor", "agent_d_twitter")
-builder.add_edge("supervisor", "agent_e_calendar")
+builder.add_edge("supervisor", "agent_for_analysing_tech_indicators")
+builder.add_edge("supervisor", "agent_for_analysing_onchain_indicators")
+builder.add_edge("supervisor", "agent_for_news_analysis")
+builder.add_edge("supervisor", "agent_for_twitter_analysis")
+builder.add_edge("supervisor", "agent_for_economic_calendar_analysis")
 
 # 3. MERGE (Fan-in)
 # The array means: "Wait for all these nodes to complete,
 # and only then pass control to validator"
-builder.add_edge(["agent_d_twitter", "agent_a_tech", "agent_e_calendar", "agent_c_news"], "validator")
+builder.add_edge(["agent_for_twitter_analysis", "agent_for_analysing_tech_indicators", "agent_for_economic_calendar_analysis", "agent_for_news_analysis", "agent_for_analysing_onchain_indicators"], "validator")
 
 # 4. Conditional exit: if there are agents with recompose_report=True — retry from supervisor
 builder.add_conditional_edges("validator", _should_retry)
@@ -150,6 +150,7 @@ if __name__ == "__main__":
     horizon = int(config["horizon"])
     # N_last_dates = max(len(_unique_dates) - horizon, 1)
     N_last_dates = 5
+    agent_envolved_in_prediction = config["agent_envolved_in_prediction"]
     print(f"N_last_dates = {N_last_dates} (archive has {len(_unique_dates)} unique days, horizon={horizon})")
 
     # Build dataset without last {horizon} samples
@@ -195,6 +196,7 @@ if __name__ == "__main__":
             "forecast_start_date": forecast_date,
             "retry_agents": [],
             "retry_counts": {},
+            "agent_envolved_in_predicting": agent_envolved_in_prediction
         }
 
         final_state = app.invoke(initial_input)

@@ -19,12 +19,12 @@ class OnchainAnalysisResponse(BaseModel):
 
 
 AGENT_DIR = Path(__file__).parent
-AGENT_NAME = "onchain_analyser_agent"
+AGENT_NAME = "agent_for_analysing_onchain_indicators"
 CONFIG_KEY = "agent_for_analysing_onchain_indicators"
 
 
-def agent_b_onchain(state: AgentState):
-    TAG = "[agent_b_onchain]"
+def agent_for_analysing_onchain_indicators(state: AgentState):
+    TAG = "[agent_for_analysing_onchain_indicators]"
 
     # Is it first iteration for this agent?
     retry_agents = state.get("retry_agents", [])

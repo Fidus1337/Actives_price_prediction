@@ -7,7 +7,8 @@ from agents.twitter_analyser.twitter_scrapper.twitter_db import get_tweets_in_ra
 
 
 AGENT_DIR = Path(__file__).parent
-LOG_TAG = "[twitter_agent]"
+LOG_TAG = "[agent_for_twitter_analysis]"
+AGENT_NAME = "agent_for_twitter_analysis"
 
 # Confidence → weight mapping (same scale as news agent)
 CONFIDENCE_WEIGHTS = {"HIGH": 3, "MIDDLE": 2, "LOW": 1}
@@ -366,7 +367,7 @@ def _save_prediction_debug(
 
 # -- Main agent function -------------------------------------------------------
 
-def analyze_twitter_sentiment(state: AgentState):
+def agent_for_twitter_analysis(state: AgentState):
     """LangGraph node: aggregate pre-classified Twitter signals into a bull/bear verdict.
 
     Tweets are pre-classified at collection time (see full_scrapping_pipeline.py).
@@ -375,10 +376,10 @@ def analyze_twitter_sentiment(state: AgentState):
     """
 
     retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get("twitter_analyser_agent", 0)
+    my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
     is_first_run = my_retries == 0
 
-    if not is_first_run and "twitter_analyser_agent" not in retry_agents:
+    if not is_first_run and AGENT_NAME not in retry_agents:
         print(f"{LOG_TAG} Retry not required — skipping (retries so far: {my_retries})")
         return {}
 
@@ -413,7 +414,7 @@ def analyze_twitter_sentiment(state: AgentState):
 
     if not tweets:
         print(f"{LOG_TAG}   No tweets found — returning empty signal")
-        return {"agent_signals": {"twitter_analyser_agent": {"summary": None}}}
+        return {"agent_signals": {AGENT_NAME: {"summary": None}}}
 
     # --- Aggregate pre-classified sentiment ---
     (
@@ -480,7 +481,7 @@ def analyze_twitter_sentiment(state: AgentState):
         f"Weighted bull/bear ratio = {bull_ratio:.2f}."
     )
 
-    return {"agent_signals": {"twitter_analyser_agent": {
+    return {"agent_signals": {AGENT_NAME: {
         "reasoning": reasoning,
         "summary": summary,
         "risks": "",

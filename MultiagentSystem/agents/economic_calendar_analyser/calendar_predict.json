@@ -217,7 +217,7 @@
   ],
   "verdict": {
     "direction": "bearish",
-    "confidence": "medium",
-    "reasoning": "The major bullish signals for the US dollar from the Consumer Confidence Index and the University of Michigan Consumer Confidence Index suggest a stronger dollar, which typically leads to bearish sentiment for Bitcoin. Additionally, the bearish data for crude oil inventories may indicate a weakening commodity market, which can also negatively impact Bitcoin as a risk asset. However, the mixed signals from other currencies and minor impacts from various events lead to a medium confidence in this bearish outlook."
+    "confidence": "high",
+    "reasoning": "The major bullish signals for the US dollar from the Consumer Confidence Index and the University of Michigan Consumer Confidence Index dominate the analysis, suggesting a stronger dollar which typically correlates with bearish Bitcoin sentiment. Additionally, the bearish impact on crude oil prices from the API inventory data and EIA report further supports a bearish outlook for Bitcoin, as lower oil prices can indicate weaker economic conditions."
   }
 }

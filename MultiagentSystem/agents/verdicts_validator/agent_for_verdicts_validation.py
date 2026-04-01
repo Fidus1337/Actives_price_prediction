@@ -42,7 +42,7 @@ def agent_for_verdicts_validation(state: AgentState):
 
         # News agent is formula-based (ratio/counts) and does not need LLM validation.
         # We only run a minimal deterministic sanity check.
-        if agent_name in ("news_analyser_agent", "twitter_analyser_agent"):
+        if agent_name in ("agent_for_news_analysis", "agent_for_twitter_analysis"):
             print(f"{TAG}   {agent_name}: skipping LLM validation (deterministic check only)")
             deterministic_problem = ""
             if not summary:

@@ -196,7 +196,7 @@ if __name__ == "__main__":
             "forecast_start_date": forecast_date,
             "retry_agents": [],
             "retry_counts": {},
-            "agent_envolved_in_predicting": agent_envolved_in_prediction
+            "agent_envolved_in_prediction": agent_envolved_in_prediction
         }
 
         final_state = app.invoke(initial_input)

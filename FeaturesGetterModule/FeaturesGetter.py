@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import json
+import time
 from pathlib import Path
 from dotenv import load_dotenv
 import yfinance as yf
@@ -42,6 +43,43 @@ class FeaturesGetter:
             api_key: API ключ CoinGlass
         """
         self.api_key = api_key
+
+    @staticmethod
+    def _safe_yfinance_history(
+        symbol: str,
+        days: int,
+        interval: str = "1d",
+        attempts: int = 4,
+        base_sleep_seconds: float = 1.0,
+    ) -> pd.DataFrame:
+        """
+        Robust wrapper around yfinance history() to handle transient
+        DNS/network/provider errors without crashing the whole pipeline.
+        """
+        last_exc: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                ticker = yf.Ticker(symbol)
+                df = ticker.history(period=f"{days}d", interval=interval)
+                if df is None or df.empty:
+                    raise RuntimeError(f"Empty response from yfinance for {symbol}")
+                return df
+            except Exception as exc:
+                last_exc = exc
+                if attempt < attempts:
+                    sleep_s = base_sleep_seconds * (2 ** (attempt - 1))
+                    print(
+                        f"[FeaturesGetter] yfinance fetch failed for {symbol} "
+                        f"(attempt {attempt}/{attempts}): {exc}. Retrying in {sleep_s:.1f}s..."
+                    )
+                    time.sleep(sleep_s)
+                else:
+                    print(
+                        f"[FeaturesGetter] yfinance fetch failed for {symbol} "
+                        f"after {attempts} attempts: {exc}. Returning empty DataFrame."
+                    )
+        _ = last_exc
+        return pd.DataFrame()
     
     def get_history(
         self,
@@ -637,8 +675,7 @@ class FeaturesGetter:
         Returns:
             DataFrame: date, {prefix}__open, {prefix}__close, {prefix}__high, {prefix}__low, {prefix}__volume
         """
-        ticker = yf.Ticker("^GSPC")
-        df = ticker.history(period=f"{days}d", interval="1d")
+        df = self._safe_yfinance_history(symbol="^GSPC", days=days, interval="1d")
 
         if df.empty:
             return df
@@ -682,8 +719,7 @@ class FeaturesGetter:
         Returns:
             DataFrame: date, {prefix}__open, {prefix}__close, {prefix}__high, {prefix}__low, {prefix}__volume
         """
-        ticker = yf.Ticker("GC=F")
-        df = ticker.history(period=f"{days}d", interval="1d")
+        df = self._safe_yfinance_history(symbol="GC=F", days=days, interval="1d")
 
         if df.empty:
             return df
@@ -724,8 +760,7 @@ class FeaturesGetter:
         Returns:
             DataFrame: date, {prefix}__open, {prefix}__close, {prefix}__high, {prefix}__low, {prefix}__volume
         """
-        ticker = yf.Ticker("IGV")
-        df = ticker.history(period=f"{days}d", interval="1d")
+        df = self._safe_yfinance_history(symbol="IGV", days=days, interval="1d")
 
         if df.empty:
             return df

@@ -22,6 +22,10 @@ class TechAnalysisResponse(BaseModel):
 def agent_for_analysing_tech_indicators(state: AgentState):
     TAG = "[agent_for_analysing_tech_indicators]"
 
+    if AGENT_NAME not in state.get("agent_envolved_in_prediction", []):
+        print(f"{TAG} Not in agent_envolved_in_prediction — skipping")
+        return {}
+
     # Is it first iteration for this agent?
     retry_agents = state.get("retry_agents", [])
     my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)

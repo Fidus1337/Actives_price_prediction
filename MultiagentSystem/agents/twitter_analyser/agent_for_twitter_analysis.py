@@ -375,6 +375,10 @@ def agent_for_twitter_analysis(state: AgentState):
     This node reads classifications and aggregates — no LLM calls.
     """
 
+    if AGENT_NAME not in state.get("agent_envolved_in_prediction", []):
+        print(f"{LOG_TAG} Not in agent_envolved_in_prediction — skipping")
+        return {}
+
     retry_agents = state.get("retry_agents", [])
     my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
     is_first_run = my_retries == 0

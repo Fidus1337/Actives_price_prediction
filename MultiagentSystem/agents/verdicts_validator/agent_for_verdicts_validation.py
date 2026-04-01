@@ -94,7 +94,17 @@ def agent_for_verdicts_validation(state: AgentState):
             messages.append(HumanMessage(content=f"History of previous validator feedback:\n{history}"))
 
         print(f"{TAG}   Calling validator LLM with {len(messages)} messages...")
-        result = cast(AgentValidationResult, llm.with_structured_output(AgentValidationResult).invoke(messages))
+        try:
+            result = cast(AgentValidationResult, llm.with_structured_output(AgentValidationResult).invoke(messages))
+        except Exception as exc:
+            problem = f"Validator LLM unavailable for {agent_name}: {exc}"
+            print(f"{TAG}   ERROR: {problem}")
+            retry_agents.append(agent_name)
+            updated_signals[agent_name] = {
+                **signal,
+                "description_of_the_reports_problem": prev_descriptions + [problem],
+            }
+            continue
 
         if result.has_problem:
             print(f"{TAG}   RESULT: PROBLEM FOUND")

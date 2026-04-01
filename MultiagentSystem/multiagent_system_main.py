@@ -3,6 +3,8 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from .multiagent_predictions_module import make_prediction_for_last_N_days
+from .multiagent_predictions_module import build_confusion_matrix
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -17,20 +19,20 @@ from langgraph.graph import StateGraph, START, END
 from multiagent_types import AgentState
 
 # Tech agent
-from agents.tech_indicators import agent_for_analysing_tech_indicators
+from .agents.tech_indicators import agent_for_analysing_tech_indicators
 # On-chain agent
-from agents.onchain_indicators import agent_for_analysing_onchain_indicators
+from .agents.onchain_indicators import agent_for_analysing_onchain_indicators
 # Agent for analysing news related to crypto (Coinglass endpoint)
-from agents.news_analyser.agent_for_news_analysis import agent_for_news_analysis
+from .agents.news_analyser.agent_for_news_analysis import agent_for_news_analysis
 # Agent for analysing macro-economic calendar events
-from agents.economic_calendar_analyser.agent_for_economic_calendar_analysis import agent_for_economic_calendar_analysis
+from .agents.economic_calendar_analyser.agent_for_economic_calendar_analysis import agent_for_economic_calendar_analysis
 # Agent for analysing Twitter sentiment signals
-from agents.twitter_analyser.agent_for_twitter_analysis import agent_for_twitter_analysis
+from .agents.twitter_analyser.agent_for_twitter_analysis import agent_for_twitter_analysis
 
 # This agent checks if the report of the agent is logic and structured by all requirements
-from agents.verdicts_validator import agent_for_verdicts_validation
+from .agents.verdicts_validator import agent_for_verdicts_validation
 # This agent looks at all agents reports and makes final decision (skip predict / price will be higher / lower)
-from agents.reports_analyser import agent_reports_analyser
+from .agents.reports_analyser import agent_reports_analyser
 
 # The class for fetching dataset (1000 last days)
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
@@ -141,110 +143,20 @@ if __name__ == "__main__":
     config_path = Path(__file__).parent / "multiagent_config.json"
     with open(config_path, encoding="utf-8") as f:
         config = json.load(f)
-
-    # N_last_dates = max unique days in news archive minus horizon
-    from agents.news_analyser.news_archive_database_manipulator import load_all_articles as _load_archive
-    from agents.news_analyser.helpers import parse_release_time as _prt
-    _archive = _load_archive()
-    _unique_dates = {a["date"] for a in _archive if "date" in a}
+    
     horizon = int(config["horizon"])
-    # N_last_dates = max(len(_unique_dates) - horizon, 1)
-    N_last_dates = 5
-    agent_envolved_in_prediction = config["agent_envolved_in_prediction"]
-    print(f"N_last_dates = {N_last_dates} (archive has {len(_unique_dates)} unique days, horizon={horizon})")
+    N = 10
 
-    # Build dataset without last {horizon} samples
-    cache = SharedBaseDataCache(api_key=os.environ["COINGLASS_API_KEY"])
-    forecast_date = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d").date()
-    base_df = cache.get_base_df()
-    dataset_with_target = FeaturesEngineer().add_y_up_custom(
-        base_df, horizon=horizon, close_col="spot_price_history__close"
-    )
-    dataset_with_target = dataset_with_target.head(-horizon)
-    
-    print("Loaded dataset, look at the last date allowed for building counfusion matrix: \n")
-    print(dataset_with_target[["date", "spot_price_history__close", f"y_up_{horizon}d"]].tail(1))
-    
-    # Use forecast_start_date from config as the anchor: take N_last_dates ending at that date
-    forecast_anchor = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d")
-    eligible = dataset_with_target[dataset_with_target["date"] <= forecast_anchor]
-    results_dataset = eligible[["date", f"y_up_{horizon}d"]].tail(N_last_dates).copy()
-    print(f"\nUsing forecast_start_date={config['forecast_start_date']} as anchor")
-    print(f"Eligible rows (date <= anchor): {len(eligible)} | Taking last {N_last_dates}")
-    results_dataset["y_predictions"] = None
-    results_dataset["confidence_score"] = None
+    results_dataset = make_prediction_for_last_N_days(config, N)
 
-    # Where we store confusion matrix
+    # Final confusion matrix
     cm_path = Path(__file__).parent / "agents" / "tech_agent_confusion_matrix.png"
     done_count = 0
-    print(f"\nStarting predictions loop: {len(results_dataset)} dates, horizon={horizon}d")
-    print(f"Date range: {results_dataset['date'].iloc[0].date()} -> {results_dataset['date'].iloc[-1].date()}")
+    build_confusion_matrix(results_dataset, N, horizon, cm_path)
 
-    total_rows = len(results_dataset)
-    for idx, row in results_dataset.iterrows():              # iterate over indices
-        forecast_date = row["date"].date()                   # Python date, not datetime64
-        done_count += 1
+    print("\n✅ Graph finished! Collected agent signals:")
 
-        print(f"\n{'#'*70}")
-        print(f"### PREDICTION {done_count}/{total_rows} | date={forecast_date} | y_true={row[f'y_up_{horizon}d']}")
-        print(f"{'#'*70}")
-
-        initial_input = {
-            "config": config,
-            "cached_dataset": base_df,
-            "horizon": horizon,
-            "forecast_start_date": forecast_date,
-            "retry_agents": [],
-            "retry_counts": {},
-            "agent_envolved_in_prediction": agent_envolved_in_prediction
-        }
-
-        final_state = app.invoke(initial_input)
-
-        # Get the overall verdict from reports_analyser
-        direction = final_state.get("general_prediction_by_all_reports")
-        score = final_state.get("confidence_score", 0)
-        pred = 1 if direction == "LONG" else (0 if direction == "SHORT" else None)
-        results_dataset.at[idx, "y_predictions"] = pred
-        results_dataset.at[idx, "confidence_score"] = score
-
-        actual = int(row[f"y_up_{horizon}d"])
-        correct = "CORRECT" if pred == actual else ("WRONG" if pred is not None else "SKIPPED")
-        print(f"\n>>> RESULT: prediction={direction or 'NEUTRAL'} (score={score}) | y_true={actual} | {correct}")
-
-        # Update confusion matrix every 10 predictions
-        if done_count % 10 == 0:
-            valid = results_dataset.dropna(subset=["y_predictions"])
-            if len(valid) >= 2:
-                y_true = valid[f"y_up_{horizon}d"].astype(int)
-                y_pred = valid["y_predictions"].astype(int)
-                # Force fixed 2x2 layout to handle single-class interim batches.
-                cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
-                disp = ConfusionMatrixDisplay(cm, display_labels=["LOWER (0)", "HIGHER (1)"])
-                disp.plot()
-                plt.title(f"Confusion Matrix ({done_count}/{N_last_dates} predictions, horizon={horizon}d)")
-                plt.savefig(cm_path)
-                plt.close()
-                print(f"[CM] Updated confusion matrix ({done_count} predictions) → {cm_path}")
-
-    print(results_dataset[["date", f"y_up_{horizon}d", "y_predictions", "confidence_score"]])
-
+    # Save results of predictions to csv
     output_path = Path(__file__).parent / "tech_agent_results.csv"
     results_dataset.to_csv(output_path, index=False)
     print(f"\nResults saved to {output_path}")
-
-    # Final confusion matrix
-    valid = results_dataset.dropna(subset=["y_predictions"])
-    if len(valid) >= 2:
-        y_true = valid[f"y_up_{horizon}d"].astype(int)
-        y_pred = valid["y_predictions"].astype(int)
-        # Force fixed 2x2 layout to avoid shape mismatch when one class is absent.
-        cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
-        disp = ConfusionMatrixDisplay(cm, display_labels=["LOWER (0)", "HIGHER (1)"])
-        disp.plot()
-        plt.title(f"Final Confusion Matrix ({len(valid)}/{N_last_dates} predictions, horizon={horizon}d)")
-        plt.savefig(cm_path)
-        plt.close()
-        print(f"Final confusion matrix saved to {cm_path}")
-
-    print("\n✅ Graph finished! Collected agent signals:")

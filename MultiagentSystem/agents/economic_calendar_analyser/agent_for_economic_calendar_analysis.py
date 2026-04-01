@@ -20,7 +20,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from multiagent_types import AgentState, get_agent_settings
-from agents.economic_calendar_analyser.calendar_collector import get_events_in_range
+from .calendar_collector import get_events_in_range
 
 
 AGENT_DIR = Path(__file__).parent
@@ -188,10 +188,21 @@ def agent_for_economic_calendar_analysis(state: AgentState):
 
     print(f"{LOG_TAG}   Sending {len(filtered)} events to LLM...")
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
-    verdict = llm.with_structured_output(CalendarVerdict).invoke([
-        SystemMessage(content=system_msg),
-        HumanMessage(content=f"Analyze these {len(filtered)} economic calendar events:\n\n{events_text}"),
-    ])
+    try:
+        verdict = llm.with_structured_output(CalendarVerdict).invoke([
+            SystemMessage(content=system_msg),
+            HumanMessage(content=f"Analyze these {len(filtered)} economic calendar events:\n\n{events_text}"),
+        ])
+    except Exception as exc:
+        err = f"LLM request failed in {AGENT_NAME}: {exc}"
+        print(f"{LOG_TAG}   ERROR: {err}")
+        return {"agent_signals": {AGENT_NAME: {
+            "reasoning": err,
+            "summary": "LLM temporarily unavailable. Fallback signal returned.",
+            "risks": "Network/API issue during model call.",
+            "prediction": False,
+            "confidence": "low",
+        }}}
 
     is_bullish = verdict.direction == "bullish"
     prediction_label = "HIGHER" if is_bullish else "LOWER"

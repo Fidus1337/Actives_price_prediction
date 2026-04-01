@@ -135,7 +135,18 @@ def agent_for_analysing_tech_indicators(state: AgentState):
     print(f"{TAG} [STEP 6/6] Calling LLM (gpt-4o-mini) with {len(messages)} messages...")
 
     # Tells the LLM to return a JSON object that matches the Pydantic schema, instead of free-form text.
-    response = cast(TechAnalysisResponse, llm.with_structured_output(TechAnalysisResponse).invoke(messages))
+    try:
+        response = cast(TechAnalysisResponse, llm.with_structured_output(TechAnalysisResponse).invoke(messages))
+    except Exception as exc:
+        err = f"LLM request failed in {AGENT_NAME}: {exc}"
+        print(f"{TAG}   ERROR: {err}")
+        return {"agent_signals": {AGENT_NAME: {
+            "reasoning": err,
+            "summary": "LLM temporarily unavailable. Fallback signal returned.",
+            "risks": "Network/API issue during model call.",
+            "prediction": False,
+            "confidence": "low",
+        }}}
 
     prediction_label = "HIGHER" if response.prediction else "LOWER"
     print(f"{TAG} LLM response received:")

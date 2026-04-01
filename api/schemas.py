@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, field_validator, model_serializer
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
-class PredictionRequest(BaseModel):
+class ClassicML_PredictionRequest(BaseModel):
     """Request body for prediction endpoint."""
 
     models: list[str] = Field(
@@ -38,7 +38,7 @@ class PredictionRequest(BaseModel):
         return v
 
 
-class SinglePrediction(BaseModel):
+class ClassicML_SinglePrediction(BaseModel):
     """Prediction result for a single date."""
 
     date: str = Field(..., description="Date in YYYY-MM-DD format")
@@ -60,7 +60,7 @@ class SinglePrediction(BaseModel):
         return data
 
 
-class ModelPredictionResult(BaseModel):
+class ClassicML_ModelPredictionResult(BaseModel):
     """Prediction results for a single model."""
 
     model_name: str = Field(..., description="Model used for predictions")
@@ -68,16 +68,16 @@ class ModelPredictionResult(BaseModel):
     horizon_days: int = Field(..., description="Prediction horizon in days")
     found_dates: list[str] = Field(..., description="Dates found in data")
     missing_dates: list[str] = Field(..., description="Dates not found in data")
-    predictions: list[SinglePrediction] = Field(..., description="List of predictions")
+    predictions: list[ClassicML_SinglePrediction] = Field(..., description="List of predictions")
     error: str | None = Field(None, description="Error message if model failed")
 
 
-class PredictionResponse(BaseModel):
+class ClassicML_PredictionResponse(BaseModel):
     """Response schema for batch predictions endpoint."""
 
     requested_models: list[str] = Field(..., description="Models requested")
     requested_dates: list[str] = Field(..., description="Dates requested")
-    results: list[ModelPredictionResult] = Field(..., description="Predictions per model")
+    results: list[ClassicML_ModelPredictionResult] = Field(..., description="Predictions per model")
 
 
 class ModelMetrics(BaseModel):
@@ -184,3 +184,52 @@ class TrainConfigResponse(BaseModel):
             ]
         }
     }
+
+
+class MultiagentPredictionsRequest(BaseModel):
+    """Request body for multiagent predictions endpoint."""
+
+    forecast_start_date: str = Field(..., description="Anchor date in YYYY-MM-DD format")
+    horizon: int = Field(..., ge=1, le=30, description="Prediction horizon in days")
+    agent_envolved_in_prediction: list[str] = Field(
+        ...,
+        min_length=1,
+        description="List of active agent names for this run",
+    )
+    neutral_threshold: float = Field(
+        default=0.0,
+        description="Threshold for neutral verdict in reports analyser",
+    )
+    agent_settings: dict[str, dict[str, Any]] = Field(
+        ...,
+        description="Per-agent settings map, same shape as multiagent_config.json",
+    )
+    n_last_dates: int = Field(
+        default=10,
+        ge=1,
+        le=365,
+        description="Number of last eligible dates to evaluate",
+    )
+
+    @field_validator("forecast_start_date")
+    @classmethod
+    def validate_forecast_date(cls, value: str) -> str:
+        pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+        if not pattern.match(value):
+            raise ValueError("forecast_start_date must be in YYYY-MM-DD format")
+        return value
+
+
+class MultiagentSinglePrediction(BaseModel):
+    date: str = Field(..., description="Date in YYYY-MM-DD format")
+    y_true: int = Field(..., ge=0, le=1, description="Observed binary outcome")
+    y_prediction: int | None = Field(None, ge=0, le=1, description="Predicted binary direction")
+    confidence_score: float | int | None = Field(None, description="Aggregated multiagent confidence score")
+
+
+class MultiagentPredictionsResponse(BaseModel):
+    requested_forecast_start_date: str
+    requested_horizon: int
+    requested_n_last_dates: int
+    rows_returned: int
+    predictions: list[MultiagentSinglePrediction]

@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 os.chdir(PROJECT_ROOT)  # Set working directory for config/model paths
 
-from api.routers import predictions
+from api.routers import classic_ml_predictions, multiagent_predictions
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 from PredictWithModel.Predictor import Predictor
 
@@ -98,7 +98,8 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(predictions.router)
+app.include_router(classic_ml_predictions.router)
+app.include_router(multiagent_predictions.router)
 
 
 @app.get("/", include_in_schema=False)

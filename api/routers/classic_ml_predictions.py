@@ -1,5 +1,6 @@
 """Classic ML prediction endpoints router."""
 
+import asyncio
 import json
 import os
 import sys
@@ -35,6 +36,9 @@ from api.schemas import (
 )
 
 router = APIRouter(prefix="/api", tags=["classic_ml_predictions"])
+
+_train_lock = asyncio.Lock()
+_dataset_refresh_lock = asyncio.Lock()
 
 # Cache for Predictor instances (one per model)
 _predictor_cache: dict[str, Predictor] = {}
@@ -123,12 +127,11 @@ async def get_predictions(request: ClassicML_PredictionRequest) -> ClassicML_Pre
 
     data_refreshed = False
     if shared_data_cache is not None:
-        if request.refresh_dataset:
-            shared_data_cache.refresh()
-            data_refreshed = True
-        elif shared_data_cache._base_df is None:
-            # No data yet — force initial load
-            shared_data_cache.refresh()
+        if request.refresh_dataset or shared_data_cache._base_df is None:
+            if _dataset_refresh_lock.locked():
+                raise HTTPException(status_code=409, detail="Dataset refresh is already running")
+            async with _dataset_refresh_lock:
+                await run_in_threadpool(shared_data_cache.refresh)
             data_refreshed = True
 
     for model_name in request.models:
@@ -265,43 +268,47 @@ async def train_classic_ml_models(
     """
     global _predictor_cache
 
-    # Prepare config
-    custom_runs = None
-    if config_payload:
-        custom_runs = config_payload.runs
-        print(f"Received custom config with {len(custom_runs)} runs.")
-    else:
-        print("No custom config provided, using default 'config.json'.")
+    if _train_lock.locked():
+        raise HTTPException(status_code=409, detail="Model training is already running")
 
-    # 1. Clear model cache and shared data cache
-    print("Clearing model cache and shared data cache...")
-    _predictor_cache.clear()
-    Predictor.clear_shared_cache()
+    async with _train_lock:
+        # Prepare config
+        custom_runs = None
+        if config_payload:
+            custom_runs = config_payload.runs
+            print(f"Received custom config with {len(custom_runs)} runs.")
+        else:
+            print("No custom config provided, using default 'config.json'.")
 
-    # 2. Run heavy function
-    try:
-        print("Starting train_classic_ml_models...")
-        await run_in_threadpool(train_all_models_from_configs, str(CONFIG_PATH), custom_runs)
+        # 1. Clear model cache and shared data cache
+        print("Clearing model cache and shared data cache...")
+        _predictor_cache.clear()
+        Predictor.clear_shared_cache()
 
-        # 3. Reload shared data cache after training
-        from api.main import shared_data_cache
+        # 2. Run heavy function
+        try:
+            print("Starting train_classic_ml_models...")
+            await run_in_threadpool(train_all_models_from_configs, str(CONFIG_PATH), custom_runs)
 
-        if shared_data_cache is not None:
-            print("Refreshing shared data cache after training...")
-            await run_in_threadpool(shared_data_cache.refresh)
+            # 3. Reload shared data cache after training
+            from api.main import shared_data_cache
 
-        return {
-            "status": "success",
-            "message": "Training executed successfully.",
-            "source": "custom_json" if custom_runs else "file_config",
-        }
-    except Exception as e:
-        tb = traceback.format_exc()
-        print(f"Error running configs: {tb}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to run configs: {str(e)}",
-        ) from e
+            if shared_data_cache is not None:
+                print("Refreshing shared data cache after training...")
+                await run_in_threadpool(shared_data_cache.refresh)
+
+            return {
+                "status": "success",
+                "message": "Training executed successfully.",
+                "source": "custom_json" if custom_runs else "file_config",
+            }
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(f"Error running configs: {tb}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to run configs: {str(e)}",
+            ) from e
 
 
 @router.get(

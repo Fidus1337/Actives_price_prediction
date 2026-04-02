@@ -94,6 +94,13 @@ def get_db_stats() -> dict:
     return {"count": count, "date_range": date_range}
 
 
+def get_latest_date() -> str | None:
+    """Returns MAX(date) from archive, or None if empty."""
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute("SELECT MAX(date) FROM calendar_events").fetchone()
+    return row[0] if row and row[0] else None
+
+
 def migrate_json_to_db():
     """One-time migration from calendar_archive.json to SQLite."""
     if not JSON_PATH.exists():

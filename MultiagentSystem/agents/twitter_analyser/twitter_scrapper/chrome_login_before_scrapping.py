@@ -152,16 +152,30 @@ def _load_cookies(driver: uc.Chrome) -> bool:
     driver.get("https://x.com")
     time.sleep(5)
 
+    added = 0
     for cookie in cookies:
-        cookie.pop("sameSite", None)
-        cookie.pop("expiry", None)
+        # Normalize to Selenium-compatible fields only.
+        # Cookie-Editor exports expirationDate/hostOnly/session/storeId
+        # which driver.add_cookie() rejects silently.
+        normalized: dict = {
+            "name": cookie["name"],
+            "value": cookie["value"],
+            "domain": cookie.get("domain", ".x.com"),
+            "path": cookie.get("path", "/"),
+            "secure": bool(cookie.get("secure", False)),
+            "httpOnly": bool(cookie.get("httpOnly", False)),
+        }
+        expiry = cookie.get("expirationDate") or cookie.get("expiry")
+        if expiry:
+            normalized["expiry"] = int(expiry)
         try:
-            driver.add_cookie(cookie)
-        except Exception:
-            pass
+            driver.add_cookie(normalized)
+            added += 1
+        except Exception as e:
+            print(f"{LOG_TAG} WARNING: could not add cookie '{cookie.get('name')}': {e}")
 
-    print(f"{LOG_TAG} Cookies loaded ({len(cookies)} items)")
-    return True
+    print(f"{LOG_TAG} Cookies loaded ({added}/{len(cookies)} applied)")
+    return added > 0
 
 
 def _is_logged_in(driver: uc.Chrome) -> bool:
@@ -258,6 +272,59 @@ def create_driver(headless: bool = True) -> uc.Chrome:
         driver.quit()
         raise RuntimeError("Could not log in to Twitter")
     return driver
+
+
+def save_cookies_from_upload(cookies: list[dict]) -> dict:
+    """Write externally-provided cookies to twitter_cookies.json.
+
+    Intended for re-login without stopping the API: user exports cookies from
+    their browser (DevTools / EditThisCookie) and uploads them via API endpoint.
+
+    Returns same shape as check_twitter_auth().
+    """
+    COOKIES_PATH.write_text(json.dumps(cookies, indent=2), encoding="utf-8")
+    print(f"{LOG_TAG} Cookies written from upload ({len(cookies)} items) → {COOKIES_PATH}")
+    return check_twitter_auth()
+
+
+def check_twitter_auth() -> dict:
+    """Lightweight auth status check — no Chrome required.
+
+    Inspects the cookies file and env credentials without launching a browser.
+
+    Returns:
+        cookies_exist       — twitter_cookies.json exists and is non-empty
+        session_cookies_ok  — auth_token and ct0 (session cookies) are present
+        credentials_configured — TWITTER_EMAIL and TWITTER_PASSWORD are set in env
+        cookies_path        — absolute path to the cookies file
+        cookies_count       — number of cookies in the file
+    """
+    cookies_exist = False
+    cookies_count = 0
+    session_cookies_ok = False
+
+    if COOKIES_PATH.exists():
+        try:
+            cookies = json.loads(COOKIES_PATH.read_text(encoding="utf-8"))
+            cookies_count = len(cookies)
+            cookies_exist = cookies_count > 0
+            names = {c.get("name", "") for c in cookies}
+            session_cookies_ok = "auth_token" in names and "ct0" in names
+        except Exception:
+            pass
+
+    credentials_configured = bool(
+        os.getenv("TWITTER_EMAIL", "").strip()
+        and os.getenv("TWITTER_PASSWORD", "").strip()
+    )
+
+    return {
+        "cookies_exist": cookies_exist,
+        "session_cookies_ok": session_cookies_ok,
+        "credentials_configured": credentials_configured,
+        "cookies_path": str(COOKIES_PATH),
+        "cookies_count": cookies_count,
+    }
 
 
 def manual_login() -> None:

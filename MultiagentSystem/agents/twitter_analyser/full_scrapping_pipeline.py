@@ -105,23 +105,80 @@ def _get_config_date_bounds() -> tuple[str, str]:
     return since_date, until_date
 
 
-def collect_tweets() -> dict:
+def _quit_driver(driver, timeout: int = 15) -> None:
+    """Quit the Chrome driver with a hard timeout to avoid hanging.
+
+    driver.quit() on Windows can hang indefinitely when the Chrome process
+    doesn't respond. Runs quit() in a daemon thread — if it doesn't finish
+    within `timeout` seconds, the process is killed by PID.
+    """
+    import threading
+
+    pid = None
+    try:
+        pid = driver.service.process.pid
+    except Exception:
+        pass
+
+    done = threading.Event()
+
+    def _quit():
+        try:
+            driver.quit()
+        except Exception:
+            pass
+        done.set()
+
+    t = threading.Thread(target=_quit, daemon=True)
+    t.start()
+
+    if not done.wait(timeout=timeout):
+        print(f"{LOG_TAG} WARNING: driver.quit() timed out after {timeout}s — force-killing process")
+        if pid:
+            try:
+                import os, signal as _signal
+                os.kill(pid, _signal.SIGTERM)
+            except Exception as e:
+                print(f"{LOG_TAG} WARNING: could not kill Chrome PID {pid}: {e}")
+
+
+def collect_tweets(
+    since_date: str | None = None,
+    until_date: str | None = None,
+    authors: list[str] | None = None,
+) -> dict:
     """Main collection function.
 
     Iterates over configured accounts, fetches tweets with rate limiting,
     filters retweets, and inserts into SQLite (duplicates ignored by DB).
 
+    Args:
+        since_date: Override config since_date (YYYY-MM-DD, inclusive). Uses config value if None.
+        until_date: Override config until_date (YYYY-MM-DD, inclusive). Uses config value if None.
+        authors: Explicit list of usernames to scrape. If provided, ignores enabled/disabled
+                 flags in config and fetches only these accounts.
+
     Returns stats dict with per-account breakdown.
     """
     config = _load_accounts_config()
-    # Gather all enabled sources for news
-    accounts = [a for a in config["accounts"] if a.get("enabled", True)]
     settings = config["scraper_settings"]
+
+    if authors is not None:
+        authors_lower = {a.lower() for a in authors}
+        accounts = [
+            a for a in config["accounts"]
+            if a["username"].lower() in authors_lower
+        ]
+        unknown = authors_lower - {a["username"].lower() for a in config["accounts"]}
+        if unknown:
+            print(f"{LOG_TAG} WARNING: unknown authors (not in config): {sorted(unknown)}")
+    else:
+        accounts = [a for a in config["accounts"] if a.get("enabled", True)]
 
     before_count = count_tweets()
 
-    since_date = settings.get("since_date", "")
-    until_date = settings.get("until_date", "")
+    since_date = since_date if since_date is not None else settings.get("since_date", "")
+    until_date = until_date if until_date is not None else settings.get("until_date", "")
 
     if since_date and until_date and since_date > until_date:
         print(
@@ -291,7 +348,7 @@ def collect_tweets() -> dict:
                 print(f"{LOG_TAG}   Sleeping {pause:.0f}s (rate limit)...")
                 time.sleep(pause)
     finally:
-        driver.quit()
+        _quit_driver(driver)
 
     after_count = count_tweets()
     date_range = get_date_range()
@@ -310,6 +367,55 @@ def collect_tweets() -> dict:
     print(f"{LOG_TAG} Date range: {date_range}")
 
     return stats
+
+
+def collect_twitter_news(authors: list[str] | None = None) -> dict:
+    """Incremental collection: fetches from the latest date in DB up to today.
+
+    since_date = MAX(date) in twitter archive (inclusive)
+    until_date = today
+
+    Args:
+        authors: Optional list of usernames to scrape. If None, uses all enabled accounts.
+
+    Returns stats in {before, fetched, new, after, date_range} format
+    compatible with CollectAgentDataResult schema.
+    """
+    from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twitter_db import get_latest_date
+
+    latest_db_date = get_latest_date()
+    if latest_db_date is None:
+        raise ValueError(
+            "Twitter archive is empty — cannot determine since_date. "
+            "Run a manual collection first to seed the archive."
+        )
+
+    until_date = datetime.now().strftime("%Y-%m-%d")
+    since_date = latest_db_date
+
+    print(f"{LOG_TAG} Incremental collection: {since_date} → {until_date}")
+
+    try:
+        stats = collect_tweets(since_date=since_date, until_date=until_date, authors=authors)
+    except RuntimeError as exc:
+        if "log in" in str(exc).lower() or "could not log" in str(exc).lower():
+            raise RuntimeError(
+                f"TWITTER_AUTH_REQUIRED: Twitter session expired or credentials invalid. "
+                f"Run manual re-login: "
+                f"python -m MultiagentSystem.agents.twitter_analyser.twitter_scrapper.chrome_login_before_scrapping --login. "
+                f"Original: {exc}"
+            ) from exc
+        raise
+
+    fetched_total = sum(a.get("fetched", 0) for a in stats.get("per_account", []))
+
+    return {
+        "before": stats["before"],
+        "fetched": fetched_total,
+        "new": stats["new"],
+        "after": stats["after"],
+        "date_range": stats.get("date_range"),
+    }
 
 
 def reclassify_archive() -> dict:

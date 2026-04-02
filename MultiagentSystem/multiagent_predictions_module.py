@@ -38,7 +38,7 @@ def _prepare_dataset(config: dict) -> tuple[pd.DataFrame, pd.DataFrame, int]:
     dataset = FeaturesEngineer().add_y_up_custom(
         base_df, horizon=horizon, close_col="spot_price_history__close"
     )
-    return base_df, dataset.head(-horizon), horizon
+    return base_df, dataset, horizon
 
 
 def _direction_to_binary(direction: str | None) -> int | None:
@@ -50,7 +50,7 @@ def _direction_to_binary(direction: str | None) -> int | None:
 
 
 def _save_confusion_matrix(results_dataset: pd.DataFrame, horizon: int, title: str, cm_path: Path) -> None:
-    valid = results_dataset.dropna(subset=["y_predictions"])
+    valid = results_dataset.dropna(subset=["y_predictions", f"y_up_{horizon}d"])
     if len(valid) < 2:
         return
 

@@ -272,7 +272,7 @@ class MultiagentPredictionsRequest(BaseModel):
 
 class MultiagentSinglePrediction(BaseModel):
     date: str = Field(..., description="Date in YYYY-MM-DD format")
-    y_true: int = Field(..., ge=0, le=1, description="Observed binary outcome")
+    y_true: int | None = Field(..., description="Observed binary outcome (None if future date)")
     y_prediction: int | None = Field(None, ge=0, le=1, description="Predicted binary direction")
     confidence_score: float | int | None = Field(None, description="Aggregated multiagent confidence score")
 
@@ -288,13 +288,18 @@ class MultiagentPredictionsResponse(BaseModel):
 class CollectAgentDataRequest(BaseModel):
     model_config = ConfigDict(json_schema_extra={
         "example": {
-            "agents": ["news_analyser", "economic_calendar_analyser"]
+            "agents": ["news_analyser", "economic_calendar_analyser", "twitter_analyser"],
+            "twitter_authors": ["CarpeNoctom", "caprioleio", "JSeyff", "DonAlt", "krugermacro"],
         }
     })
 
     agents: list[str] = Field(
-        default=["news_analyser", "economic_calendar_analyser"],
-        description="Agents to collect data for. Valid values: 'news_analyser', 'economic_calendar_analyser'",
+        default=["news_analyser", "economic_calendar_analyser", "twitter_analyser"],
+        description="Agents to collect data for. Valid values: 'news_analyser', 'economic_calendar_analyser', 'twitter_analyser'",
+    )
+    twitter_authors: list[str] | None = Field(
+        default=None,
+        description="Optional list of Twitter usernames to scrape. If omitted, uses all enabled accounts from twitter_collector_settings.json",
     )
 
 
@@ -309,3 +314,48 @@ class CollectAgentDataResult(BaseModel):
 
 class CollectAgentDataResponse(BaseModel):
     results: list[CollectAgentDataResult]
+
+
+class AgentsDataStatusResponse(BaseModel):
+    news_analyser: str | None = Field(None, description="Last fetched date in news archive (YYYY-MM-DD)")
+    economic_calendar_analyser: str | None = Field(None, description="Last fetched date in calendar archive (YYYY-MM-DD)")
+    twitter_analyser: str | None = Field(None, description="Last fetched date in twitter archive (YYYY-MM-DD)")
+
+
+class TwitterAuthStatusResponse(BaseModel):
+    cookies_exist: bool = Field(..., description="twitter_cookies.json exists and is non-empty")
+    session_cookies_ok: bool = Field(..., description="auth_token and ct0 session cookies are present")
+    credentials_configured: bool = Field(..., description="TWITTER_EMAIL and TWITTER_PASSWORD are set in dev.env")
+    cookies_path: str = Field(..., description="Absolute path to twitter_cookies.json")
+    cookies_count: int = Field(..., description="Number of cookies in the file")
+    relogin_required: bool = Field(..., description="True when session cookies are missing or credentials are not configured")
+
+
+class TwitterCookiesUploadRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "upload_key": "<100-char key from TWITTER_UPLOAD_KEY in dev.env>",
+            "cookies": [
+                {"name": "auth_token", "value": "...", "domain": ".x.com", "path": "/"},
+                {"name": "ct0", "value": "...", "domain": ".x.com", "path": "/"},
+            ]
+        }
+    })
+
+    upload_key: str = Field(
+        ...,
+        min_length=100,
+        max_length=100,
+        description="Secret key from TWITTER_UPLOAD_KEY in dev.env",
+    )
+    cookies: list[dict] = Field(
+        ...,
+        min_length=1,
+        description="Cookie list exported from browser (DevTools → Application → Cookies, or EditThisCookie extension)",
+    )
+
+
+class TwitterCookiesUploadResponse(BaseModel):
+    saved: int = Field(..., description="Number of cookies written to twitter_cookies.json")
+    session_cookies_ok: bool = Field(..., description="auth_token and ct0 are present in the uploaded cookies")
+    cookies_path: str

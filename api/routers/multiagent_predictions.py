@@ -5,10 +5,15 @@ from fastapi.concurrency import run_in_threadpool
 import pandas as pd
 
 from MultiagentSystem.multiagent_predictions_module import make_prediction_for_last_N_days
+from MultiagentSystem.agents.news_analyser.news_collector import collect_news
+from MultiagentSystem.agents.economic_calendar_analyser.calendar_collector import collect_calendar_events
 from api.schemas import (
     MultiagentPredictionsRequest,
     MultiagentPredictionsResponse,
     MultiagentSinglePrediction,
+    CollectAgentDataRequest,
+    CollectAgentDataResponse,
+    CollectAgentDataResult,
 )
 
 
@@ -62,3 +67,31 @@ async def multiagent_predictions(request: MultiagentPredictionsRequest) -> Multi
         rows_returned=len(predictions),
         predictions=predictions,
     )
+
+
+_AGENT_COLLECTORS = {
+    "news_analyser": collect_news,
+    "economic_calendar_analyser": collect_calendar_events,
+}
+
+
+@router.post(
+    "/system/collect_agent_data",
+    response_model=CollectAgentDataResponse,
+    summary="Collect latest data for news and calendar agents",
+    description="Triggers incremental data collection for the specified agents, appending new records to their SQLite archives.",
+)
+async def collect_agent_data(request: CollectAgentDataRequest) -> CollectAgentDataResponse:
+    unknown = set(request.agents) - _AGENT_COLLECTORS.keys()
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"Unknown agents: {sorted(unknown)}")
+
+    results = []
+    for agent_name in request.agents:
+        try:
+            stats = await run_in_threadpool(_AGENT_COLLECTORS[agent_name])
+            results.append(CollectAgentDataResult(agent=agent_name, **stats))
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Collection failed for '{agent_name}': {exc}") from exc
+
+    return CollectAgentDataResponse(results=results)

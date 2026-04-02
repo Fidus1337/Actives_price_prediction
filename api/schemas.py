@@ -1,7 +1,7 @@
 """Pydantic models for API request/response validation."""
 
 import re
-from pydantic import BaseModel, Field, field_validator, model_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_serializer
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
@@ -189,6 +189,56 @@ class TrainConfigResponse(BaseModel):
 class MultiagentPredictionsRequest(BaseModel):
     """Request body for multiagent predictions endpoint."""
 
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "forecast_start_date": "2026-04-01",
+            "horizon": 1,
+            "n_last_dates": 10,
+            "neutral_threshold": 0,
+            "agent_envolved_in_prediction": [
+                "agent_for_analysing_tech_indicators",
+                "agent_for_news_analysis",
+                "agent_for_economic_calendar_analysis",
+                "agent_for_twitter_analysis"
+            ],
+            "agent_settings": {
+                "agent_for_analysing_tech_indicators": {
+                    "system_prompt_file": "agents/tech_indicators/system_prompt_1d.md",
+                    "window_to_analysis": 21,
+                    "base_feats": [
+                        "spot_price_history__ta_rsi",
+                        "spot_price_history__ta_adx",
+                        "spot_price_history__ta_cci",
+                        "spot_price_history__ta_roc",
+                        "spot_price_history__ta_bbw",
+                        "spot_price_history__ta_mfi",
+                        "spot_price_history__ta_obv",
+                        "spot_price_history__ta_atr",
+                        "spot_price_history__open",
+                        "spot_price_history__high",
+                        "spot_price_history__low",
+                        "spot_price_history__close",
+                        "spot_price_history__volume_usd"
+                    ]
+                },
+                "agent_for_news_analysis": {
+                    "system_prompt_file": "agents/news_analyser/system_prompt.md",
+                    "window_to_analysis": 7
+                },
+                "agent_for_economic_calendar_analysis": {
+                    "window_to_analysis": 7
+                },
+                "agent_for_twitter_analysis": {
+                    "window_to_analysis": 14,
+                    "half_life_days": 4.0,
+                    "authors": [
+                        "CarpeNoctom", "caprioleio", "JSeyff", "DonAlt", "krugermacro"
+                    ]
+                }
+            }
+        }
+    })
+
     forecast_start_date: str = Field(..., description="Anchor date in YYYY-MM-DD format")
     horizon: int = Field(..., ge=1, le=30, description="Prediction horizon in days")
     agent_envolved_in_prediction: list[str] = Field(
@@ -233,3 +283,29 @@ class MultiagentPredictionsResponse(BaseModel):
     requested_n_last_dates: int
     rows_returned: int
     predictions: list[MultiagentSinglePrediction]
+
+
+class CollectAgentDataRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "agents": ["news_analyser", "economic_calendar_analyser"]
+        }
+    })
+
+    agents: list[str] = Field(
+        default=["news_analyser", "economic_calendar_analyser"],
+        description="Agents to collect data for. Valid values: 'news_analyser', 'economic_calendar_analyser'",
+    )
+
+
+class CollectAgentDataResult(BaseModel):
+    agent: str
+    before: int
+    fetched: int
+    new: int
+    after: int
+    date_range: str | None = None
+
+
+class CollectAgentDataResponse(BaseModel):
+    results: list[CollectAgentDataResult]

@@ -1,16 +1,16 @@
 {
-  "date": "2026-03-23",
+  "date": "2026-03-24",
   "horizon": 1,
   "window": 14,
   "half_life_days": 4.0,
-  "total_tweets": 22,
-  "total_author_day_groups": 19,
-  "bull_count": 8,
-  "bull_weight_decayed": 7.2993,
-  "bear_count": 11,
-  "bear_weight_decayed": 8.9925,
-  "avg_time_decay_directional": 0.3993,
-  "bull_ratio_weighted": 0.448,
+  "total_tweets": 18,
+  "total_author_day_groups": 17,
+  "bull_count": 7,
+  "bull_weight_decayed": 5.943,
+  "bear_count": 10,
+  "bear_weight_decayed": 7.5004,
+  "avg_time_decay_directional": 0.3641,
+  "bull_ratio_weighted": 0.4421,
   "prediction": false,
   "confidence": "low",
   "author_day_aggregates": [
@@ -19,9 +19,9 @@
       "utc_day": "2026-03-21",
       "tweets_count": 1,
       "avg_raw_score": 3.0,
-      "avg_time_decay": 0.785928,
-      "weighted_score": 2.357783,
-      "bull_weight": 2.357783,
+      "avg_time_decay": 0.660884,
+      "weighted_score": 1.982651,
+      "bull_weight": 1.982651,
       "bear_weight": 0.0
     },
     {
@@ -29,29 +29,29 @@
       "utc_day": "2026-03-20",
       "tweets_count": 1,
       "avg_raw_score": -2.0,
-      "avg_time_decay": 0.694524,
-      "weighted_score": -1.389049,
+      "avg_time_decay": 0.584023,
+      "weighted_score": -1.168046,
       "bull_weight": 0.0,
-      "bear_weight": 1.389049
+      "bear_weight": 1.168046
     },
     {
       "author": "TraderMercury",
       "utc_day": "2026-03-20",
       "tweets_count": 1,
       "avg_raw_score": -2.0,
-      "avg_time_decay": 0.681251,
-      "weighted_score": -1.362502,
+      "avg_time_decay": 0.572862,
+      "weighted_score": -1.145723,
       "bull_weight": 0.0,
-      "bear_weight": 1.362502
+      "bear_weight": 1.145723
     },
     {
       "author": "caprioleio",
       "utc_day": "2026-03-20",
       "tweets_count": 1,
       "avg_raw_score": 2.0,
-      "avg_time_decay": 0.61675,
-      "weighted_score": 1.2335,
-      "bull_weight": 1.2335,
+      "avg_time_decay": 0.518623,
+      "weighted_score": 1.037246,
+      "bull_weight": 1.037246,
       "bear_weight": 0.0
     },
     {
@@ -59,9 +59,9 @@
       "utc_day": "2026-03-19",
       "tweets_count": 1,
       "avg_raw_score": 3.0,
-      "avg_time_decay": 0.565254,
-      "weighted_score": 1.695761,
-      "bull_weight": 1.695761,
+      "avg_time_decay": 0.47532,
+      "weighted_score": 1.425959,
+      "bull_weight": 1.425959,
       "bear_weight": 0.0
     },
     {
@@ -69,59 +69,59 @@
       "utc_day": "2026-03-19",
       "tweets_count": 1,
       "avg_raw_score": -2.0,
-      "avg_time_decay": 0.562761,
-      "weighted_score": -1.125521,
+      "avg_time_decay": 0.473223,
+      "weighted_score": -0.946447,
       "bull_weight": 0.0,
-      "bear_weight": 1.125521
+      "bear_weight": 0.946447
     },
     {
       "author": "caprioleio",
       "utc_day": "2026-03-18",
       "tweets_count": 2,
       "avg_raw_score": -2.5,
-      "avg_time_decay": 0.484169,
-      "weighted_score": -1.210424,
+      "avg_time_decay": 0.407136,
+      "weighted_score": -1.017841,
       "bull_weight": 0.0,
-      "bear_weight": 1.210424
+      "bear_weight": 1.017841
     },
     {
       "author": "krugermacro",
       "utc_day": "2026-03-18",
       "tweets_count": 1,
       "avg_raw_score": -2.0,
-      "avg_time_decay": 0.47985,
-      "weighted_score": -0.959699,
+      "avg_time_decay": 0.403504,
+      "weighted_score": -0.807007,
       "bull_weight": 0.0,
-      "bear_weight": 0.959699
+      "bear_weight": 0.807007
     },
     {
       "author": "TraderMercury",
       "utc_day": "2026-03-18",
       "tweets_count": 1,
       "avg_raw_score": -2.0,
-      "avg_time_decay": 0.456929,
-      "weighted_score": -0.913859,
+      "avg_time_decay": 0.38423,
+      "weighted_score": -0.768461,
       "bull_weight": 0.0,
-      "bear_weight": 0.913859
+      "bear_weight": 0.768461
     },
     {
       "author": "_Checkmatey_",
       "utc_day": "2026-03-18",
       "tweets_count": 1,
       "avg_raw_score": -2.0,
-      "avg_time_decay": 0.421892,
-      "weighted_score": -0.843784,
+      "avg_time_decay": 0.354767,
+      "weighted_score": -0.709535,
       "bull_weight": 0.0,
-      "bear_weight": 0.843784
+      "bear_weight": 0.709535
     },
     {
       "author": "DonAlt",
       "utc_day": "2026-03-16",
       "tweets_count": 1,
       "avg_raw_score": 2.0,
-      "avg_time_decay": 0.351612,
-      "weighted_score": 0.703225,
-      "bull_weight": 0.703225,
+      "avg_time_decay": 0.295669,
+      "weighted_score": 0.591339,
+      "bull_weight": 0.591339,
       "bear_weight": 0.0
     },
     {
@@ -129,9 +129,9 @@
       "utc_day": "2026-03-16",
       "tweets_count": 1,
       "avg_raw_score": 1.0,
-      "avg_time_decay": 0.327869,
-      "weighted_score": 0.327869,
-      "bull_weight": 0.327869,
+      "avg_time_decay": 0.275703,
+      "weighted_score": 0.275703,
+      "bull_weight": 0.275703,
       "bear_weight": 0.0
     },
     {
@@ -139,19 +139,19 @@
       "utc_day": "2026-03-14",
       "tweets_count": 1,
       "avg_raw_score": -2.0,
-      "avg_time_decay": 0.233266,
-      "weighted_score": -0.466531,
+      "avg_time_decay": 0.196152,
+      "weighted_score": -0.392305,
       "bull_weight": 0.0,
-      "bear_weight": 0.466531
+      "bear_weight": 0.392305
     },
     {
       "author": "Yodaskk",
       "utc_day": "2026-03-13",
       "tweets_count": 1,
       "avg_raw_score": 2.0,
-      "avg_time_decay": 0.190214,
-      "weighted_score": 0.380428,
-      "bull_weight": 0.380428,
+      "avg_time_decay": 0.15995,
+      "weighted_score": 0.3199,
+      "bull_weight": 0.3199,
       "bear_weight": 0.0
     },
     {
@@ -159,9 +159,9 @@
       "utc_day": "2026-03-13",
       "tweets_count": 1,
       "avg_raw_score": 2.0,
-      "avg_time_decay": 0.184455,
-      "weighted_score": 0.36891,
-      "bull_weight": 0.36891,
+      "avg_time_decay": 0.155107,
+      "weighted_score": 0.310215,
+      "bull_weight": 0.310215,
       "bear_weight": 0.0
     },
     {
@@ -169,40 +169,20 @@
       "utc_day": "2026-03-12",
       "tweets_count": 1,
       "avg_raw_score": -2.0,
-      "avg_time_decay": 0.165546,
-      "weighted_score": -0.331092,
+      "avg_time_decay": 0.139207,
+      "weighted_score": -0.278414,
       "bull_weight": 0.0,
-      "bear_weight": 0.331092
+      "bear_weight": 0.278414
     },
     {
       "author": "Yodaskk",
       "utc_day": "2026-03-12",
       "tweets_count": 1,
       "avg_raw_score": -2.0,
-      "avg_time_decay": 0.158511,
-      "weighted_score": -0.317023,
+      "avg_time_decay": 0.133292,
+      "weighted_score": -0.266583,
       "bull_weight": 0.0,
-      "bear_weight": 0.317023
-    },
-    {
-      "author": "DavidDuong",
-      "utc_day": "2026-03-10",
-      "tweets_count": 1,
-      "avg_raw_score": 2.0,
-      "avg_time_decay": 0.115921,
-      "weighted_score": 0.231842,
-      "bull_weight": 0.231842,
-      "bear_weight": 0.0
-    },
-    {
-      "author": "caprioleio",
-      "utc_day": "2026-03-10",
-      "tweets_count": 3,
-      "avg_raw_score": -0.666667,
-      "avg_time_decay": 0.109543,
-      "weighted_score": -0.073029,
-      "bull_weight": 0.0,
-      "bear_weight": 0.073029
+      "bear_weight": 0.266583
     }
   ],
   "classifications": [
@@ -211,8 +191,8 @@
       "signal": "BULL",
       "confidence": "HIGH",
       "date": "2026-03-21",
-      "age_days": 1.3901,
-      "time_decay": 0.785928,
+      "age_days": 2.3901,
+      "time_decay": 0.660884,
       "text": "Weekly ETF Net Flows $BTC $BTC = +$95m $ETH $ETH = -$60m $XRP $XRP = +$0.6m $SOL $SOL = +$20m"
     },
     {
@@ -220,8 +200,8 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-20",
-      "age_days": 2.1036,
-      "time_decay": 0.694524,
+      "age_days": 3.1036,
+      "time_decay": 0.584023,
       "text": "$BTC $BTC & $ETH $ETH CoT comms increased short pos in BTC, about the same for ETH cya next week!"
     },
     {
@@ -229,8 +209,8 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-20",
-      "age_days": 2.215,
-      "time_decay": 0.681251,
+      "age_days": 3.215,
+      "time_decay": 0.572862,
       "text": "if this trend breaks, throw in the towel on the idea of a relief rally crypto likely serves as high-beta to a 'risk off'"
     },
     {
@@ -238,8 +218,8 @@
       "signal": "BULL",
       "confidence": "MIDDLE",
       "date": "2026-03-20",
-      "age_days": 2.789,
-      "time_decay": 0.61675,
+      "age_days": 3.789,
+      "time_decay": 0.518623,
       "text": "Institutions are buying 5X the daily mined Bitcoin"
     },
     {
@@ -247,8 +227,8 @@
       "signal": "BULL",
       "confidence": "HIGH",
       "date": "2026-03-19",
-      "age_days": 3.2921,
-      "time_decay": 0.565254,
+      "age_days": 4.2921,
+      "time_decay": 0.47532,
       "text": "Morgan Stanley’s new bitcoin ETF — $MSBT $MSBT . Coming soon to an exchange near you"
     },
     {
@@ -256,8 +236,8 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-19",
-      "age_days": 3.3176,
-      "time_decay": 0.562761,
+      "age_days": 4.3176,
+      "time_decay": 0.473223,
       "text": "$BTC $BTC any lower than here and I think you can just get away with the rudimentary assumption that price is fractal an"
     },
     {
@@ -265,8 +245,8 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-18",
-      "age_days": 4.0059,
-      "time_decay": 0.499485,
+      "age_days": 5.0059,
+      "time_decay": 0.420015,
       "text": "Originally multiple rate cuts were projected for 2026, by both the Fed dot plot and the CME Fedwatch. Now the market is "
     },
     {
@@ -274,8 +254,8 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-18",
-      "age_days": 4.2374,
-      "time_decay": 0.47985,
+      "age_days": 5.2374,
+      "time_decay": 0.403504,
       "text": "The Fed is projecting higher growth, higher inflation, and the same rates as before (for the end of 2026). Basically, it"
     },
     {
@@ -283,8 +263,8 @@
       "signal": "BEAR",
       "confidence": "HIGH",
       "date": "2026-03-18",
-      "age_days": 4.3712,
-      "time_decay": 0.468854,
+      "age_days": 5.3712,
+      "time_decay": 0.394258,
       "text": "That high CPI read just changed everything. It was from pre-war inflation in Feb. Add Oil up 50%+ to the mix and rate cu"
     },
     {
@@ -292,8 +272,8 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-18",
-      "age_days": 4.5198,
-      "time_decay": 0.456929,
+      "age_days": 5.5198,
+      "time_decay": 0.38423,
       "text": "don’t love to see bullish ego here Bitcoin bounced to 75k and people getting cocky, acting like we just made new ATHs af"
     },
     {
@@ -301,8 +281,8 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-18",
-      "age_days": 4.9802,
-      "time_decay": 0.421892,
+      "age_days": 5.9802,
+      "time_decay": 0.354767,
       "text": "Meanwhile, the fearful speculators, after losing a fortune trying to long the bottom all the way down, they finally deci"
     },
     {
@@ -310,8 +290,8 @@
       "signal": "BULL",
       "confidence": "MIDDLE",
       "date": "2026-03-16",
-      "age_days": 6.0318,
-      "time_decay": 0.351612,
+      "age_days": 7.0318,
+      "time_decay": 0.295669,
       "text": "After having sold at $110k and largely sitting on my hands since avoiding a 40% drawdown I finally see some price action"
     },
     {
@@ -319,8 +299,8 @@
       "signal": "BULL",
       "confidence": "LOW",
       "date": "2026-03-16",
-      "age_days": 6.4352,
-      "time_decay": 0.327869,
+      "age_days": 7.4352,
+      "time_decay": 0.275703,
       "text": "crypto looking solid for a larger rally from here Bitcoin broke out of local range, and is above HTF trend my guess is w"
     },
     {
@@ -328,8 +308,8 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-14",
-      "age_days": 8.3998,
-      "time_decay": 0.233266,
+      "age_days": 9.3998,
+      "time_decay": 0.196152,
       "text": "$BTC $BTC & $ETH $ETH CoT Both Comms increased net short cya next week!"
     },
     {
@@ -337,8 +317,8 @@
       "signal": "BULL",
       "confidence": "MIDDLE",
       "date": "2026-03-13",
-      "age_days": 9.5772,
-      "time_decay": 0.190214,
+      "age_days": 10.5772,
+      "time_decay": 0.15995,
       "text": "$btc $btc $btcusd $btcusd Last area for a rejection here at 72.3k. Break above and I would target around 77-78k"
     },
     {
@@ -346,8 +326,8 @@
       "signal": "BULL",
       "confidence": "MIDDLE",
       "date": "2026-03-13",
-      "age_days": 9.7546,
-      "time_decay": 0.184455,
+      "age_days": 10.7546,
+      "time_decay": 0.155107,
       "text": "Measured collapse in Bitcoin miner selling after a price drop are ALL BULLISH"
     },
     {
@@ -355,8 +335,8 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-12",
-      "age_days": 10.3788,
-      "time_decay": 0.165546,
+      "age_days": 11.3788,
+      "time_decay": 0.139207,
       "text": "unfortunate timing. $BTC $BTC knocking on the door of HTF breakout... as $SPY $SPY breaks down from a 10-month uptrend, "
     },
     {
@@ -364,45 +344,9 @@
       "signal": "BEAR",
       "confidence": "MIDDLE",
       "date": "2026-03-12",
-      "age_days": 10.6294,
-      "time_decay": 0.158511,
+      "age_days": 11.6294,
+      "time_decay": 0.133292,
       "text": "So, a break (and hold) above range high at 72.3k would probably target higher like 76k, mb as high as 80k But for now, I"
-    },
-    {
-      "author": "DavidDuong",
-      "signal": "BULL",
-      "confidence": "MIDDLE",
-      "date": "2026-03-10",
-      "age_days": 12.4352,
-      "time_decay": 0.115921,
-      "text": "An upturn in the Spent Output Profit Ratio (SOPR) of short-term holders for both BTC and ETH beginning in late February "
-    },
-    {
-      "author": "caprioleio",
-      "signal": "BEAR",
-      "confidence": "MIDDLE",
-      "date": "2026-03-10",
-      "age_days": 12.7617,
-      "time_decay": 0.109543,
-      "text": "There is market wide pain across Bitcoin. We have a lot less history to work with on the ETFs, but they too are trading "
-    },
-    {
-      "author": "caprioleio",
-      "signal": "BEAR",
-      "confidence": "MIDDLE",
-      "date": "2026-03-10",
-      "age_days": 12.7617,
-      "time_decay": 0.109543,
-      "text": "At 80%, almost all treasuries are at a loss on their Bitcoin purchases today. Though history suggests this could get wor"
-    },
-    {
-      "author": "caprioleio",
-      "signal": "BULL",
-      "confidence": "MIDDLE",
-      "date": "2026-03-10",
-      "age_days": 12.7617,
-      "time_decay": 0.109543,
-      "text": "We are near the floor of the Bitcoin Treasury Cost Basis simple ave model. So most companies bought higher. If like the "
     }
   ]
 }

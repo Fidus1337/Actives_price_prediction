@@ -4,6 +4,8 @@ import sys
 from datetime import date, datetime
 from typing import Any
 
+import matplotlib
+matplotlib.use("Agg")  # non-interactive backend — avoids ft2font init failure on Windows
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix

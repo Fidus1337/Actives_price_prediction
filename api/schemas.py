@@ -20,7 +20,7 @@ class ClassicML_PredictionRequest(BaseModel):
         min_length=1,
         max_length=100,
         description="List of dates in YYYY-MM-DD format",
-        examples=[["2025-01-20", "2025-01-21"]]
+        examples=[["2026-04-01", "2026-04-02"]]
     )
     refresh_dataset: bool = Field(
         default=False,
@@ -145,20 +145,20 @@ class TrainConfigRequest(BaseModel):
                                 "range_pct_ma14"
                             ],
                             "base_feats": [
-                                "sp500__open__diff1__lag15",
-                                "futures_open_interest_aggregated_history__close__pct1",
-                                "gold__high__diff1",
-                                "futures_open_interest_aggregated_history__close__diff1",
+                                "spot_price_history__ta_rsi",
+                                "spot_price_history__ta_adx",
+                                "spot_price_history__ta_cci",
+                                "spot_price_history__ta_roc",
+                                "spot_price_history__ta_bbw",
+                                "spot_price_history__ta_mfi",
+                                "spot_price_history__ta_obv",
+                                "spot_price_history__ta_atr",
+                                "gold__ta_rsi",
+                                "gold__ta_adx",
+                                "sp500__ta_rsi",
+                                "sp500__ta_adx",
                                 "futures_funding_rate_history__open__pct1",
-                                "futures_top_long_short_position_ratio_history__top_position_long_percent",
-                                "gold__volume__diff1__lag1",
-                                "gold__low__diff1__lag1",
-                                "sp500__open__diff1__lag5",
-                                "futures_open_interest_aggregated_stablecoin_history__high__diff1",
-                                "gold__open__diff1__lag7",
-                                "index_btc_active_addresses__active_address_count",
-                                "sp500__close__diff1__lag3",
-                                "gold__open__diff1__lag15"
+                                "futures_open_interest_aggregated_history__close__pct1"
                             ]
                         }
                     ]
@@ -191,9 +191,9 @@ class MultiagentPredictionsRequest(BaseModel):
 
     model_config = ConfigDict(json_schema_extra={
         "example": {
-            "forecast_start_date": "2026-04-01",
+            "forecast_start_date": "2026-04-02",
             "horizon": 1,
-            "n_last_dates": 10,
+            "n_last_dates": 1,
             "neutral_threshold": 0,
             "agent_envolved_in_prediction": [
                 "agent_for_analysing_tech_indicators",
@@ -232,7 +232,8 @@ class MultiagentPredictionsRequest(BaseModel):
                     "window_to_analysis": 14,
                     "half_life_days": 4.0,
                     "authors": [
-                        "CarpeNoctom", "caprioleio", "JSeyff", "DonAlt", "krugermacro"
+                        "CarpeNoctom", "caprioleio", "JSeyff", "DonAlt", "krugermacro",
+                        "DavidDuong", "TraderMercury", "Yodaskk", "_Checkmatey_", "CrypNuevo"
                     ]
                 }
             }
@@ -289,7 +290,12 @@ class CollectAgentDataRequest(BaseModel):
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "agents": ["news_analyser", "economic_calendar_analyser", "twitter_analyser"],
-            "twitter_authors": ["CarpeNoctom", "caprioleio", "JSeyff", "DonAlt", "krugermacro"],
+            "twitter_authors": [
+                "CarpeNoctom", "caprioleio", "JSeyff", "DonAlt", "krugermacro",
+                "DavidDuong", "TraderMercury", "Yodaskk", "_Checkmatey_", "CrypNuevo",
+            ],
+            "twitter_since_date": "2026-03-01",
+            "twitter_until_date": "2026-04-03",
         }
     })
 
@@ -300,6 +306,14 @@ class CollectAgentDataRequest(BaseModel):
     twitter_authors: list[str] | None = Field(
         default=None,
         description="Optional list of Twitter usernames to scrape. If omitted, uses all enabled accounts from twitter_collector_settings.json",
+    )
+    twitter_since_date: str | None = Field(
+        default=None,
+        description="Start date for Twitter scraping (YYYY-MM-DD). If omitted, uses latest date in DB (incremental).",
+    )
+    twitter_until_date: str | None = Field(
+        default=None,
+        description="End date for Twitter scraping (YYYY-MM-DD). If omitted, uses today.",
     )
 
 

@@ -369,29 +369,36 @@ def collect_tweets(
     return stats
 
 
-def collect_twitter_news(authors: list[str] | None = None) -> dict:
+def collect_twitter_news(
+    authors: list[str] | None = None,
+    since_date: str | None = None,
+    until_date: str | None = None,
+) -> dict:
     """Incremental collection: fetches from the latest date in DB up to today.
 
-    since_date = MAX(date) in twitter archive (inclusive)
-    until_date = today
+    If since_date/until_date are provided, uses them directly (custom range mode).
+    Otherwise falls back to incremental: since_date = MAX(date) in DB, until_date = today.
 
     Args:
         authors: Optional list of usernames to scrape. If None, uses all enabled accounts.
+        since_date: Optional start date (YYYY-MM-DD). If omitted, uses latest date in DB.
+        until_date: Optional end date (YYYY-MM-DD). If omitted, uses today.
 
     Returns stats in {before, fetched, new, after, date_range} format
     compatible with CollectAgentDataResult schema.
     """
-    from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twitter_db import get_latest_date
+    if since_date is None:
+        from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twitter_db import get_latest_date
+        latest_db_date = get_latest_date()
+        if latest_db_date is None:
+            raise ValueError(
+                "Twitter archive is empty — cannot determine since_date. "
+                "Run a manual collection first to seed the archive."
+            )
+        since_date = latest_db_date
 
-    latest_db_date = get_latest_date()
-    if latest_db_date is None:
-        raise ValueError(
-            "Twitter archive is empty — cannot determine since_date. "
-            "Run a manual collection first to seed the archive."
-        )
-
-    until_date = datetime.now().strftime("%Y-%m-%d")
-    since_date = latest_db_date
+    if until_date is None:
+        until_date = datetime.now().strftime("%Y-%m-%d")
 
     print(f"{LOG_TAG} Incremental collection: {since_date} → {until_date}")
 

@@ -121,8 +121,17 @@ async def collect_agent_data(request: CollectAgentDataRequest) -> CollectAgentDa
             raise HTTPException(status_code=409, detail=f"Collection for '{agent_name}' is already running")
         async with lock:
             try:
-                if agent_name == "twitter_analyser" and request.twitter_authors is not None:
-                    stats = await run_in_threadpool(collect_twitter_news, request.twitter_authors)
+                if agent_name == "twitter_analyser" and (
+                    request.twitter_authors is not None
+                    or request.twitter_since_date is not None
+                    or request.twitter_until_date is not None
+                ):
+                    stats = await run_in_threadpool(
+                        collect_twitter_news,
+                        request.twitter_authors,
+                        request.twitter_since_date,
+                        request.twitter_until_date,
+                    )
                 else:
                     stats = await run_in_threadpool(_AGENT_COLLECTORS[agent_name])
                 results.append(CollectAgentDataResult(agent=agent_name, **stats))

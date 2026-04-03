@@ -14,7 +14,7 @@
 
 services:
   btc-predictor:
-    image: danilacrazy1337/btc-predictor:v1
+    image: danilacrazy1337/btc-predictor:v1.0
     env_file: ./dev.env
     ports:
       - "8080:8080"

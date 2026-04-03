@@ -1,9 +1,69 @@
 {
-  "date": "2026-03-23",
+  "date": "2026-03-24",
   "horizon": 1,
   "window": 7,
-  "total_events": 28,
+  "total_events": 30,
   "events": [
+    {
+      "date": "2026-03-24",
+      "name": "API crude oil inventory transmutation last week (10,000 barrels)(to 0320)",
+      "country": "US",
+      "importance": 3,
+      "actual": "234.8",
+      "forecast": "",
+      "previous": "655.6",
+      "data_effect": "Bearish for Crude Oil"
+    },
+    {
+      "date": "2026-03-24",
+      "name": "CBI Retail Sales Expectation Index(Mar)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "-49",
+      "forecast": "",
+      "previous": "-17",
+      "data_effect": "Bullish for the British Pound"
+    },
+    {
+      "date": "2026-03-24",
+      "name": "Markit/CIPS Manufacturing Purchasing Managers Index (Preliminary)(Mar)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "51.4",
+      "forecast": "50.5",
+      "previous": "51.7",
+      "data_effect": "Bullish for the British Pound"
+    },
+    {
+      "date": "2026-03-24",
+      "name": "Markit Manufacturing Purchasing Managers Index (Preliminary)(Mar)",
+      "country": "Eurozone",
+      "importance": 3,
+      "actual": "51.4",
+      "forecast": "49.4",
+      "previous": "50.8",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-24",
+      "name": "Markit/BME Manufacturing Purchasing Managers Index (Preliminary)(Mar)",
+      "country": "Germany",
+      "importance": 3,
+      "actual": "51.7",
+      "forecast": "49.4",
+      "previous": "50.9",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-24",
+      "name": "Markit/CDAF Manufacturing Purchasing Managers Index (Preliminary)(Mar)",
+      "country": "France",
+      "importance": 3,
+      "actual": "50.2",
+      "forecast": "49.5",
+      "previous": "50.1",
+      "data_effect": "Bullish for the Euro"
+    },
     {
       "date": "2026-03-23",
       "name": "National Consumer Price Index (YoY)(Feb)",
@@ -243,51 +303,11 @@
       "forecast": "",
       "previous": "0.7%",
       "data_effect": "Bullish for the Euro"
-    },
-    {
-      "date": "2026-03-17",
-      "name": "API crude oil inventory transmutation last week (10,000 barrels)(to 0313)",
-      "country": "US",
-      "importance": 3,
-      "actual": "655.6",
-      "forecast": "",
-      "previous": "-167.8",
-      "data_effect": "Bearish for Crude Oil"
-    },
-    {
-      "date": "2026-03-17",
-      "name": "NAR seasonally adjusted existing home contracted sales index (MoM)(Feb)",
-      "country": "US",
-      "importance": 3,
-      "actual": "1.8%",
-      "forecast": "-0.5%",
-      "previous": "-0.8%",
-      "data_effect": "bullish for the US dollar"
-    },
-    {
-      "date": "2026-03-17",
-      "name": "ZEW Economic Sentiment Index(Mar)",
-      "country": "Germany",
-      "importance": 3,
-      "actual": "-0.5",
-      "forecast": "38.7",
-      "previous": "58.3",
-      "data_effect": "Bullish for the Euro"
-    },
-    {
-      "date": "2026-03-17",
-      "name": "Reserve Bank of Australia Cash Rate",
-      "country": "Australia",
-      "importance": 3,
-      "actual": "4.10%",
-      "forecast": "4.10%",
-      "previous": "3.85%",
-      "data_effect": "Minor Impact"
     }
   ],
   "verdict": {
     "direction": "bearish",
     "confidence": "high",
-    "reasoning": "The major economic events indicate a generally bullish sentiment for the US dollar due to poor performance in construction expenditure and new home sales, which could lead to a stronger dollar and a bearish impact on Bitcoin. Additionally, bearish signals from crude oil inventories and the unemployment rate in the UK further contribute to a negative outlook for Bitcoin, as these factors suggest economic weakness that typically drives investors away from riskier assets like cryptocurrencies."
+    "reasoning": "The major economic events indicate a strong bullish sentiment for several currencies, particularly the Euro and British Pound, which could lead to a bearish impact on Bitcoin. Additionally, the bearish data for crude oil and the negative surprise in US new home sales suggest a weakening US dollar, which typically correlates with a bearish outlook for Bitcoin as it often moves inversely to the dollar's strength."
   }
 }

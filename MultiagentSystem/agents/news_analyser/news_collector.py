@@ -83,12 +83,16 @@ def collect_news() -> dict:
     fresh = fetch_all_available()
     prepared = [_prepare_for_archive(a) for a in fresh]
 
-    # Classify before inserting so new records land with category/strength set
-    if prepared:
-        print(f"[news_collector] Classifying {len(prepared)} fetched articles...")
-        classify_articles(prepared)
-
+    # Insert first — INSERT OR IGNORE deduplicates; new articles land with category=NULL
     new_count = insert_articles(prepared)
+
+    # Classify only the newly inserted articles (unclassified ones in DB)
+    if new_count > 0:
+        unclassified = get_unclassified_articles()
+        if unclassified:
+            print(f"[news_collector] Classifying {len(unclassified)} new articles...")
+            classify_articles(unclassified)
+            update_classifications(unclassified)
 
     stats_after = get_db_stats()
 

@@ -168,6 +168,7 @@ def get_db_stats() -> dict:
 
 def get_latest_date() -> str | None:
     """Returns MAX(date) from archive, or None if empty."""
+    init_db()
     with sqlite3.connect(DB_PATH) as conn:
         row = conn.execute("SELECT MAX(date) FROM news_articles").fetchone()
     return row[0] if row and row[0] else None

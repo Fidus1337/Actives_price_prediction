@@ -1,313 +1,303 @@
 {
-  "date": "2026-03-24",
+  "date": "2026-04-04",
   "horizon": 1,
-  "window": 7,
-  "total_events": 30,
+  "window": 5,
+  "total_events": 29,
   "events": [
     {
-      "date": "2026-03-24",
-      "name": "API crude oil inventory transmutation last week (10,000 barrels)(to 0320)",
+      "date": "2026-04-03",
+      "name": "Seasonally adjusted changes in non-agricultural employment population (thousands)(Mar)",
       "country": "US",
       "importance": 3,
-      "actual": "234.8",
-      "forecast": "",
-      "previous": "655.6",
-      "data_effect": "Bearish for Crude Oil"
-    },
-    {
-      "date": "2026-03-24",
-      "name": "CBI Retail Sales Expectation Index(Mar)",
-      "country": "UK",
-      "importance": 3,
-      "actual": "-49",
-      "forecast": "",
-      "previous": "-17",
-      "data_effect": "Bullish for the British Pound"
-    },
-    {
-      "date": "2026-03-24",
-      "name": "Markit/CIPS Manufacturing Purchasing Managers Index (Preliminary)(Mar)",
-      "country": "UK",
-      "importance": 3,
-      "actual": "51.4",
-      "forecast": "50.5",
-      "previous": "51.7",
-      "data_effect": "Bullish for the British Pound"
-    },
-    {
-      "date": "2026-03-24",
-      "name": "Markit Manufacturing Purchasing Managers Index (Preliminary)(Mar)",
-      "country": "Eurozone",
-      "importance": 3,
-      "actual": "51.4",
-      "forecast": "49.4",
-      "previous": "50.8",
-      "data_effect": "Bullish for the Euro"
-    },
-    {
-      "date": "2026-03-24",
-      "name": "Markit/BME Manufacturing Purchasing Managers Index (Preliminary)(Mar)",
-      "country": "Germany",
-      "importance": 3,
-      "actual": "51.7",
-      "forecast": "49.4",
-      "previous": "50.9",
-      "data_effect": "Bullish for the Euro"
-    },
-    {
-      "date": "2026-03-24",
-      "name": "Markit/CDAF Manufacturing Purchasing Managers Index (Preliminary)(Mar)",
-      "country": "France",
-      "importance": 3,
-      "actual": "50.2",
-      "forecast": "49.5",
-      "previous": "50.1",
-      "data_effect": "Bullish for the Euro"
-    },
-    {
-      "date": "2026-03-23",
-      "name": "National Consumer Price Index (YoY)(Feb)",
-      "country": "Japan",
-      "importance": 3,
-      "actual": "1.3%",
-      "forecast": "1.4%",
-      "previous": "1.5%",
-      "data_effect": "Bullish for the Japanese Yen"
-    },
-    {
-      "date": "2026-03-23",
-      "name": "Construction expenditure (MoM)(Jan)",
-      "country": "US",
-      "importance": 3,
-      "actual": "-0.3%",
-      "forecast": "0.1%",
-      "previous": "0.3%",
-      "data_effect": "bullish for the US dollar"
-    },
-    {
-      "date": "2026-03-20",
-      "name": "Total number of oil wells in the week (rigs)(to 0320)",
-      "country": "US",
-      "importance": 3,
-      "actual": "414",
-      "forecast": "",
-      "previous": "412",
-      "data_effect": "Bearish for Crude Oil"
-    },
-    {
-      "date": "2026-03-20",
-      "name": "Retail sales (MoM)(Jan)",
-      "country": "Canada",
-      "importance": 3,
-      "actual": "1.1%",
-      "forecast": "1.5%",
-      "previous": "-0.4%",
-      "data_effect": "Bullish for the Canadian Dollar"
-    },
-    {
-      "date": "2026-03-20",
-      "name": "CBI Industrial Orders Expected Difference(Mar)",
-      "country": "UK",
-      "importance": 3,
-      "actual": "-27",
-      "forecast": "",
-      "previous": "-28",
-      "data_effect": "Bullish for the British Pound"
-    },
-    {
-      "date": "2026-03-20",
-      "name": "Seasonally adjusted trade account (billion euros)(Jan)",
-      "country": "Eurozone",
-      "importance": 3,
-      "actual": "12.1",
-      "forecast": "",
-      "previous": "11.6",
-      "data_effect": "Bullish for the Euro"
-    },
-    {
-      "date": "2026-03-20",
-      "name": "Producer Price Index (MoM)(Feb)",
-      "country": "Germany",
-      "importance": 3,
-      "actual": "-0.5%",
-      "forecast": "0.3%",
-      "previous": "-0.6%",
-      "data_effect": "Bullish for the Euro"
-    },
-    {
-      "date": "2026-03-20",
-      "name": "One-Year Loan Prime Rate (LPR)",
-      "country": "China",
-      "importance": 3,
-      "actual": "3.00%",
-      "forecast": "3.00%",
-      "previous": "3.00%",
-      "data_effect": "Minor Impact"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "New home sales (AAMR)(Jan)",
-      "country": "US",
-      "importance": 3,
-      "actual": "-17.6%",
-      "forecast": "-2.7%",
-      "previous": "-1.7%",
-      "data_effect": "bullish for the US dollar"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "European Central Bank refinancing rate",
-      "country": "Eurozone",
-      "importance": 3,
-      "actual": "2.15%",
-      "forecast": "2.15%",
-      "previous": "2.15%",
-      "data_effect": "Minor Impact"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "Number of seasonally adjusted initial K'in claims last week (thousands)(to 0314)",
-      "country": "US",
-      "importance": 3,
-      "actual": "205",
-      "forecast": "215",
-      "previous": "213",
-      "data_effect": "bearish for the US dollar,bullish for gold and silver"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "official bank rate",
-      "country": "UK",
-      "importance": 3,
-      "actual": "3.75%",
-      "forecast": "3.75%",
-      "previous": "3.75%",
-      "data_effect": "Minor Impact"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "call back rate",
-      "country": "Sweden",
-      "importance": 3,
-      "actual": "1.75%",
-      "forecast": "",
-      "previous": "1.75%",
-      "data_effect": "Minor Impact"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "policy rate",
-      "country": "Switzerland",
-      "importance": 3,
-      "actual": "0.00%",
-      "forecast": "0.00%",
-      "previous": "0.00%",
-      "data_effect": "Minor Impact"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "unemployment rate(Feb)",
-      "country": "UK",
-      "importance": 3,
-      "actual": "4.41%",
-      "forecast": "",
-      "previous": "4.4%",
-      "data_effect": "Bearish for the British Pound"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "Three-Month Average ILO Unemployment Rate(Jan)",
-      "country": "UK",
-      "importance": 3,
-      "actual": "5.2%",
-      "forecast": "",
-      "previous": "5.2%",
-      "data_effect": "Minor Impact"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "unsecured overnight lending rate",
-      "country": "Japan",
-      "importance": 3,
-      "actual": "0.75%",
-      "forecast": "0.75%",
-      "previous": "0.75%",
-      "data_effect": "Minor Impact"
-    },
-    {
-      "date": "2026-03-19",
-      "name": "Seasonally adjusted unemployment rate(Feb)",
-      "country": "Australia",
-      "importance": 3,
-      "actual": "4.3%",
-      "forecast": "4.1%",
-      "previous": "4.1%",
-      "data_effect": "Bearish for the Australian Dollar"
-    },
-    {
-      "date": "2026-03-18",
-      "name": "Federal Funds Benchmark Rate",
-      "country": "US",
-      "importance": 3,
-      "actual": "3.50% - 3.75%",
-      "forecast": "3.50% - 3.75%",
-      "previous": "3.50% - 3.75%",
-      "data_effect": "Minor Impact"
-    },
-    {
-      "date": "2026-03-18",
-      "name": "EIA crude oil inventory transmutation last week (10,000 barrels)(to 0313)",
-      "country": "US",
-      "importance": 3,
-      "actual": "615.6",
-      "forecast": "38.3",
-      "previous": "382.4",
-      "data_effect": "Bearish for Crude Oil"
-    },
-    {
-      "date": "2026-03-18",
-      "name": "Overnight Target interest rate",
-      "country": "Canada",
-      "importance": 3,
-      "actual": "2.25%",
-      "forecast": "2.25%",
-      "previous": "2.25%",
-      "data_effect": "Minor Impact"
-    },
-    {
-      "date": "2026-03-18",
-      "name": "Producer Price Index (YoY)(Feb)",
-      "country": "US",
-      "importance": 3,
-      "actual": "3.4%",
-      "forecast": "2.9%",
-      "previous": "2.9%",
+      "actual": "178",
+      "forecast": "60",
+      "previous": "-92",
       "data_effect": "bullish for the US dollar,bearish for gold and silver"
     },
     {
-      "date": "2026-03-18",
-      "name": "Consumer Price Index (YoY)(Final)(Feb)",
-      "country": "Eurozone",
+      "date": "2026-04-03",
+      "name": "Unemployment Rate(Mar)",
+      "country": "US",
       "importance": 3,
-      "actual": "1.9%",
-      "forecast": "1.9%",
-      "previous": "1.9%",
+      "actual": "4.3%",
+      "forecast": "4.4%",
+      "previous": "4.4%",
+      "data_effect": "bearish for the US dollar,bullish for gold and silver"
+    },
+    {
+      "date": "2026-04-03",
+      "name": "Caixin Composite Purchasing Managers Index(Mar)",
+      "country": "China",
+      "importance": 3,
+      "actual": "51.5",
+      "forecast": "",
+      "previous": "55.4",
       "data_effect": "Minor Impact"
     },
     {
-      "date": "2026-03-18",
-      "name": "Consumer Price Index (MoM)(Final)(Feb)",
-      "country": "Eurozone",
+      "date": "2026-04-03",
+      "name": "Caixin Services Purchasing Managers Index(Mar)",
+      "country": "China",
+      "importance": 3,
+      "actual": "52.1",
+      "forecast": "53.7",
+      "previous": "56.7",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-04-02",
+      "name": "Total number of oil wells in the week (rigs)(to 0403)",
+      "country": "US",
+      "importance": 3,
+      "actual": "411",
+      "forecast": "",
+      "previous": "409",
+      "data_effect": "Bearish for Crude Oil"
+    },
+    {
+      "date": "2026-04-02",
+      "name": "Trade Balance (billion USD)(Feb)",
+      "country": "US",
+      "importance": 3,
+      "actual": "-57.3",
+      "forecast": "-61.0",
+      "previous": "-54.5",
+      "data_effect": "bullish for the US dollar,bearish for gold and silver"
+    },
+    {
+      "date": "2026-04-02",
+      "name": "Number of seasonally adjusted initial K'in claims last week (thousands)(to 0328)",
+      "country": "US",
+      "importance": 3,
+      "actual": "202",
+      "forecast": "212",
+      "previous": "210",
+      "data_effect": "bearish for the US dollar,bullish for gold and silver"
+    },
+    {
+      "date": "2026-04-02",
+      "name": "Trade account (billions of Canadian dollars)(Feb)",
+      "country": "Canada",
+      "importance": 3,
+      "actual": "-5.74",
+      "forecast": "-2.25",
+      "previous": "-3.65",
+      "data_effect": "Bullish for the Canadian Dollar"
+    },
+    {
+      "date": "2026-04-02",
+      "name": "Markit/BME Manufacturing Purchasing Managers Index (Final)(Mar)",
+      "country": "Germany",
+      "importance": 3,
+      "actual": "52.2",
+      "forecast": "51.7",
+      "previous": "51.7",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-04-01",
+      "name": "EIA crude oil inventory transmutation last week (10,000 barrels)(to 0327)",
+      "country": "US",
+      "importance": 3,
+      "actual": "545.1",
+      "forecast": "81.4",
+      "previous": "692.6",
+      "data_effect": "Bearish for Crude Oil"
+    },
+    {
+      "date": "2026-04-01",
+      "name": "ISM Manufacturing Purchasing Managers Index(Mar)",
+      "country": "US",
+      "importance": 3,
+      "actual": "52.7",
+      "forecast": "52.5",
+      "previous": "52.4",
+      "data_effect": "bullish for the US dollar,bearish for gold and silver"
+    },
+    {
+      "date": "2026-04-01",
+      "name": "Retail sales (MoM)(Feb)",
+      "country": "US",
       "importance": 3,
       "actual": "0.6%",
-      "forecast": "",
-      "previous": "0.7%",
+      "forecast": "0.5%",
+      "previous": "-0.2%",
+      "data_effect": "bullish for the US dollar,bearish for gold and silver"
+    },
+    {
+      "date": "2026-04-01",
+      "name": "Change in ADP employment (thousands)(Mar)",
+      "country": "US",
+      "importance": 3,
+      "actual": "62.0",
+      "forecast": "40.0",
+      "previous": "63.0",
+      "data_effect": "bullish for the US dollar,bearish for gold and silver"
+    },
+    {
+      "date": "2026-04-01",
+      "name": "Unemployment Rate(Feb)",
+      "country": "Eurozone",
+      "importance": 3,
+      "actual": "6.2%",
+      "forecast": "6.1%",
+      "previous": "6.1%",
+      "data_effect": "Bearish for the Euro"
+    },
+    {
+      "date": "2026-04-01",
+      "name": "Markit/CIPS Manufacturing Purchasing Managers Index (Final)(Mar)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "51.0",
+      "forecast": "51.4",
+      "previous": "51.4",
+      "data_effect": "Bullish for the British Pound"
+    },
+    {
+      "date": "2026-04-01",
+      "name": "Markit Manufacturing Purchasing Managers Index (Final)(Mar)",
+      "country": "Eurozone",
+      "importance": 3,
+      "actual": "51.6",
+      "forecast": "51.4",
+      "previous": "51.4",
       "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-04-01",
+      "name": "Markit/BME Manufacturing Purchasing Managers Index (Final)(Mar)",
+      "country": "Germany",
+      "importance": 3,
+      "actual": "52.2",
+      "forecast": "51.7",
+      "previous": "51.7",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-04-01",
+      "name": "Markit/CDAF Manufacturing Purchasing Managers Index (Final)(Mar)",
+      "country": "France",
+      "importance": 3,
+      "actual": "50.0",
+      "forecast": "50.2",
+      "previous": "50.2",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "API crude oil inventory transmutation last week (10,000 barrels)(to 0327)",
+      "country": "US",
+      "importance": 3,
+      "actual": "1026.3",
+      "forecast": "-130",
+      "previous": "234.8",
+      "data_effect": "Bearish for Crude Oil"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Conference Board Consumer Confidence Index(Mar)",
+      "country": "US",
+      "importance": 3,
+      "actual": "91.8",
+      "forecast": "88.0",
+      "previous": "91.2",
+      "data_effect": "bullish for the US dollar"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "GDP(MoM)(Jan)",
+      "country": "Canada",
+      "importance": 3,
+      "actual": "0.1%",
+      "forecast": "0.0%",
+      "previous": "0.2%",
+      "data_effect": "Bullish for the Canadian Dollar"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Consumer Price Index (MoM)(Preliminary)(Mar)",
+      "country": "Eurozone",
+      "importance": 3,
+      "actual": "1.2%",
+      "forecast": "",
+      "previous": "0.6%",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Consumer Price Index (YoY)(Preliminary)(Mar)",
+      "country": "Eurozone",
+      "importance": 3,
+      "actual": "2.5%",
+      "forecast": "2.7%",
+      "previous": "1.9%",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Seasonally adjusted unemployment rate (official)(Mar)",
+      "country": "Germany",
+      "importance": 3,
+      "actual": "6.3%",
+      "forecast": "6.3%",
+      "previous": "6.3%",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Consumer Price Index (MoM)(Preliminary)(Mar)",
+      "country": "France",
+      "importance": 3,
+      "actual": "0.9%",
+      "forecast": "",
+      "previous": "0.6%",
+      "data_effect": "Bullish for the Euro"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Current Account (billion GBP)(Q4)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "-18.4",
+      "forecast": "-23.4",
+      "previous": "-12.1",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "GDP(YoY)(Final)(Q4)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "1.0%",
+      "forecast": "",
+      "previous": "1.0%",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "GDP(Q)(Final)(Q4)",
+      "country": "UK",
+      "importance": 3,
+      "actual": "0.1%",
+      "forecast": "0.1%",
+      "previous": "0.1%",
+      "data_effect": "Minor Impact"
+    },
+    {
+      "date": "2026-03-31",
+      "name": "Official Manufacturing Purchasing Managers Index(Mar)",
+      "country": "China",
+      "importance": 3,
+      "actual": "50.4",
+      "forecast": "50.1",
+      "previous": "49.0",
+      "data_effect": "Bullish for the Australian Dollar"
     }
   ],
   "verdict": {
     "direction": "bearish",
     "confidence": "high",
-    "reasoning": "The major economic events indicate a strong bullish sentiment for several currencies, particularly the Euro and British Pound, which could lead to a bearish impact on Bitcoin. Additionally, the bearish data for crude oil and the negative surprise in US new home sales suggest a weakening US dollar, which typically correlates with a bearish outlook for Bitcoin as it often moves inversely to the dollar's strength."
+    "reasoning": "The major events indicate a mixed impact on the US dollar, with strong employment data and a positive trade balance boosting it, while the unemployment rate is bearish. However, the overall bullish sentiment for the US dollar, combined with bearish signals for gold and silver, suggests a negative outlook for Bitcoin, as a stronger dollar typically leads to lower BTC prices."
   }
 }

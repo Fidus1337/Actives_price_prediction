@@ -179,6 +179,7 @@ def get_date_range() -> str:
 
 def get_latest_date() -> str | None:
     """Returns MAX(date) from archive, or None if empty."""
+    init_db()
     with _get_conn() as conn:
         row = conn.execute(
             "SELECT MAX(date) FROM tweets WHERE date IS NOT NULL"

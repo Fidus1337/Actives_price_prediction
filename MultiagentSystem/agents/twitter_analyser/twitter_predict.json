@@ -1,108 +1,48 @@
 {
-  "date": "2026-03-24",
+  "date": "2026-04-04",
   "horizon": 1,
-  "window": 14,
-  "half_life_days": 4.0,
-  "total_tweets": 10,
-  "total_author_day_groups": 9,
-  "bull_count": 5,
-  "bull_weight_decayed": 5.3474,
-  "bear_count": 4,
-  "bear_weight_decayed": 3.3852,
-  "avg_time_decay_directional": 0.4107,
-  "bull_ratio_weighted": 0.6123,
-  "prediction": true,
-  "confidence": "low",
+  "window": 7,
+  "half_life_days": 3.0,
+  "total_tweets": 5,
+  "total_author_day_groups": 3,
+  "bull_count": 1,
+  "bull_weight_decayed": 0.5,
+  "bear_count": 2,
+  "bear_weight_decayed": 1.5571,
+  "avg_time_decay_directional": 0.5428,
+  "bull_ratio_weighted": 0.2431,
+  "prediction": false,
+  "confidence": "medium",
   "author_day_aggregates": [
     {
       "author": "CarpeNoctom",
-      "utc_day": "2026-03-21",
-      "tweets_count": 1,
-      "avg_raw_score": 3.0,
-      "avg_time_decay": 0.660884,
-      "weighted_score": 1.982651,
-      "bull_weight": 1.982651,
-      "bear_weight": 0.0
-    },
-    {
-      "author": "CarpeNoctom",
-      "utc_day": "2026-03-20",
-      "tweets_count": 1,
-      "avg_raw_score": -2.0,
-      "avg_time_decay": 0.584023,
-      "weighted_score": -1.168046,
-      "bull_weight": 0.0,
-      "bear_weight": 1.168046
-    },
-    {
-      "author": "caprioleio",
-      "utc_day": "2026-03-20",
-      "tweets_count": 1,
-      "avg_raw_score": 2.0,
-      "avg_time_decay": 0.518623,
-      "weighted_score": 1.037246,
-      "bull_weight": 1.037246,
-      "bear_weight": 0.0
-    },
-    {
-      "author": "JSeyff",
-      "utc_day": "2026-03-19",
-      "tweets_count": 1,
-      "avg_raw_score": 3.0,
-      "avg_time_decay": 0.47532,
-      "weighted_score": 1.425959,
-      "bull_weight": 1.425959,
-      "bear_weight": 0.0
-    },
-    {
-      "author": "caprioleio",
-      "utc_day": "2026-03-18",
+      "utc_day": "2026-04-04",
       "tweets_count": 2,
-      "avg_raw_score": -2.5,
-      "avg_time_decay": 0.407136,
-      "weighted_score": -1.017841,
-      "bull_weight": 0.0,
-      "bear_weight": 1.017841
-    },
-    {
-      "author": "krugermacro",
-      "utc_day": "2026-03-18",
-      "tweets_count": 1,
-      "avg_raw_score": -2.0,
-      "avg_time_decay": 0.403504,
-      "weighted_score": -0.807007,
-      "bull_weight": 0.0,
-      "bear_weight": 0.807007
-    },
-    {
-      "author": "DonAlt",
-      "utc_day": "2026-03-16",
-      "tweets_count": 1,
-      "avg_raw_score": 2.0,
-      "avg_time_decay": 0.295669,
-      "weighted_score": 0.591339,
-      "bull_weight": 0.591339,
+      "avg_raw_score": 0.5,
+      "avg_time_decay": 1.0,
+      "weighted_score": 0.5,
+      "bull_weight": 0.5,
       "bear_weight": 0.0
-    },
-    {
-      "author": "CarpeNoctom",
-      "utc_day": "2026-03-14",
-      "tweets_count": 1,
-      "avg_raw_score": -2.0,
-      "avg_time_decay": 0.196152,
-      "weighted_score": -0.392305,
-      "bull_weight": 0.0,
-      "bear_weight": 0.392305
     },
     {
       "author": "caprioleio",
-      "utc_day": "2026-03-13",
+      "utc_day": "2026-03-30",
+      "tweets_count": 2,
+      "avg_raw_score": -2.0,
+      "avg_time_decay": 0.328074,
+      "weighted_score": -0.656147,
+      "bull_weight": 0.0,
+      "bear_weight": 0.656147
+    },
+    {
+      "author": "CarpeNoctom",
+      "utc_day": "2026-03-29",
       "tweets_count": 1,
-      "avg_raw_score": 2.0,
-      "avg_time_decay": 0.155107,
-      "weighted_score": 0.310215,
-      "bull_weight": 0.310215,
-      "bear_weight": 0.0
+      "avg_raw_score": -3.0,
+      "avg_time_decay": 0.300301,
+      "weighted_score": -0.900904,
+      "bull_weight": 0.0,
+      "bear_weight": 0.900904
     }
   ],
   "classifications": [
@@ -110,91 +50,46 @@
       "author": "CarpeNoctom",
       "signal": "BULL",
       "confidence": "HIGH",
-      "date": "2026-03-21",
-      "age_days": 2.3901,
-      "time_decay": 0.660884,
-      "text": "Weekly ETF Net Flows $BTC $BTC = +$95m $ETH $ETH = -$60m $XRP $XRP = +$0.6m $SOL $SOL = +$20m"
+      "date": "2026-04-04",
+      "age_days": 0.0,
+      "time_decay": 1.0,
+      "text": "Weekly ETF Net Flows $BTC $BTC = +$22m $ETH $ETH = -$42m $XRP $XRP = -$3.6m $SOL $SOL = -$5.2m"
     },
     {
       "author": "CarpeNoctom",
       "signal": "BEAR",
       "confidence": "MIDDLE",
-      "date": "2026-03-20",
-      "age_days": 3.1036,
-      "time_decay": 0.584023,
-      "text": "$BTC $BTC & $ETH $ETH CoT comms increased short pos in BTC, about the same for ETH cya next week!"
-    },
-    {
-      "author": "caprioleio",
-      "signal": "BULL",
-      "confidence": "MIDDLE",
-      "date": "2026-03-20",
-      "age_days": 3.789,
-      "time_decay": 0.518623,
-      "text": "Institutions are buying 5X the daily mined Bitcoin"
-    },
-    {
-      "author": "JSeyff",
-      "signal": "BULL",
-      "confidence": "HIGH",
-      "date": "2026-03-19",
-      "age_days": 4.2921,
-      "time_decay": 0.47532,
-      "text": "Morgan Stanley’s new bitcoin ETF — $MSBT $MSBT . Coming soon to an exchange near you"
+      "date": "2026-04-04",
+      "age_days": 0.0,
+      "time_decay": 1.0,
+      "text": "$BTC $BTC CoT - large spec max long = bearish\n- comms slight reduction in shorts WoW but still net short = bearish\n- sma"
     },
     {
       "author": "caprioleio",
       "signal": "BEAR",
       "confidence": "MIDDLE",
-      "date": "2026-03-18",
-      "age_days": 5.0059,
-      "time_decay": 0.420015,
-      "text": "Originally multiple rate cuts were projected for 2026, by both the Fed dot plot and the CME Fedwatch. Now the market is "
-    },
-    {
-      "author": "krugermacro",
-      "signal": "BEAR",
-      "confidence": "MIDDLE",
-      "date": "2026-03-18",
-      "age_days": 5.2374,
-      "time_decay": 0.403504,
-      "text": "The Fed is projecting higher growth, higher inflation, and the same rates as before (for the end of 2026). Basically, it"
+      "date": "2026-03-30",
+      "age_days": 4.8225,
+      "time_decay": 0.328169,
+      "text": "Metaplanet is giga rekt. Their average cost basis is $105K. The Bitcoin treasury model failing in real time."
     },
     {
       "author": "caprioleio",
       "signal": "BEAR",
-      "confidence": "HIGH",
-      "date": "2026-03-18",
-      "age_days": 5.3712,
-      "time_decay": 0.394258,
-      "text": "That high CPI read just changed everything. It was from pre-war inflation in Feb. Add Oil up 50%+ to the mix and rate cu"
-    },
-    {
-      "author": "DonAlt",
-      "signal": "BULL",
       "confidence": "MIDDLE",
-      "date": "2026-03-16",
-      "age_days": 7.0318,
-      "time_decay": 0.295669,
-      "text": "After having sold at $110k and largely sitting on my hands since avoiding a 40% drawdown I finally see some price action"
+      "date": "2026-03-30",
+      "age_days": 4.825,
+      "time_decay": 0.327978,
+      "text": "MicroStrategy is down -13% on its Bitcoin.\nAll that financial engineering & fancy tickers. Would have been better off ju"
     },
     {
       "author": "CarpeNoctom",
       "signal": "BEAR",
-      "confidence": "MIDDLE",
-      "date": "2026-03-14",
-      "age_days": 9.3998,
-      "time_decay": 0.196152,
-      "text": "$BTC $BTC & $ETH $ETH CoT Both Comms increased net short cya next week!"
-    },
-    {
-      "author": "caprioleio",
-      "signal": "BULL",
-      "confidence": "MIDDLE",
-      "date": "2026-03-13",
-      "age_days": 10.7546,
-      "time_decay": 0.155107,
-      "text": "Measured collapse in Bitcoin miner selling after a price drop are ALL BULLISH"
+      "confidence": "HIGH",
+      "date": "2026-03-29",
+      "age_days": 5.2066,
+      "time_decay": 0.300301,
+      "text": "Weekly ETF Net Flows $BTC $BTC = -$296m $ETH $ETH = -$206m $XRP $XRP = +$2.7m $SOL $SOL = -$4.4m"
     }
   ]
 }

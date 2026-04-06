@@ -44,8 +44,12 @@ def agent_for_analysing_tech_indicators(state: AgentState):
     settings = get_agent_settings(state, "agent_for_analysing_tech_indicators")
     horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
+    llm_model = settings.get("llm_model", "gpt-4.1")
     print(f"{TAG} [STEP 1/6] Settings loaded | horizon={horizon}d | forecast_date={forecast_date}")
-    print(f"{TAG}   window_to_analysis={settings['window_to_analysis']} | base_feats count={len(settings['base_feats'])}")
+    print(
+        f"{TAG}   window_to_analysis={settings['window_to_analysis']} | "
+        f"base_feats count={len(settings['base_feats'])} | llm_model={llm_model}"
+    )
 
     # 2. We should predict values by the forecast_start_date
     df = state["cached_dataset"].copy()
@@ -97,9 +101,11 @@ def agent_for_analysing_tech_indicators(state: AgentState):
     else:
         system_prompt = settings["system_prompt"]
         print(f"{TAG} [STEP 5/6] System prompt loaded from config ({len(system_prompt)} chars)")
+    # Bind prompt instructions to runtime horizon from config/state.
+    system_prompt = system_prompt.replace("{HORIZON_DAYS}", str(horizon))
 
     # 6. Call LLM with CoT: reasoning is filled first, summary is based on it
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    llm = ChatOpenAI(model=llm_model, temperature=0.2)
 
     prev_feedback: list[str] = (
         state.get("agent_signals", {})
@@ -132,7 +138,7 @@ def agent_for_analysing_tech_indicators(state: AgentState):
     else:
         print(f"{TAG}   No previous validator feedback")
 
-    print(f"{TAG} [STEP 6/6] Calling LLM (gpt-4o-mini) with {len(messages)} messages...")
+    print(f"{TAG} [STEP 6/6] Calling LLM ({llm_model}) with {len(messages)} messages...")
 
     # Tells the LLM to return a JSON object that matches the Pydantic schema, instead of free-form text.
     try:

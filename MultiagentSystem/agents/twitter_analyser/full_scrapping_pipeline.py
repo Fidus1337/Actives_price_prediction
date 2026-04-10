@@ -1,9 +1,5 @@
 """
-Full Twitter scrapping pipeline: fetch, classify, store.
-
-Fetches tweets from configured accounts via Selenium scraper,
-deduplicates by tweet_id (via DB constraint), classifies BTC signals,
-and stores directional tweets (BULL/BEAR) in SQLite.
+Full Twitter scrapping pipeline: fetch and store only (no classification).
 
 Usage:
     python -m MultiagentSystem.agents.twitter_analyser.full_scrapping_pipeline
@@ -11,12 +7,10 @@ Usage:
 
 import json
 import random
-import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
-from MultiagentSystem.agents.twitter_analyser.twitter_news_classifier.classifier import classify_tweets
 from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.chrome_login_before_scrapping import (
     create_driver,
 )
@@ -25,487 +19,227 @@ from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twscraper import 
 )
 from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twitter_db import (
     count_tweets,
-    delete_tweets_by_ids,
-    delete_tweets_in_range,
     get_date_range,
-    get_all_tweets,
+    get_tweets_in_range,
+    init_db,
     insert_tweets,
     update_tweet_signals,
+)
+from MultiagentSystem.agents.twitter_analyser.twitter_news_classifier.classifier import (
+    classify_tweets,
 )
 
 ACCOUNTS_CONFIG_PATH = Path(__file__).parent / "twitter_collector_settings.json"
 LOG_TAG = "[twitter_collector]"
-_MODE_FETCH_NEW = "fetch_new"
-_MODE_RECLASSIFY_ALL = "reclassify_all"
-_MODE_RECLASSIFY_AND_REFETCH = "reclassify_and_refetch"
 
 
 def _load_accounts_config() -> dict:
-    """Get accounts configuration from JSON file. Convert to dict."""
+    """Load accounts + scraper settings from JSON config."""
     return json.loads(ACCOUNTS_CONFIG_PATH.read_text(encoding="utf-8"))
 
 
-def _is_driver_connection_error(exc: Exception) -> bool:
-    """Detect broken Selenium transport/session errors."""
-    msg = str(exc).lower()
-    markers = (
-        "driver_connection_lost",
-        "winerror 10054",
-        "connection reset",
-        "forcibly closed by the remote host",
-        "invalid session id",
-        "disconnected",
-    )
-    return any(marker in msg for marker in markers)
+def _get_enabled_accounts(config: dict) -> list[str]:
+    """Return enabled usernames from config."""
+    accounts = config.get("accounts", [])
+    enabled = []
+    for item in accounts:
+        username = (item.get("username") or "").strip().lstrip("@")
+        if username and item.get("enabled", False):
+            enabled.append(username)
+    return enabled
 
 
-def _resolve_cli_mode(argv: list[str]) -> tuple[str | None, str | None]:
-    """Resolve collector run mode from CLI flags.
-
-    Returns:
-        (mode, error) where exactly one of them is None.
+def _normalize_limit(value: int | None) -> int | None:
     """
-    known = {"--fetch-new", "--reclassify-all", "--reclassify-and-refetch", "--reclassify"}
-    unknown = [arg for arg in argv if arg.startswith("--") and arg not in known]
-    if unknown:
-        return None, f"Unknown flag(s): {', '.join(unknown)}"
-
-    selected: list[str] = []
-    if "--fetch-new" in argv:
-        selected.append(_MODE_FETCH_NEW)
-    if "--reclassify-all" in argv or "--reclassify" in argv:
-        selected.append(_MODE_RECLASSIFY_ALL)
-    if "--reclassify-and-refetch" in argv:
-        selected.append(_MODE_RECLASSIFY_AND_REFETCH)
-
-    if len(selected) > 1:
-        return None, (
-            "Flags are mutually exclusive. Use exactly one of: "
-            "--fetch-new | --reclassify-all | --reclassify-and-refetch"
-        )
-
-    if not selected:
-        return _MODE_FETCH_NEW, None
-    return selected[0], None
+    Convert config max_tweets_per_author:
+    -1 or 0 -> None (unlimited), positive -> same value
+    """
+    if value is None:
+        return None
+    if value <= 0:
+        return None
+    return value
 
 
-def _get_config_date_bounds() -> tuple[str, str]:
-    """Read and validate inclusive date bounds from settings."""
+def run_fetch_only() -> dict:
+    """
+    Parse tweets from configured accounts and save to SQLite archive.
+    No LLM / no classification at this stage.
+    """
+    init_db()
     config = _load_accounts_config()
-    settings = config.get("scraper_settings", {})
-    since_date = settings.get("since_date", "")
-    until_date = settings.get("until_date", "")
 
-    if not since_date or not until_date:
-        raise ValueError(
-            "since_date and until_date must be set in twitter_collector_settings.json"
-        )
-    if since_date > until_date:
-        raise ValueError(f"since_date ({since_date}) > until_date ({until_date})")
-    return since_date, until_date
+    scraper_settings = config.get("scraper_settings", {})
+    accounts = _get_enabled_accounts(config)
 
+    since_date = scraper_settings.get("since_date")
+    until_date = scraper_settings.get("until_date")
+    max_tweets = _normalize_limit(scraper_settings.get("max_tweets_per_author", 20))
+    max_scrolls = int(scraper_settings.get("max_scrolls", 100))
+    pause_min = float(scraper_settings.get("pause_min_sec", 3))
+    pause_max = float(scraper_settings.get("pause_max_sec", 7))
 
-def _quit_driver(driver, timeout: int = 15) -> None:
-    """Quit the Chrome driver with a hard timeout to avoid hanging.
-
-    driver.quit() on Windows can hang indefinitely when the Chrome process
-    doesn't respond. Runs quit() in a daemon thread — if it doesn't finish
-    within `timeout` seconds, the process is killed by PID.
-    """
-    import threading
-
-    pid = None
-    try:
-        pid = driver.service.process.pid
-    except Exception:
-        pass
-
-    done = threading.Event()
-
-    def _quit():
-        try:
-            driver.quit()
-        except Exception:
-            pass
-        done.set()
-
-    t = threading.Thread(target=_quit, daemon=True)
-    t.start()
-
-    if not done.wait(timeout=timeout):
-        print(f"{LOG_TAG} WARNING: driver.quit() timed out after {timeout}s — force-killing process")
-        if pid:
-            try:
-                import os, signal as _signal
-                os.kill(pid, _signal.SIGTERM)
-            except Exception as e:
-                print(f"{LOG_TAG} WARNING: could not kill Chrome PID {pid}: {e}")
-
-
-def collect_tweets(
-    since_date: str | None = None,
-    until_date: str | None = None,
-    authors: list[str] | None = None,
-) -> dict:
-    """Main collection function.
-
-    Iterates over configured accounts, fetches tweets with rate limiting,
-    filters retweets, and inserts into SQLite (duplicates ignored by DB).
-
-    Args:
-        since_date: Override config since_date (YYYY-MM-DD, inclusive). Uses config value if None.
-        until_date: Override config until_date (YYYY-MM-DD, inclusive). Uses config value if None.
-        authors: Explicit list of usernames to scrape. If provided, ignores enabled/disabled
-                 flags in config and fetches only these accounts.
-
-    Returns stats dict with per-account breakdown.
-    """
-    config = _load_accounts_config()
-    settings = config["scraper_settings"]
-
-    if authors is not None:
-        authors_lower = {a.lower() for a in authors}
-        accounts = [
-            a for a in config["accounts"]
-            if a["username"].lower() in authors_lower
-        ]
-        unknown = authors_lower - {a["username"].lower() for a in config["accounts"]}
-        if unknown:
-            print(f"{LOG_TAG} WARNING: unknown authors (not in config): {sorted(unknown)}")
-    else:
-        accounts = [a for a in config["accounts"] if a.get("enabled", True)]
-
-    before_count = count_tweets()
-
-    since_date = since_date if since_date is not None else settings.get("since_date", "")
-    until_date = until_date if until_date is not None else settings.get("until_date", "")
-
-    if since_date and until_date and since_date > until_date:
-        print(
-            f"{LOG_TAG} ERROR: since_date ({since_date}) > until_date ({until_date}). "
-            "Check twitter_collector_settings.json"
-        )
-        return {"error": "since_date > until_date", "before": before_count}
-
+    print(f"{LOG_TAG} Enabled accounts: {len(accounts)}")
     print(
-        f"{LOG_TAG} Starting collection: {len(accounts)} accounts, "
-        f"date range: [{since_date or 'any'}, {until_date or 'any'}] (inclusive)"
+        f"{LOG_TAG} Settings: since={since_date}, until={until_date}, "
+        f"max_tweets_per_author={max_tweets}, max_scrolls={max_scrolls}"
     )
 
-    total_new = 0
-    per_account: list[dict] = []
+    if not accounts:
+        print(f"{LOG_TAG} No enabled accounts in config. Nothing to do.")
+        return {
+            "accounts_total": 0,
+            "tweets_fetched": 0,
+            "tweets_inserted": 0,
+            "db_total": count_tweets(),
+            "db_range": get_date_range(),
+        }
 
-    # Create a single driver for all accounts (CHROME DRIVER WITH COOKIES)
-    driver = create_driver(headless=True)
+    total_fetched = 0
+    total_inserted = 0
 
-    # Iterate over all accounts and fetch tweets
+    driver = None
     try:
-        for i, account in enumerate(accounts):
-            username = account["username"]
-            print(f"{LOG_TAG} [{i + 1}/{len(accounts)}] Fetching @{username}...")
+        driver = create_driver(headless=True)
 
-            max_tweets = settings["max_tweets_per_author"]
-            max_scrolls = settings.get("max_scrolls", 100)
-
-            account_stat = {
-                "username": username,
-                "fetched": 0,
-                "retweets_filtered": 0,
-                "date_filtered": 0,
-                "empty_text": 0,
-                "original_kept": 0,
-                "signal_bull": 0,
-                "signal_bear": 0,
-                "signal_no_correlation": 0,
-                "confidence_high": 0,
-                "confidence_middle": 0,
-                "confidence_low": 0,
-                "signal_filtered_out": 0,
-                "new_in_db": 0,
-                "error": None,
-                "retried_after_driver_restart": False,
-            }
-
+        for idx, username in enumerate(accounts, start=1):
+            print(f"{LOG_TAG} [{idx}/{len(accounts)}] Fetching @{username} ...")
             try:
                 tweets = fetch_tweets_sync(
-                    username,
-                    max_tweets=max_tweets if max_tweets > 0 else None,
+                    username=username,
+                    max_tweets=max_tweets,
                     since_date=since_date,
                     until_date=until_date,
                     driver=driver,
                     max_scrolls=max_scrolls,
                 )
-            except Exception as e:
-                if _is_driver_connection_error(e):
-                    print(
-                        f"{LOG_TAG}   WARNING: driver connection lost on @{username}. "
-                        "Restarting browser and retrying once..."
-                    )
-                    account_stat["retried_after_driver_restart"] = True
-                    try:
-                        driver.quit()
-                    except Exception:
-                        pass
-                    driver = create_driver(headless=True)
-                    try:
-                        tweets = fetch_tweets_sync(
-                            username,
-                            max_tweets=max_tweets if max_tweets > 0 else None,
-                            since_date=since_date,
-                            until_date=until_date,
-                            driver=driver,
-                            max_scrolls=max_scrolls,
-                        )
-                    except Exception as retry_e:
-                        print(f"{LOG_TAG}   ERROR fetching @{username} after restart: {retry_e}")
-                        account_stat["error"] = str(retry_e)
-                        per_account.append(account_stat)
-                        continue
-                else:
-                    print(f"{LOG_TAG}   ERROR fetching @{username}: {e}")
-                    account_stat["error"] = str(e)
-                    per_account.append(account_stat)
-                    continue
+            except Exception as exc:
+                print(f"{LOG_TAG} ERROR while fetching @{username}: {exc}")
+                continue
 
-            account_stat["fetched"] = len(tweets)
+            fetched = len(tweets)
+            inserted = insert_tweets(tweets)
 
-            original_tweets: list[dict] = []
-            for t in tweets:
-                if t.get("is_retweet"):
-                    account_stat["retweets_filtered"] += 1
-                    continue
-                tweet_date = t.get("date", "")
-                if since_date and tweet_date and tweet_date < since_date:
-                    account_stat["date_filtered"] += 1
-                    continue
-                if until_date and tweet_date and tweet_date > until_date:
-                    account_stat["date_filtered"] += 1
-                    continue
-                if not t.get("text", "").strip():
-                    account_stat["empty_text"] += 1
-                original_tweets.append(t)
-
-            account_stat["original_kept"] = len(original_tweets)
-
-            # Classify all kept tweets before deciding what to persist.
-            classify_tweets(original_tweets)
-
-            tweets_to_insert: list[dict] = []
-            for t in original_tweets:
-                signal = (t.get("signal_type") or "").upper()
-                conf = (t.get("signal_confidence") or "").upper()
-
-                if signal == "BULL":
-                    account_stat["signal_bull"] += 1
-                elif signal == "BEAR":
-                    account_stat["signal_bear"] += 1
-                else:
-                    account_stat["signal_no_correlation"] += 1
-
-                if conf == "HIGH":
-                    account_stat["confidence_high"] += 1
-                elif conf == "MIDDLE":
-                    account_stat["confidence_middle"] += 1
-                else:
-                    account_stat["confidence_low"] += 1
-
-                # Store only directional BTC signals in DB (BULL/BEAR).
-                if signal in {"BULL", "BEAR"}:
-                    tweets_to_insert.append(t)
-                else:
-                    account_stat["signal_filtered_out"] += 1
-
-            new_count = insert_tweets(tweets_to_insert)
-            account_stat["new_in_db"] = new_count
-
-            total_new += new_count
+            total_fetched += fetched
+            total_inserted += inserted
 
             print(
-                f"{LOG_TAG}   @{username}: "
-                f"{len(tweets)} fetched → "
-                f"{account_stat['retweets_filtered']} RT filtered, "
-                f"{account_stat['date_filtered']} date filtered, "
-                f"{account_stat['empty_text']} empty text, "
-                f"{len(original_tweets)} kept, "
-                f"signals BULL/BEAR/NC={account_stat['signal_bull']}/"
-                f"{account_stat['signal_bear']}/{account_stat['signal_no_correlation']}, "
-                f"H/M/L={account_stat['confidence_high']}/"
-                f"{account_stat['confidence_middle']}/{account_stat['confidence_low']}, "
-                f"{account_stat['signal_filtered_out']} filtered by signal rule → "
-                f"{new_count} new in DB"
+                f"{LOG_TAG} @{username}: fetched={fetched}, inserted={inserted}, "
+                f"duplicates={max(fetched - inserted, 0)}"
             )
 
-            if account_stat["empty_text"] > 0:
-                print(
-                    f"{LOG_TAG}   WARNING: {account_stat['empty_text']} tweets had empty text "
-                    f"(still stored — may indicate DOM parsing issue)"
-                )
+            if idx < len(accounts):
+                sleep_s = random.uniform(pause_min, pause_max)
+                print(f"{LOG_TAG} Pause {sleep_s:.1f}s before next account...")
+                time.sleep(sleep_s)
 
-            per_account.append(account_stat)
-
-            if i < len(accounts) - 1:
-                pause = random.uniform(settings["pause_min_sec"], settings["pause_max_sec"])
-                print(f"{LOG_TAG}   Sleeping {pause:.0f}s (rate limit)...")
-                time.sleep(pause)
     finally:
-        _quit_driver(driver)
-
-    after_count = count_tweets()
-    date_range = get_date_range()
-
-    stats = {
-        "before": before_count,
-        "new": total_new,
-        "after": after_count,
-        "date_range": date_range,
-        "accounts_scraped": len(accounts),
-        "since_date": since_date,
-        "per_account": per_account,
-    }
-
-    print(f"{LOG_TAG} Archive: {before_count} -> {after_count} tweets (+{total_new} new)")
-    print(f"{LOG_TAG} Date range: {date_range}")
-
-    return stats
-
-
-def collect_twitter_news(
-    authors: list[str] | None = None,
-    since_date: str | None = None,
-    until_date: str | None = None,
-) -> dict:
-    """Incremental collection: fetches from the latest date in DB up to today.
-
-    If since_date/until_date are provided, uses them directly (custom range mode).
-    Otherwise falls back to incremental: since_date = MAX(date) in DB, until_date = today.
-
-    Args:
-        authors: Optional list of usernames to scrape. If None, uses all enabled accounts.
-        since_date: Optional start date (YYYY-MM-DD). If omitted, uses latest date in DB.
-        until_date: Optional end date (YYYY-MM-DD). If omitted, uses today.
-
-    Returns stats in {before, fetched, new, after, date_range} format
-    compatible with CollectAgentDataResult schema.
-    """
-    if since_date is None:
-        from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twitter_db import get_latest_date
-        latest_db_date = get_latest_date()
-        if latest_db_date is None:
-            raise ValueError(
-                "Twitter archive is empty — cannot determine since_date. "
-                "Run a manual collection first to seed the archive."
-            )
-        since_date = latest_db_date
-
-    if until_date is None:
-        until_date = datetime.now().strftime("%Y-%m-%d")
-
-    print(f"{LOG_TAG} Incremental collection: {since_date} → {until_date}")
-
-    try:
-        stats = collect_tweets(since_date=since_date, until_date=until_date, authors=authors)
-    except RuntimeError as exc:
-        if "log in" in str(exc).lower() or "could not log" in str(exc).lower():
-            raise RuntimeError(
-                f"TWITTER_AUTH_REQUIRED: Twitter session expired or credentials invalid. "
-                f"Run manual re-login: "
-                f"python -m MultiagentSystem.agents.twitter_analyser.twitter_scrapper.chrome_login_before_scrapping --login. "
-                f"Original: {exc}"
-            ) from exc
-        raise
-
-    fetched_total = sum(a.get("fetched", 0) for a in stats.get("per_account", []))
-
-    return {
-        "before": stats["before"],
-        "fetched": fetched_total,
-        "new": stats["new"],
-        "after": stats["after"],
-        "date_range": stats.get("date_range"),
-    }
-
-
-def reclassify_archive() -> dict:
-    """Reclassify all stored Twitter rows and keep only BULL/BEAR rows."""
-    archive = get_all_tweets()
-    before_count = len(archive)
-    if not archive:
-        print(f"{LOG_TAG} Archive is empty — nothing to reclassify")
-        return {"reclassified": 0, "removed": 0, "after": 0}
-
-    print(f"{LOG_TAG} Reclassifying {before_count} archived tweets...")
-    # Strict mode prevents destructive mass-deletes on classifier/API failures.
-    classify_tweets(archive, force_reclassify=True, strict=True)
-
-    updated = update_tweet_signals(archive)
-
-    # Find all tweets with NEUTRAL
-    ids_to_remove: list[str] = []
-    for t in archive:
-        signal = (t.get("signal_type") or "").upper()
-        conf = (t.get("signal_confidence") or "").upper()
-        if signal not in {"BULL", "BEAR"}:
-            twid = t.get("tweet_id")
-            if twid:
-                ids_to_remove.append(str(twid))
-
-    # Delete neutral tweets
-    removed = delete_tweets_by_ids(ids_to_remove)
-    after_count = count_tweets()
+        if driver is not None:
+            driver.quit()
 
     result = {
-        "reclassified": before_count,
-        "updated_signals": updated,
-        "removed_no_correlation": removed,
-        "after": after_count,
+        "accounts_total": len(accounts),
+        "tweets_fetched": total_fetched,
+        "tweets_inserted": total_inserted,
+        "db_total": count_tweets(),
+        "db_range": get_date_range(),
     }
-    print(
-        f"{LOG_TAG} Reclassify complete: "
-        f"{before_count} processed, {removed} removed, {after_count} left"
-    )
+
+    print(f"{LOG_TAG} Done: {result}")
     return result
 
 
-def reclassify_and_refetch() -> dict:
-    """Reclassify all, clear configured date range, then collect again."""
-    rec = reclassify_archive()
-    since_date, until_date = _get_config_date_bounds()
-    removed_in_range = delete_tweets_in_range(since_date, until_date)
-    print(
-        f"{LOG_TAG} Cleared date range [{since_date}, {until_date}] (inclusive): "
-        f"{removed_in_range} rows removed"
-    )
-    collected = collect_tweets()
-    return {
-        "mode": _MODE_RECLASSIFY_AND_REFETCH,
-        "since_date": since_date,
-        "until_date": until_date,
-        "reclassify": rec,
-        "removed_in_range": removed_in_range,
-        "collect": collected,
+def run_classify_unclassified(since_date: str, until_date: str) -> dict:
+    """Classify tweets in the DB that have no signal yet, for a given date range.
+
+    Reads the author list from twitter_collector_settings.json (classifier_settings.authors).
+    Processes each author separately so LLM context stays focused on one voice at a time.
+    Only tweets with signal_type=NULL are sent to the LLM — already classified rows are skipped.
+    Results are written back to the DB via update_tweet_signals().
+
+    Args:
+        since_date: inclusive lower bound, "YYYY-MM-DD"
+        until_date: inclusive upper bound, "YYYY-MM-DD"
+
+    Returns:
+        Summary dict: authors processed, tweets found, tweets classified, tweets updated in DB.
+    """
+    # --- Load target authors from collector settings ---
+    collector_cfg = _load_accounts_config()
+    authors: list[str] = collector_cfg.get("classifier_settings", {}).get("authors", [])
+
+    if not authors:
+        print(f"{LOG_TAG} No authors found in classifier_settings.authors. Nothing to classify.")
+        return {"authors_total": 0, "tweets_found": 0, "tweets_classified": 0, "tweets_updated": 0}
+
+    print(f"{LOG_TAG} classify_unclassified: {len(authors)} authors, range [{since_date} → {until_date}]")
+
+    # --- Fetch all tweets in the date range from DB ---
+    # get_tweets_in_range expects datetime objects
+    dt_from = datetime.strptime(since_date, "%Y-%m-%d")
+    dt_to = datetime.strptime(until_date, "%Y-%m-%d")
+    all_tweets_in_range = get_tweets_in_range(dt_from, dt_to)
+
+    # Build a lookup: author_username (lowercased) → list of tweet dicts
+    # Lowercase both sides so config casing doesn't have to match DB exactly
+    authors_lower = {a.lower(): a for a in authors}
+    tweets_by_author: dict[str, list[dict]] = {a: [] for a in authors}
+
+    for tweet in all_tweets_in_range:
+        username_lower = (tweet.get("author_username") or "").lower()
+        original_author = authors_lower.get(username_lower)
+        if original_author is None:
+            # Tweet belongs to an author not in our config — skip
+            continue
+        if tweet.get("signal_type") is not None:
+            # Already classified — skip
+            continue
+        tweets_by_author[original_author].append(tweet)
+
+    total_found = sum(len(v) for v in tweets_by_author.values())
+    total_classified = 0
+    total_updated = 0
+
+    print(f"{LOG_TAG} Unclassified tweets to process: {total_found}")
+
+    # --- Classify author by author ---
+    for author, tweets in tweets_by_author.items():
+        if not tweets:
+            print(f"{LOG_TAG} @{author}: no unclassified tweets in range, skipping")
+            continue
+
+        print(f"{LOG_TAG} @{author}: classifying {len(tweets)} tweet(s)...")
+
+        # classify_tweets mutates each dict in-place,
+        # adding signal_type and signal_confidence keys
+        classify_tweets(tweets)
+
+        # Count how many were actually labeled by LLM (not fallback empty-text)
+        classified = [
+            t for t in tweets
+            if t.get("signal_type") in {"BULL", "BEAR", "NO_CORRELATION_TO_BTC"}
+        ]
+        total_classified += len(classified)
+
+        # Write the new signal fields back to the DB rows (matched by tweet_id)
+        updated = update_tweet_signals(classified)
+        total_updated += updated
+
+        print(f"{LOG_TAG} @{author}: classified={len(classified)}, db_updated={updated}")
+
+    result = {
+        "authors_total": len(authors),
+        "tweets_found": total_found,
+        "tweets_classified": total_classified,
+        "tweets_updated": total_updated,
     }
+    print(f"{LOG_TAG} classify_unclassified done: {result}")
+    return result
 
 
 if __name__ == "__main__":
-    mode, err = _resolve_cli_mode(sys.argv[1:])
-    if err:
-        print(f"{LOG_TAG} ERROR: {err}")
-        print(
-            f"{LOG_TAG} Usage: "
-            "python -m MultiagentSystem.agents.twitter_analyser.full_scrapping_pipeline "
-            "[--fetch-new | --reclassify-all | --reclassify-and-refetch]"
-        )
-        raise SystemExit(2)
+    # Fetch all news
+    run_fetch_only()
 
-    if mode == _MODE_RECLASSIFY_ALL:
-        # Reclassify all tweets we have in archive
-        result = reclassify_archive()
-        print(f"\nDone. Result: {json.dumps(result, indent=2)}")
-    elif mode == _MODE_RECLASSIFY_AND_REFETCH:
-        # Reclassify all tweets and refetch all tweets again in diapazon
-        result = reclassify_and_refetch()
-        print(f"\nDone. Result: {json.dumps(result, indent=2)}")
-    else:
-        # Does not touch classified twits
-        stats = collect_tweets()
-        print(f"\nDone. Stats: {json.dumps(stats, indent=2)}")
+    # Classify non-filled news in range from config
+    run_classify_unclassified("2025-06-01", "2026-04-09")

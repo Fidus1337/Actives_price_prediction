@@ -1,10 +1,7 @@
 {
-    "forecast_start_date": "2026-04-01",
+    "forecast_start_date": "2026-04-08",
     "horizon": 1,
     "agent_envolved_in_prediction": [
-        "agent_for_analysing_tech_indicators",
-        "agent_for_news_analysis",
-        "agent_for_economic_calendar_analysis",
         "agent_for_twitter_analysis"
     ],
     "neutral_threshold": 0,
@@ -46,19 +43,13 @@
             "window_to_analysis": 7
         },
         "agent_for_twitter_analysis": {
-            "window_to_analysis": 14,
-            "half_life_days": 4.0,
+            "window_to_analysis": 21,
+            "half_life_days": 14.0,
             "authors": [
-                "CarpeNoctom",
-                "caprioleio",
-                "JSeyff",
-                "DonAlt",
-                "krugermacro",
-                "DavidDuong",
-                "TraderMercury",
-                "Yodaskk",
-                "_Checkmatey_",
-                "CrypNuevo"
+                "lookonchain",
+                "ericbalchunas",
+                "rektcapital",
+                "scottmelker"
             ]
         },
         "agent_for_analysing_onchain_indicators": {

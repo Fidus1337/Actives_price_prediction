@@ -1,10 +1,8 @@
 import json
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
-from .multiagent_predictions_module import make_prediction_for_last_N_days
-from .multiagent_predictions_module import build_confusion_matrix
+from .multiagent_predictions_module import make_prediction_for_last_N_days, add_y_true, build_confusion_matrix
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -12,74 +10,69 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
 
-# For START END nodes
 from langgraph.graph import StateGraph, START, END
 
-# General Agent state for all agents
-from multiagent_types import AgentState
+from multiagent_types import AgentState, AgentRetry
 
-# Tech agent
-from .agents.tech_indicators import agent_for_analysing_tech_indicators
-# On-chain agent
-from .agents.onchain_indicators import agent_for_analysing_onchain_indicators
-# Agent for analysing news related to crypto (Coinglass endpoint)
-from .agents.news_analyser.agent_for_news_analysis import agent_for_news_analysis
-# Agent for analysing macro-economic calendar events
-from .agents.economic_calendar_analyser.agent_for_economic_calendar_analysis import agent_for_economic_calendar_analysis
-# Agent for analysing Twitter sentiment signals
 from .agents.twitter_analyser.agent_for_twitter_analysis import agent_for_twitter_analysis
-
-# This agent checks if the report of the agent is logic and structured by all requirements
 from .agents.verdicts_validator import agent_for_verdicts_validation
-# This agent looks at all agents reports and makes final decision (skip predict / price will be higher / lower)
 from .agents.reports_analyser import agent_reports_analyser
 
-# The class for fetching dataset (1000 last days)
-from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
-# Making Y column by horizon from config
-from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-
-# Matplotlib
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
-# Node for starting analysis by agents
-def supervisor_node(state: AgentState):
-    retry_agents = state.get("retry_agents", [])
-    retry_counts = state.get("retry_counts", {})
-
-    if retry_agents:
-        # Increment counters only for agents that need retry
-        updated_counts = {a: retry_counts.get(a, 0) + 1 for a in retry_agents}
-        print(f"\n[supervisor] Restarting agents: {retry_agents}, counts: {updated_counts}")
-        return {"retry_counts": updated_counts}
-    else:
-        print(f"\n[supervisor] First run of all agents")
-        return {}
+# News agents are excluded from retry tracking (formula-based, no LLM recompose)
+_NEWS_AGENTS = frozenset({"agent_for_news_analysis", "agent_for_twitter_analysis"})
 
 # Max retries per agent (default 2)
 MAX_RETRIES = 2
+
+# Node for starting analysis by agents
+def supervisor_node(state: AgentState):
+    retry_agents: list[AgentRetry] = state.get("retry_agents", [])
+
+    if not retry_agents:
+        # First run: initialize retry tracking for every non-news agent involved
+        involved: list[str] = state.get("agent_envolved_in_prediction", [])
+        initialized: list[AgentRetry] = [
+            AgentRetry(
+                agent_name=name,
+                max_retries=MAX_RETRIES,
+                currents_retry=0,
+                retry_requirements=[],
+            )
+            for name in involved
+            if name not in _NEWS_AGENTS
+        ]
+        names = [r["agent_name"] for r in initialized]
+        print(f"\n[supervisor] First run — retry tracking initialized for: {names}")
+        return {"retry_agents": initialized}
+
+    names = [r["agent_name"] for r in retry_agents if r.get("retry_requirements")]
+    print(f"\n[supervisor] Retry run — agents with requirements: {names}")
+    return {}
+
+
 # Router for retry (look schema at miro)
 def _should_retry(state: AgentState) -> str:
-    retry_agents = state.get("retry_agents", [])
-    retry_counts = state.get("retry_counts", {})
+    retry_agents: list[AgentRetry] = state.get("retry_agents", [])
 
-    # Filter to agents that still have retries left
+    # If the agent has any problems - retry
     agents_with_budget = [
-        a for a in retry_agents
-        if retry_counts.get(a, 0) < MAX_RETRIES
+        r for r in retry_agents
+        if r.get("retry_requirements") and len(r["retry_requirements"]) < r["max_retries"]
     ]
 
     if agents_with_budget:
-        print(f"\n[router] Agents need retry: {agents_with_budget} — counts: {retry_counts}")
+        names = [r["agent_name"] for r in agents_with_budget]
+        print(f"\n[router] Agents need retry: {names}")
         return "supervisor"
 
-    if retry_agents:
-        exhausted = [a for a in retry_agents if retry_counts.get(a, 0) >= MAX_RETRIES]
+    exhausted = [
+        r["agent_name"] for r in retry_agents
+        if r.get("retry_requirements") and len(r["retry_requirements"]) >= r["max_retries"]
+    ]
+    if exhausted:
         print(f"\n[router] Retry limit ({MAX_RETRIES}) exhausted for: {exhausted}")
     else:
         print(f"\n[router] All agents passed validation — finishing.")
@@ -95,11 +88,11 @@ builder = StateGraph(AgentState)
 
 # Register all nodes (node names are defined as strings)
 builder.add_node("supervisor", supervisor_node)
-builder.add_node("agent_for_analysing_tech_indicators", agent_for_analysing_tech_indicators)
-builder.add_node("agent_for_analysing_onchain_indicators", agent_for_analysing_onchain_indicators)
-builder.add_node("agent_for_news_analysis", agent_for_news_analysis)
+# builder.add_node("agent_for_analysing_tech_indicators", agent_for_analysing_tech_indicators)
+# builder.add_node("agent_for_analysing_onchain_indicators", agent_for_analysing_onchain_indicators)
+# builder.add_node("agent_for_news_analysis", agent_for_news_analysis)
 builder.add_node("agent_for_twitter_analysis", agent_for_twitter_analysis)
-builder.add_node("agent_for_economic_calendar_analysis", agent_for_economic_calendar_analysis)
+# builder.add_node("agent_for_economic_calendar_analysis", agent_for_economic_calendar_analysis)
 builder.add_node("validator", agent_for_verdicts_validation)
 builder.add_node("agent_reports_analyser", agent_reports_analyser)
 
@@ -112,16 +105,16 @@ builder.add_edge(START, "supervisor")
 # 2. PARALLEL BRANCHING (Fan-out)
 # Draw 4 edges from supervisor to agents.
 # LangGraph will detect this and run them simultaneously!
-builder.add_edge("supervisor", "agent_for_analysing_tech_indicators")
-builder.add_edge("supervisor", "agent_for_analysing_onchain_indicators")
-builder.add_edge("supervisor", "agent_for_news_analysis")
+# builder.add_edge("supervisor", "agent_for_analysing_tech_indicators")
+# builder.add_edge("supervisor", "agent_for_analysing_onchain_indicators")
+# builder.add_edge("supervisor", "agent_for_news_analysis")
 builder.add_edge("supervisor", "agent_for_twitter_analysis")
-builder.add_edge("supervisor", "agent_for_economic_calendar_analysis")
+# builder.add_edge("supervisor", "agent_for_economic_calendar_analysis")
 
 # 3. MERGE (Fan-in)
 # The array means: "Wait for all these nodes to complete,
 # and only then pass control to validator"
-builder.add_edge(["agent_for_twitter_analysis", "agent_for_analysing_tech_indicators", "agent_for_economic_calendar_analysis", "agent_for_news_analysis", "agent_for_analysing_onchain_indicators"], "validator")
+builder.add_edge(["agent_for_twitter_analysis"], "validator")
 
 # 4. Conditional exit: if there are agents with recompose_report=True — retry from supervisor
 builder.add_conditional_edges("validator", _should_retry)
@@ -144,19 +137,17 @@ if __name__ == "__main__":
     with open(config_path, encoding="utf-8") as f:
         config = json.load(f)
     
-    horizon = int(config["horizon"])
-    N = 10
+    N = 100
 
-    results_dataset = make_prediction_for_last_N_days(config, N)
+    load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
+    os.environ["COINGLASS_API_KEY"]  # fail fast if key is missing
 
-    # Final confusion matrix
-    cm_path = Path(__file__).parent / "agents" / "tech_agent_confusion_matrix.png"
-    done_count = 0
-    build_confusion_matrix(results_dataset, N, horizon, cm_path)
+    results_dataset = make_prediction_for_last_N_days(app, config, N)
+    results_dataset = add_y_true(results_dataset, config["horizon"])
 
-    print("\n✅ Graph finished! Collected agent signals:")
+    output_path = Path(__file__).parent / "predictions_results.csv"
+    results_dataset[["forecast_start_date", "y_predict", "y_predict_confidence", "y_true"]].to_csv(output_path, index=False)
+    print(f"\n✅ Predictions saved → {output_path}")
 
-    # Save results of predictions to csv
-    output_path = Path(__file__).parent / "tech_agent_results.csv"
-    results_dataset.to_csv(output_path, index=False)
-    print(f"\nResults saved to {output_path}")
+    cm_path = Path(__file__).parent / "confusion_matrix.png"
+    build_confusion_matrix(results_dataset, config["horizon"], cm_path)

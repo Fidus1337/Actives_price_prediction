@@ -1,159 +1,134 @@
+from datetime import datetime, timedelta
 from pathlib import Path
-import os
-import sys
-from datetime import date, datetime
-from typing import Any
 
-import matplotlib
-matplotlib.use("Agg")  # non-interactive backend — avoids ft2font init failure on Windows
-import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
-
-from FeaturesEngineer.FeaturesEngineer import FeaturesEngineer
-from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
-
-
-def _resolve_graph_app(app: Any | None) -> Any:
-    if app is not None:
-        return app
-
-    main_module = sys.modules.get("__main__")
-    if main_module is not None and hasattr(main_module, "app"):
-        return getattr(main_module, "app")
-
-    try:
-        from .multiagent_system_main import app as imported_app
-        return imported_app
-    except Exception as exc:
-        raise RuntimeError(
-            "LangGraph app is not available. Pass compiled app explicitly."
-        ) from exc
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import yfinance as yf
 
 
-def _prepare_dataset(config: dict) -> tuple[pd.DataFrame, pd.DataFrame, int]:
-    horizon = int(config["horizon"])
-    cache = SharedBaseDataCache(api_key=os.environ["COINGLASS_API_KEY"])
-    base_df = cache.get_base_df()
-    dataset = FeaturesEngineer().add_y_up_custom(
-        base_df, horizon=horizon, close_col="spot_price_history__close"
-    )
-    return base_df, dataset, horizon
+def make_one_prediction(app, config: dict, forecast_start_date: str) -> dict:
+    final_state = app.invoke({
+        "config": config,
+        "horizon": config["horizon"],
+        "forecast_start_date": forecast_start_date,
+        "agent_envolved_in_prediction": config["agent_envolved_in_prediction"],
+    })
 
-
-def _direction_to_binary(direction: str | None) -> int | None:
-    if direction == "LONG":
-        return 1
-    if direction == "SHORT":
-        return 0
-    return None
-
-
-def _save_confusion_matrix(results_dataset: pd.DataFrame, horizon: int, title: str, cm_path: Path) -> None:
-    valid = results_dataset.dropna(subset=["y_predictions", f"y_up_{horizon}d"])
-    if len(valid) < 2:
-        return
-
-    y_true = valid[f"y_up_{horizon}d"].astype(int)
-    y_pred = valid["y_predictions"].astype(int)
-    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
-    disp = ConfusionMatrixDisplay(cm, display_labels=["LOWER (0)", "HIGHER (1)"])
-    disp.plot()
-    plt.title(title)
-    plt.savefig(cm_path)
-    plt.close()
-
-
-def make_prediction_for_date(
-    config: dict,
-    forecast_date: str | datetime | date,
-    app: Any | None = None,
-    base_df: pd.DataFrame | None = None,
-    dataset_with_target: pd.DataFrame | None = None,
-) -> dict[str, Any]:
-    if base_df is None or dataset_with_target is None:
-        base_df, dataset_with_target, horizon = _prepare_dataset(config)
-    else:
-        horizon = int(config["horizon"])
-
-    graph_app = _resolve_graph_app(app)
-    target_dt = pd.to_datetime(forecast_date)
-    matched = dataset_with_target[dataset_with_target["date"] == target_dt]
-    if matched.empty:
-        raise ValueError(f"No rows for forecast_date={target_dt.date()} in prepared dataset.")
-
-    row = matched.iloc[-1]
-    final_state = graph_app.invoke(
-        {
-            "config": config,
-            "cached_dataset": base_df,
-            "horizon": horizon,
-            "forecast_start_date": row["date"].date(),
-            "retry_agents": [],
-            "retry_counts": {},
-            "agent_envolved_in_prediction": config["agent_envolved_in_prediction"],
-        }
-    )
-
-    direction = final_state.get("general_prediction_by_all_reports")
-    prediction = _direction_to_binary(direction)
-    return {
-        "date": row["date"],
-        "horizon": horizon,
-        "y_true": int(row[f"y_up_{horizon}d"]),
-        "direction": direction,
-        "y_prediction": prediction,
-        "confidence_score": final_state.get("confidence_score", 0),
+    row = {
+        "forecast_start_date": forecast_start_date,
+        "y_predict": final_state.get("general_prediction_by_all_reports"),
+        "y_predict_confidence": final_state.get("confidence_score"),
+        "summary": final_state.get("general_reports_summary"),
+        "reasoning": final_state.get("general_reports_reasoning"),
+        "risks": final_state.get("general_reports_risks"),
     }
 
+    # Flatten per-agent signals into columns: {agent_name}__prediction, __confidence
+    for agent_name, signal in (final_state.get("agent_signals") or {}).items():
+        short = agent_name.replace("agent_for_", "").replace("agent_for_analysing_", "")
+        row[f"{short}__prediction"] = signal.get("prediction")
+        row[f"{short}__confidence"] = signal.get("confidence")
 
-def make_prediction_for_last_N_days(
-    config: dict,
-    N: int,
-    app: Any | None = None,
-    cm_path: Path | None = None,
-) -> pd.DataFrame:
-    base_df, dataset_with_target, horizon = _prepare_dataset(config)
-    anchor = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d")
-    eligible = dataset_with_target[dataset_with_target["date"] <= anchor]
-
-    results = eligible[["date", f"y_up_{horizon}d"]].tail(N).copy()
-    results["y_predictions"] = None
-    results["confidence_score"] = None
-    if results.empty:
-        return results
-
-    graph_app = _resolve_graph_app(app)
-    cm_file = cm_path or (Path(__file__).parent / "agents" / "tech_agent_confusion_matrix.png")
-    cm_file.parent.mkdir(parents=True, exist_ok=True)
-
-    for done_count, (idx, row) in enumerate(results.iterrows(), start=1):
-        one_day = make_prediction_for_date(
-            config=config,
-            forecast_date=row["date"],
-            app=graph_app,
-            base_df=base_df,
-            dataset_with_target=dataset_with_target,
-        )
-        results.at[idx, "y_predictions"] = one_day["y_prediction"]
-        results.at[idx, "confidence_score"] = one_day["confidence_score"]
-
-        if done_count % 10 == 0:
-            _save_confusion_matrix(
-                results_dataset=results,
-                horizon=horizon,
-                title=f"Confusion Matrix ({done_count}/{N} predictions, horizon={horizon}d)",
-                cm_path=cm_file,
-            )
-
-    return results
+    return row
 
 
-def build_confusion_matrix(results_dataset: pd.DataFrame, N_last_dates: int, horizon: int, cm_path: Path) -> None:
-    valid_count = len(results_dataset.dropna(subset=["y_predictions"]))
-    _save_confusion_matrix(
-        results_dataset=results_dataset,
-        horizon=horizon,
-        title=f"Final Confusion Matrix ({valid_count}/{N_last_dates} predictions, horizon={horizon}d)",
-        cm_path=cm_path,
-    )
+def make_prediction_for_last_N_days(app, config: dict, last_days: int) -> pd.DataFrame:
+    end_date = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d")
+
+    rows = []
+    for i in range(last_days):
+        forecast_date = (end_date - timedelta(days=i)).strftime("%Y-%m-%d")
+        print(f"\n{'='*60}")
+        print(f"[predictions] Day {i + 1}/{last_days} — forecast_date={forecast_date}")
+        print(f"{'='*60}")
+
+        print("DATE PREDICT:", forecast_date)
+        row = make_one_prediction(app, config, forecast_date)
+        
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def add_y_true(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
+    """Добавляет колонку y_true: реальное направление BTC через horizon дней.
+
+    Скачивает исторические цены BTC через yfinance и для каждой строки
+    сравнивает close[forecast_date + horizon] с close[forecast_date].
+    Строки без данных получают y_true = None.
+    """
+    dates = pd.to_datetime(df["forecast_start_date"])
+    price_start = dates.min() - timedelta(days=5)
+    price_end   = dates.max() + timedelta(days=horizon + 5)
+
+    btc = yf.download("BTC-USD", start=price_start, end=price_end, auto_adjust=True, progress=False)["Close"].squeeze()
+    btc.index = pd.to_datetime(btc.index).normalize()
+
+    def nearest(dt):
+        for offset in range(4):
+            candidate = dt + timedelta(days=offset)
+            if candidate in btc.index:
+                return btc.loc[candidate]
+        return None
+
+    y_true = []
+    for _, row in df.iterrows():
+        forecast_date = pd.Timestamp(row["forecast_start_date"])
+        target_date   = forecast_date + timedelta(days=horizon)
+        price_now  = nearest(forecast_date)
+        price_then = nearest(target_date)
+        if price_now is None or price_then is None:
+            y_true.append(None)
+        else:
+            y_true.append("LONG" if price_then > price_now else "SHORT")
+
+    df = df.copy()
+    df["y_true"] = y_true
+    return df
+
+
+def build_confusion_matrix(results_df: pd.DataFrame, horizon: int, output_path: Path) -> None:
+    """Compare predicted LONG/SHORT against actual BTC price movement.
+
+    Downloads BTC-USD prices via yfinance and for each forecast_start_date
+    checks whether close[date + horizon] > close[date] (actual LONG or SHORT).
+    Saves a confusion matrix plot to output_path.
+    """
+    # Если y_true ещё не посчитан — считаем на месте
+    if "y_true" not in results_df.columns:
+        results_df = add_y_true(results_df, horizon)
+
+    # Оставляем только строки с валидными прогнозом и y_true
+    valid = results_df[
+        results_df["y_predict"].isin(["LONG", "SHORT"]) &
+        results_df["y_true"].isin(["LONG", "SHORT"])
+    ]
+
+    if valid.empty:
+        print("[confusion_matrix] Not enough matched dates to build confusion matrix")
+        return
+
+    actuals     = valid["y_true"].tolist()      # true_y: реальное направление BTC
+    predictions = valid["y_predict"].tolist()   # predict_y: прогноз мультиагентной системы
+
+    # --- Строим матрицу ошибок: строки = true_y, столбцы = predict_y ---
+    labels = ["LONG", "SHORT"]
+    cm = confusion_matrix(actuals, predictions, labels=labels)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+
+    # --- Рисуем и сохраняем график ---
+    fig, ax = plt.subplots(figsize=(6, 5))
+    disp.plot(ax=ax, cmap="Blues", values_format="d")
+
+    accuracy = sum(a == p for a, p in zip(actuals, predictions)) / len(actuals)
+    ax.set_title(f"Multiagent predictions  |  horizon={horizon}d  |  n={len(actuals)}  |  acc={accuracy:.1%}")
+    plt.tight_layout()
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path, dpi=150)
+    plt.close(fig)
+    print(f"[confusion_matrix] Saved → {output_path}  (n={len(actuals)}, acc={accuracy:.1%})")

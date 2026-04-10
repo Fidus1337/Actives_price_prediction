@@ -28,6 +28,18 @@ LOG_TAG = "[twitter_classifier]"
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 load_dotenv(_PROJECT_ROOT / "dev.env")
 
+_SETTINGS_PATH = Path(__file__).resolve().parent.parent / "twitter_collector_settings.json"
+
+
+def _load_classifier_settings() -> dict:
+    """Read classifier_settings block from twitter_collector_settings.json."""
+    try:
+        cfg = json.loads(_SETTINGS_PATH.read_text(encoding="utf-8"))
+        return cfg.get("classifier_settings", {})
+    except Exception:
+        return {}
+
+
 # LangChain structured output can emit noisy pydantic serialization warnings for
 # internal `parsed` field metadata; this does not affect classification results.
 warnings.filterwarnings(
@@ -52,13 +64,15 @@ class TweetClassificationResponse(BaseModel):
     classifications: list[TweetItem]
 
 
-CLASSIFIER_PROMPT = """\
+def _build_classifier_prompt(horizon_days: int) -> str:
+    """Build the classifier system prompt with the given prediction horizon."""
+    return f"""\
 You are a BTC market-impact classifier for Twitter posts.
 Your goal: identify tweets that signal REAL near-term price impact on BTCUSDT.
 
 For each tweet, classify impact on BTCUSDT:
-- "BULL": likely positive for BTC price in the next 1-7 days.
-- "BEAR": likely negative for BTC price in the next 1-7 days.
+- "BULL": likely positive for BTC price in the next {horizon_days} day(s).
+- "BEAR": likely negative for BTC price in the next {horizon_days} day(s).
 - "NO_CORRELATION_TO_BTC": no meaningful BTC price impact.
 
 Confidence scale:
@@ -75,15 +89,21 @@ Critical rules:
    - Cheerleading, hype, and generic promotion without substance
      ("Bitcoin is a gift", "most bullish chart ever", "buy the dip",
      "Bitcoin has been declared dead 470 times") -> NO_CORRELATION_TO_BTC.
-2) On-chain transfers: deposits TO exchanges = potential selling pressure (BEAR).
+2) Treat analytical opinions seriously — even short directional calls from
+   experienced analysts carry real market weight. Many tweets reference a chart
+   or image that you cannot see; if the text clearly implies a directional
+   conclusion ("breaking out", "support lost", "target hit"), treat the
+   visual evidence as present and classify accordingly. Do NOT downgrade to
+   NO_CORRELATION_TO_BTC just because no image text is visible.
+3) On-chain transfers: deposits TO exchanges = potential selling pressure (BEAR).
    Withdrawals FROM exchanges = accumulation (BULL).
    Transfers between unknown wallets = NO_CORRELATION_TO_BTC.
-3) Historical facts, memes, quotes, and educational content = NO_CORRELATION_TO_BTC.
-4) If a tweet contains both bullish and bearish signals, classify by the
+4) Historical facts, memes, quotes, and educational content = NO_CORRELATION_TO_BTC.
+5) If a tweet contains both bullish and bearish signals, classify by the
    dominant near-term price impact.
-5) Be skeptical - most tweets do NOT move markets. When in doubt,
+6) Be skeptical - most tweets do NOT move markets. When in doubt,
    classify as NO_CORRELATION_TO_BTC.
-6) Classify every item. Return exact enums only. Preserve tweet_id exactly.
+7) Classify every item. Return exact enums only. Preserve tweet_id exactly.
 """
 
 
@@ -231,19 +251,18 @@ def classify_tweets(
     # Pre-filter: only potentially non-neutral items are sent to LLM.
     to_classify = []
     for t in unlabeled:
-        if _is_potentially_non_neutral(t):
-            to_classify.append(t)
-        else:
-            t["signal_type"] = "NO_CORRELATION_TO_BTC"
-            t["signal_confidence"] = "LOW"
-            idx = idx_by_obj.get(id(t), 0)
-            _log_classification(idx, total, t, reason="prefilter_neutral")
+        to_classify.append(t)
 
     if not to_classify:
         return
 
+    settings = _load_classifier_settings()
+    model = settings.get("model", "gpt-4o-mini")
+    horizon_days = int(settings.get("horizon_days", 7))
+    classifier_prompt = _build_classifier_prompt(horizon_days)
+
     try:
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
+        llm = ChatOpenAI(model=model, temperature=0.0)
     except Exception as e:
         msg = f"{LOG_TAG} ERROR init model: {e}"
         print(msg)
@@ -259,54 +278,64 @@ def classify_tweets(
     global_batch_id = 0
     running_offset = 0
 
+    # Iterate over tweets grouped by date (sorted newest first)
     for date_key, date_items in by_date:
-        batch_size = max(_choose_batch_size(len(date_items)), 1)
-        print(
-            f"{LOG_TAG} Date {date_key}: {len(date_items)} non-neutral candidates, "
-            f"batch_size={batch_size}"
-        )
+        batch_size = 1  # Send 1 tweet per LLM call (conservative, avoids misalignment in structured output)
+        print(f"{LOG_TAG} Date {date_key}: {len(date_items)} non-neutral candidates, batch_size={batch_size}")
+
+        # Slide a window of batch_size over the day's tweets
         for i in range(0, len(date_items), batch_size):
-            global_batch_id += 1
-            batch = date_items[i:i + batch_size]
-            print(
-                f"{LOG_TAG} Batch {global_batch_id} (date={date_key}): classifying {len(batch)} tweets "
-                f"(items {running_offset + i + 1}-{running_offset + i + len(batch)} of {len(prepared)} requiring LLM)"
-            )
+            global_batch_id += 1                      # Unique ID for logging across all dates
+            batch = date_items[i:i + batch_size]      # Current slice (1 tweet here)
+            print(f"{LOG_TAG} Batch {global_batch_id} ...")
+
             try:
-                payload = json.dumps(batch, ensure_ascii=False)
+                payload = json.dumps(batch, ensure_ascii=False)  # Serialize tweet(s) to JSON string
+
+                # Send to LLM and force the response into TweetClassificationResponse schema
                 result = cast(
                     TweetClassificationResponse,
                     llm.with_structured_output(TweetClassificationResponse).invoke([
-                        SystemMessage(content=CLASSIFIER_PROMPT),
-                        HumanMessage(content=(
-                            f"Classify these {len(batch)} tweets:\n{payload}"
-                        )),
+                        SystemMessage(content=classifier_prompt),           # System rules for classification
+                        HumanMessage(content=f"Classify these {len(batch)} tweets:\n{payload}"),  # The tweet data
                     ]),
                 )
+
+                # Build a lookup: tweet_id -> TweetItem (from LLM response)
                 mapped = {item.tweet_id: item for item in result.classifications}
+
+                # Write classification results back into the original tweet dicts
                 for item in batch:
-                    tw = by_id.get(item["tweet_id"])
+                    tw = by_id.get(item["tweet_id"])   # Get the original dict from the input list
                     if tw is None:
-                        continue
+                        continue                        # Should not happen, safety guard
+
                     idx = idx_by_id.get(item["tweet_id"], 0)
-                    cls = mapped.get(item["tweet_id"])
+                    cls = mapped.get(item["tweet_id"]) # Look up what the LLM returned for this tweet
+
                     if cls is None:
+                        # LLM returned a response but omitted this tweet_id — fallback to neutral
                         tw["signal_type"] = "NO_CORRELATION_TO_BTC"
                         tw["signal_confidence"] = "LOW"
                         _log_classification(idx, total, tw, reason="missing_llm_item_fallback")
                     else:
+                        # Happy path: write LLM classification into the original dict (in-place)
                         tw["signal_type"] = cls.signal_type
                         tw["signal_confidence"] = cls.confidence
                         _log_classification(idx, total, tw, reason="llm")
+
             except Exception as e:
+                # LLM call failed entirely (network error, parsing error, etc.)
                 print(f"{LOG_TAG} ERROR batch {global_batch_id}: {e}")
                 if strict:
-                    raise RuntimeError(f"{LOG_TAG} ERROR batch {global_batch_id}: {e}") from e
+                    raise RuntimeError(...) from e     # Propagate if caller wants hard failure
+
+                # Otherwise fallback: mark every tweet in the failed batch as neutral
                 for item in batch:
                     tw = by_id.get(item["tweet_id"])
                     if tw is not None:
                         tw["signal_type"] = "NO_CORRELATION_TO_BTC"
                         tw["signal_confidence"] = "LOW"
-                        idx = idx_by_id.get(item["tweet_id"], 0)
                         _log_classification(idx, total, tw, reason="batch_error_fallback")
-        running_offset += len(date_items)
+
+        running_offset += len(date_items)  # Track position across dates for accurate log counters

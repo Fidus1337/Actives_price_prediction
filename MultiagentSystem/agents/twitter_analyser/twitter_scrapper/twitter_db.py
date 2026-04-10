@@ -177,6 +177,35 @@ def get_date_range() -> str:
         return "empty"
 
 
+def clear_signals_in_range(
+    since_date: str,
+    until_date: str,
+    authors: list[str],
+) -> int:
+    """Set signal_type and signal_confidence to NULL for tweets in [since_date, until_date]
+    whose author_username is in the given authors list.
+
+    Returns number of rows updated.
+    """
+    if not authors:
+        return 0
+
+    placeholders = ",".join("?" for _ in authors)
+    with _get_conn() as conn:
+        cur = conn.execute(
+            f"""
+            UPDATE tweets
+            SET signal_type = NULL,
+                signal_confidence = NULL
+            WHERE date >= ?
+              AND date <= ?
+              AND author_username IN ({placeholders})
+            """,
+            (since_date, until_date, *authors),
+        )
+        return cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
+
+
 def get_latest_date() -> str | None:
     """Returns MAX(date) from archive, or None if empty."""
     init_db()

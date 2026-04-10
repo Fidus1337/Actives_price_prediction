@@ -6,11 +6,22 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
 
-# Reducer
+# Reducer для agent_signals — мержит словари по ключу
 def merge_dicts(left: dict, right: dict) -> dict:
     if not left: left = {}
     if not right: right = {}
     return {**left, **right}
+
+
+# Reducer для retry_agents — заменяет AgentRetry по agent_name, добавляет новые
+def merge_retry_agents(left: list, right: list) -> list:
+    if not left: left = []
+    if not right: right = []
+    # Берём существующий список и заменяем/добавляем элементы из right по agent_name
+    result = {r["agent_name"]: r for r in left}
+    for r in right:
+        result[r["agent_name"]] = r  # перезаписывает старый если agent_name совпадает
+    return list(result.values())
 
 # This is class, which exists for structuring reports by agents
 class AgentSignal(TypedDict):
@@ -20,6 +31,12 @@ class AgentSignal(TypedDict):
     risks: str        # contrarguments about end prediction
     prediction: bool  # True(up)/False(down)
     confidence: str   # high / medium / low
+
+class AgentRetry(TypedDict):
+    agent_name: str
+    max_retries: int
+    currents_retry: int
+    retry_requirements: list[str]
 
 # General agent state
 class AgentState(TypedDict):
@@ -32,10 +49,9 @@ class AgentState(TypedDict):
     general_reports_reasoning: str
     general_reports_risks: str
     confidence_score: int
-    forecast_start_date: date 
+    forecast_start_date: str 
     agent_signals: Annotated[dict[str, AgentSignal], merge_dicts] # every agent returns signal
-    retry_agents: list[str]   # agent names to retry (empty = first run or all OK)
-    retry_counts: Annotated[dict[str, int], merge_dicts]  # per-agent retry counters
+    retry_agents: Annotated[list[AgentRetry], merge_retry_agents]
 
 def get_agent_settings(state: AgentState, agent_name: str) -> dict:
     """Get settings for a specific agent from state."""

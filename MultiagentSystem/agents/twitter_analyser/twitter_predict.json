@@ -1,95 +1,149 @@
 {
-  "date": "2026-04-04",
+  "date": "2026-04-01",
   "horizon": 1,
-  "window": 7,
-  "half_life_days": 3.0,
-  "total_tweets": 5,
+  "window": 14,
+  "half_life_days": 4.0,
+  "total_tweets": 11,
   "total_author_day_groups": 3,
   "bull_count": 1,
-  "bull_weight_decayed": 0.5,
+  "bull_weight_decayed": 0.1348,
   "bear_count": 2,
-  "bear_weight_decayed": 1.5571,
-  "avg_time_decay_directional": 0.5428,
-  "bull_ratio_weighted": 0.2431,
+  "bear_weight_decayed": 1.3835,
+  "avg_time_decay_directional": 0.298,
+  "bull_ratio_weighted": 0.0888,
   "prediction": false,
-  "confidence": "medium",
+  "confidence": "high",
   "author_day_aggregates": [
     {
-      "author": "CarpeNoctom",
-      "utc_day": "2026-04-04",
-      "tweets_count": 2,
-      "avg_raw_score": 0.5,
-      "avg_time_decay": 1.0,
-      "weighted_score": 0.5,
-      "bull_weight": 0.5,
-      "bear_weight": 0.0
-    },
-    {
-      "author": "caprioleio",
-      "utc_day": "2026-03-30",
-      "tweets_count": 2,
-      "avg_raw_score": -2.0,
-      "avg_time_decay": 0.328074,
-      "weighted_score": -0.656147,
-      "bull_weight": 0.0,
-      "bear_weight": 0.656147
-    },
-    {
-      "author": "CarpeNoctom",
-      "utc_day": "2026-03-29",
+      "author": "rektcapital",
+      "utc_day": "2026-03-27",
       "tweets_count": 1,
-      "avg_raw_score": -3.0,
-      "avg_time_decay": 0.300301,
-      "weighted_score": -0.900904,
+      "avg_raw_score": -2.0,
+      "avg_time_decay": 0.455335,
+      "weighted_score": -0.91067,
       "bull_weight": 0.0,
-      "bear_weight": 0.900904
+      "bear_weight": 0.91067
+    },
+    {
+      "author": "rektcapital",
+      "utc_day": "2026-03-23",
+      "tweets_count": 1,
+      "avg_raw_score": -2.0,
+      "avg_time_decay": 0.23641,
+      "weighted_score": -0.472819,
+      "bull_weight": 0.0,
+      "bear_weight": 0.472819
+    },
+    {
+      "author": "rektcapital",
+      "utc_day": "2026-03-22",
+      "tweets_count": 3,
+      "avg_raw_score": 0.666667,
+      "avg_time_decay": 0.20222,
+      "weighted_score": 0.134813,
+      "bull_weight": 0.134813,
+      "bear_weight": 0.0
     }
   ],
   "classifications": [
     {
-      "author": "CarpeNoctom",
+      "author": "rektcapital",
+      "signal": "NO_CORRELATION_TO_BTC",
+      "confidence": "LOW",
+      "date": "2026-03-27",
+      "age_days": 4.1817,
+      "time_decay": 0.484498,
+      "text": "I've published a new Altcoin Newsletter \n\nI share my charts & analysis on 6 Altcoins\n\nThese Altcoins are $ETH $AVAX $LIN"
+    },
+    {
+      "author": "rektcapital",
+      "signal": "BEAR",
+      "confidence": "MIDDLE",
+      "date": "2026-03-27",
+      "age_days": 4.54,
+      "time_decay": 0.455335,
+      "text": "#BTC \n\n“So if the 200-week EMA is lost as support this week and price Weekly Closes below it again, Bitcoin could actual"
+    },
+    {
+      "author": "rektcapital",
+      "signal": "NO_CORRELATION_TO_BTC",
+      "confidence": "LOW",
+      "date": "2026-03-27",
+      "age_days": 4.574,
+      "time_decay": 0.452657,
+      "text": "I share price analysis on Bitcoin and Altcoins every Monday, Wednesday & Friday in my newsletter 86,000+ people read it "
+    },
+    {
+      "author": "rektcapital",
+      "signal": "NO_CORRELATION_TO_BTC",
+      "confidence": "LOW",
+      "date": "2026-03-23",
+      "age_days": 8.1921,
+      "time_decay": 0.241813,
+      "text": "New edition of the RC Newsletter is out! Bitcoin - Between Two Old All Time Highs Will old All Time Highs from 2021 and "
+    },
+    {
+      "author": "rektcapital",
+      "signal": "BEAR",
+      "confidence": "MIDDLE",
+      "date": "2026-03-23",
+      "age_days": 8.3226,
+      "time_decay": 0.23641,
+      "text": "#BTC #BTC Bitcoin went for the post-breakout retest of the 200-week EMA But here's what interesting - technically, price"
+    },
+    {
+      "author": "rektcapital",
+      "signal": "NO_CORRELATION_TO_BTC",
+      "confidence": "LOW",
+      "date": "2026-03-22",
+      "age_days": 9.218,
+      "time_decay": 0.202432,
+      "text": "I share price analysis on Bitcoin and Altcoins every Monday, Wednesday & Friday in my newsletter\n\n86,000+ people read it"
+    },
+    {
+      "author": "rektcapital",
+      "signal": "NO_CORRELATION_TO_BTC",
+      "confidence": "LOW",
+      "date": "2026-03-22",
+      "age_days": 9.2187,
+      "time_decay": 0.202406,
+      "text": "#BTC \n\nThe Bitcoin retest of the 200-week EMA is now underway\n\nBut given how unreliable this EMA was as a resistance in "
+    },
+    {
+      "author": "rektcapital",
       "signal": "BULL",
-      "confidence": "HIGH",
-      "date": "2026-04-04",
-      "age_days": 0.0,
-      "time_decay": 1.0,
-      "text": "Weekly ETF Net Flows $BTC $BTC = +$22m $ETH $ETH = -$42m $XRP $XRP = -$3.6m $SOL $SOL = -$5.2m"
+      "confidence": "MIDDLE",
+      "date": "2026-03-22",
+      "age_days": 9.2221,
+      "time_decay": 0.202288,
+      "text": "#BTC \n\nFor the moment, Bitcoin is rejecting from 2021 and 2024 old All Time Highs\n\n2021 old ATHs figured as support in l"
     },
     {
-      "author": "CarpeNoctom",
+      "author": "rektcapital",
       "signal": "BEAR",
       "confidence": "MIDDLE",
-      "date": "2026-04-04",
-      "age_days": 0.0,
-      "time_decay": 1.0,
-      "text": "$BTC $BTC CoT - large spec max long = bearish\n- comms slight reduction in shorts WoW but still net short = bearish\n- sma"
+      "date": "2026-03-22",
+      "age_days": 9.2237,
+      "time_decay": 0.202231,
+      "text": "#BTC \n\nAs things stand, Bitcoin is treating both 2021 and 2024 old All Time Highs as resistance\n\n$BTC #Crypto #Bitcoin"
     },
     {
-      "author": "caprioleio",
-      "signal": "BEAR",
+      "author": "rektcapital",
+      "signal": "BULL",
       "confidence": "MIDDLE",
-      "date": "2026-03-30",
-      "age_days": 4.8225,
-      "time_decay": 0.328169,
-      "text": "Metaplanet is giga rekt. Their average cost basis is $105K. The Bitcoin treasury model failing in real time."
+      "date": "2026-03-22",
+      "age_days": 9.2263,
+      "time_decay": 0.20214,
+      "text": "#BTC \n\nBitcoin retest secured and now in progress\n\nThe upcoming Weekly Close relative to the 200-week EMA will determine"
     },
     {
-      "author": "caprioleio",
-      "signal": "BEAR",
-      "confidence": "MIDDLE",
-      "date": "2026-03-30",
-      "age_days": 4.825,
-      "time_decay": 0.327978,
-      "text": "MicroStrategy is down -13% on its Bitcoin.\nAll that financial engineering & fancy tickers. Would have been better off ju"
-    },
-    {
-      "author": "CarpeNoctom",
-      "signal": "BEAR",
-      "confidence": "HIGH",
-      "date": "2026-03-29",
-      "age_days": 5.2066,
-      "time_decay": 0.300301,
-      "text": "Weekly ETF Net Flows $BTC $BTC = -$296m $ETH $ETH = -$206m $XRP $XRP = +$2.7m $SOL $SOL = -$4.4m"
+      "author": "rektcapital",
+      "signal": "NO_CORRELATION_TO_BTC",
+      "confidence": "LOW",
+      "date": "2026-03-20",
+      "age_days": 11.1469,
+      "time_decay": 0.144914,
+      "text": "I've published a new Altcoin Newsletter \n\nI share my charts & analysis on 6 Altcoins\n\nThese Altcoins are $SUI $ALGO $CPO"
     }
   ]
 }

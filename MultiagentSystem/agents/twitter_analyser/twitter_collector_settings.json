@@ -2,35 +2,35 @@
   "accounts": [
     {
       "username": "glassnode",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "cryptoquant_com",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "_1woonomic",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "lookonchain",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "bitcoinarchive",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "apsk32",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "alicharts",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "rektcapital",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "CryptoKaleo",
@@ -38,11 +38,11 @@
     },
     {
       "username": "Pentosh1",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "CryptoMichNL",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "cryptorand",
@@ -58,67 +58,67 @@
     },
     {
       "username": "ericbalchunas",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "eleanorterrett",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "cgasparino",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "scottmelker",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "radarhits",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "LynAldenContact",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "RaoulGMI",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "saylor",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "APompliano",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "BarrySilbert",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "paoloardoino",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "adam3us",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "senlummis",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "a16zcrypto",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "grayscale",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "binance",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "cz_binance",
@@ -126,7 +126,7 @@
     },
     {
       "username": "brian_armstrong",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "whale_alert",
@@ -134,11 +134,11 @@
     },
     {
       "username": "vitalikbuterin",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "100trillionUSD",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "CryptoCred",
@@ -154,19 +154,19 @@
     },
     {
       "username": "DCinvestor",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "MartyBent",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "nic_carter",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "prestonpysh",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "ki_young_ju",
@@ -174,19 +174,19 @@
     },
     {
       "username": "michaeljburry",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "BitcoinMagazine",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "DocumentingBTC",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "CarpeNoctom",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "caprioleio",
@@ -194,7 +194,7 @@
     },
     {
       "username": "JSeyff",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "DonAlt",
@@ -206,31 +206,44 @@
     },
     {
       "username": "DavidDuong",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "TraderMercury",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "Yodaskk",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "_Checkmatey_",
-      "enabled": true
+      "enabled": false
     },
     {
       "username": "CrypNuevo",
-      "enabled": true
+      "enabled": false
     }
   ],
   "scraper_settings": {
     "max_tweets_per_author": -1,
-    "since_date": "2026-03-27",
-    "until_date": "2026-03-30",
+    "since_date": "2025-06-01",
+    "until_date": "2026-04-09",
     "pause_min_sec": 20,
     "pause_max_sec": 40,
-    "max_scrolls": 500
+    "max_scrolls": 25000
+  },
+  "classifier_settings": {
+    "model": "gpt-4o-mini",
+    "horizon_days": 1,
+    "authors": [
+      "DonAlt",
+      "caprioleio",
+      "CryptoCred",
+      "whale_alert",
+      "ki_young_ju",
+      "cz_binance",
+      "krugermacro"
+    ]
   }
 }

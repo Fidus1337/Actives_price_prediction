@@ -2,8 +2,13 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from multiagent_types import AgentState, get_agent_settings
-from agents.twitter_analyser.twitter_scrapper.twitter_db import get_tweets_in_range
+
+try:
+    from multiagent_types import AgentState, get_agent_settings
+    from agents.twitter_analyser.twitter_scrapper.twitter_db import get_tweets_in_range
+except ModuleNotFoundError:
+    from MultiagentSystem.multiagent_types import AgentState, get_agent_settings
+    from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twitter_db import get_tweets_in_range
 
 
 AGENT_DIR = Path(__file__).parent
@@ -14,355 +19,194 @@ AGENT_NAME = "agent_for_twitter_analysis"
 CONFIDENCE_WEIGHTS = {"HIGH": 3, "MIDDLE": 2, "LOW": 1}
 
 
-# -- Pure helpers --------------------------------------------------------------
+# -- Helpers -------------------------------------------------------------------
 
-def _distance_to_confidence(distance: float) -> str:
-    """Map distance from neutral (0.5) to a confidence label."""
-    if distance >= 0.3:
-        return "high"
-    if distance >= 0.15:
-        return "medium"
-    return "low"
+def _get_window_dates(end_date: str | date | datetime, window_days: int) -> tuple[datetime, datetime]:
+    """Calculate dt_from and dt_to for get_tweets_in_range from end date and window size.
 
+    Args:
+        end_date:    last day of the window (inclusive), e.g. forecast date
+        window_days: how many days back to look
 
-def _compute_verdict_from_weights(
-    bull_weight: float, bear_weight: float,
-) -> tuple[bool, str, float]:
-    """Compute prediction from absolute weighted scores.
-
-    Returns (is_bullish, confidence, bull_ratio).
+    Returns:
+        (dt_from, dt_to) — both timezone-aware UTC datetimes, ready for get_tweets_in_range
     """
-    total_weight = bull_weight + bear_weight
-    if total_weight == 0:
-        return False, "low", 0.5
-
-    bull_ratio = bull_weight / total_weight
-    is_bullish = bull_ratio > 0.5
-    confidence = _distance_to_confidence(abs(bull_ratio - 0.5))
-
-    return is_bullish, confidence, bull_ratio
-
-
-def _compute_verdict_from_normalized_score(
-    normalized_score: float,
-) -> tuple[bool, str, float]:
-    """Compute prediction from normalized score in [-1, 1].
-
-    Returns (is_bullish, confidence, bull_ratio_equivalent).
-    """
-    bull_ratio_equivalent = (normalized_score + 1.0) / 2.0
-    is_bullish = normalized_score > 0
-    confidence = _distance_to_confidence(abs(normalized_score) / 2.0)
-    return is_bullish, confidence, bull_ratio_equivalent
-
-
-# -- Extracted single-responsibility functions ---------------------------------
-
-def _parse_tweet_created_at(value: str | datetime | None) -> datetime | None:
-    """Parse tweet timestamp into timezone-aware datetime."""
-    if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
-    if not value:
-        return None
-    try:
-        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
-    except Exception:
-        return None
-
-
-def _compute_time_decay_weight(
-    tweet_created_at: str | datetime | None,
-    forecast_end_date: datetime,
-    half_life_days: float,
-) -> tuple[float, float | None]:
-    """Compute exponential time-decay weight by tweet age."""
-    if half_life_days <= 0:
-        return 1.0, None
-
-    created_at = _parse_tweet_created_at(tweet_created_at)
-    if created_at is None:
-        return 1.0, None
-
-    age_days = max((forecast_end_date - created_at).total_seconds() / 86400.0, 0.0)
-    decay = 0.5 ** (age_days / half_life_days)
-    return decay, age_days
-
-
-def _parse_tweet_utc_day(tweet: dict) -> date | None:
-    """Extract tweet UTC day from created_at or fallback date field."""
-    created_at = _parse_tweet_created_at(tweet.get("created_at"))
-    if created_at is not None:
-        return created_at.astimezone(timezone.utc).date()
-
-    date_raw = tweet.get("date")
-    if not date_raw:
-        return None
-
-    try:
-        return datetime.strptime(str(date_raw), "%Y-%m-%d").date()
-    except Exception:
-        return None
-
-
-def _tweet_to_signed_score(tweet: dict) -> float | None:
-    """Convert tweet direction+confidence into signed points in [-3, 3]."""
-    signal_type = (tweet.get("signal_type") or "").upper()
-    if signal_type not in {"BULL", "BEAR"}:
-        return None
-
-    confidence = (tweet.get("signal_confidence") or "LOW").upper()
-    confidence_weight = float(CONFIDENCE_WEIGHTS.get(confidence, 1))
-    return confidence_weight if signal_type == "BULL" else -confidence_weight
-
-
-def _build_author_day_entries(
-    tweets: list[dict],
-    forecast_end_date: datetime,
-    half_life_days: float,
-) -> list[dict]:
-    """Build one directional aggregate per (author, UTC day)."""
-    grouped: dict[tuple[str, str], dict] = {}
-
-    for tweet in tweets:
-        signed_score = _tweet_to_signed_score(tweet)
-        if signed_score is None:
-            continue
-
-        utc_day = _parse_tweet_utc_day(tweet)
-        if utc_day is None:
-            continue
-
-        author_raw = (tweet.get("author_username") or "").strip()
-        author_key = author_raw.lower() or "unknown"
-        day_str = utc_day.isoformat()
-        key = (author_key, day_str)
-
-        time_decay, _ = _compute_time_decay_weight(
-            tweet.get("created_at"), forecast_end_date, half_life_days
-        )
-
-        entry = grouped.setdefault(
-            key,
-            {
-                "author": author_raw or "unknown",
-                "author_key": author_key,
-                "utc_day": day_str,
-                "tweets_count": 0,
-                "raw_score_sum": 0.0,
-                "decay_sum": 0.0,
-            },
-        )
-        entry["tweets_count"] += 1
-        entry["raw_score_sum"] += signed_score
-        entry["decay_sum"] += time_decay
-
-    author_day_entries: list[dict] = []
-    for (_, _), grouped_entry in grouped.items():
-        tweets_count = grouped_entry["tweets_count"]
-        if tweets_count <= 0:
-            continue
-
-        avg_raw_score = grouped_entry["raw_score_sum"] / tweets_count
-        avg_decay = grouped_entry["decay_sum"] / tweets_count
-        weighted_score = avg_raw_score * avg_decay
-
-        author_day_entries.append(
-            {
-                "author": grouped_entry["author"],
-                "author_key": grouped_entry["author_key"],
-                "utc_day": grouped_entry["utc_day"],
-                "tweets_count": tweets_count,
-                "avg_raw_score": avg_raw_score,
-                "avg_decay": avg_decay,
-                "weighted_score": weighted_score,
-                "bull_weight": max(weighted_score, 0.0),
-                "bear_weight": max(-weighted_score, 0.0),
-            }
-        )
-
-    # Deterministic order: newest day first, then strongest absolute contribution.
-    author_day_entries.sort(
-        key=lambda e: (e["utc_day"], abs(e["weighted_score"])), reverse=True
-    )
-    return author_day_entries
-
-
-def _parse_forecast_window(
-    forecast_date: str | date | datetime,
-    window_days: int,
-) -> tuple[datetime, datetime, datetime]:
-    """Convert forecast_date + window into (window_start, forecast_end_date, window_end_exclusive)."""
-    if isinstance(forecast_date, str):
-        forecast_end_date = datetime.strptime(forecast_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    if isinstance(end_date, str):
+        dt_to = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    elif isinstance(end_date, date) and not isinstance(end_date, datetime):
+        dt_to = datetime.combine(end_date, datetime.min.time()).replace(tzinfo=timezone.utc)
     else:
-        forecast_end_date = datetime.combine(forecast_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+        dt_to = end_date.replace(tzinfo=timezone.utc) if end_date.tzinfo is None else end_date
 
-    window_end_exclusive = forecast_end_date + timedelta(days=1)
-    window_start = window_end_exclusive - timedelta(days=window_days)
-    return window_start, forecast_end_date, window_end_exclusive
+    dt_from = dt_to - timedelta(days=window_days - 1)
+    return dt_from, dt_to
 
+def _group_tweets_by_date(tweets: list[dict]) -> dict[str, list[dict]]:
+    result: dict[str, list[dict]] = {}
+    for tweet in tweets:
+        date_key = tweet.get("date") or ""
+        if not date_key:
+            continue
+        result.setdefault(date_key, []).append(tweet)
+    return result
 
-def _load_tweets_in_window(
-    window_start: datetime,
-    window_end_inclusive: datetime,
-    allowed_authors: list[str] | None = None,
-) -> list[dict]:
-    """Fetch pre-classified tweets from SQLite archive, filter to window.
+def _aggregate_signals_by_author_and_date(
+    signals_by_dates: dict[str, list[dict]]
+) -> dict[str, dict[str, dict]]:
 
-    Only BULL/BEAR tweets are stored in DB (NO_CORRELATION filtered at collection time).
-    If allowed_authors is provided, only tweets from those authors are returned.
-    """
-    tweets = get_tweets_in_range(dt_from=window_start, dt_to=window_end_inclusive)
-
-    if allowed_authors:
-        allowed_lower = {a.lower() for a in allowed_authors}
-        tweets = [t for t in tweets if (t.get("author_username") or "").lower() in allowed_lower]
-
-    # Sort newest first
-    tweets.sort(key=lambda t: t.get("created_at") or "", reverse=True)
-
-    return tweets
-
-
-def _aggregate_sentiment(
-    tweets: list[dict],
-    forecast_end_date: datetime,
-    half_life_days: float,
-) -> tuple[float, float, int, int, float, int, list[dict]]:
-    """Aggregate pre-classified tweets into weighted sentiment scores.
-
-    Returns (
-        bull_weight,
-        bear_weight,
-        bull_count,
-        bear_count,
-        avg_decay_directional,
-        author_day_groups_count,
-        author_day_entries,
-    ).
-    """
-    author_day_entries = _build_author_day_entries(
-        tweets=tweets, forecast_end_date=forecast_end_date, half_life_days=half_life_days
-    )
-    bull_weight = sum(e["bull_weight"] for e in author_day_entries)
-    bear_weight = sum(e["bear_weight"] for e in author_day_entries)
-    bull_count = sum(1 for e in author_day_entries if e["weighted_score"] > 0)
-    bear_count = sum(1 for e in author_day_entries if e["weighted_score"] < 0)
-    avg_decay = (
-        sum(e["avg_decay"] for e in author_day_entries) / len(author_day_entries)
-        if author_day_entries
-        else 1.0
-    )
-    return (
-        bull_weight,
-        bear_weight,
-        bull_count,
-        bear_count,
-        avg_decay,
-        len(author_day_entries),
-        author_day_entries,
-    )
-
-
-def _compute_batch_normalized_score(
-    author_day_entries: list[dict],
-    batch_size: int,
-) -> float | None:
-    """Per-batch normalization for >60 directional author-day groups.
-
-    Returns normalized score in [-1, 1], or None if not applicable.
-    """
-    total = len(author_day_entries)
-    if total <= 60:
-        return None
-
-    effective_batch_size = max(batch_size, 1)
-    batch_scores: list[float] = []
-    batch_weights: list[float] = []
-
-    for batch_start in range(0, total, effective_batch_size):
-        batch = author_day_entries[batch_start:batch_start + effective_batch_size]
-        batch_bull = 0.0
-        batch_bear = 0.0
-        for entry in batch:
-            batch_bull += float(entry.get("bull_weight", 0.0))
-            batch_bear += float(entry.get("bear_weight", 0.0))
-        total_w = batch_bull + batch_bear
-        if total_w > 0:
-            batch_scores.append((batch_bull - batch_bear) / total_w)
-            batch_weights.append(total_w)
-
-    if not batch_scores:
-        return None
-
-    weighted_sum = sum(s * w for s, w in zip(batch_scores, batch_weights))
-    total_relevant = sum(batch_weights)
-    return weighted_sum / total_relevant if total_relevant else 0.0
-
-
-def _save_prediction_debug(
-    forecast_date, horizon: int, window_days: int,
-    forecast_end_date: datetime, half_life_days: float,
-    tweets: list[dict],
-    author_day_groups_count: int,
-    author_day_entries: list[dict],
-    bull_count: int, bull_weight: float,
-    bear_count: int, bear_weight: float,
-    bull_ratio: float, is_bullish: bool, confidence: str,
-    avg_decay_directional: float,
-) -> None:
-    """Debug artifact for post-mortem analysis of classification quality."""
-    twitter_predict = {
-        "date": str(forecast_date),
-        "horizon": horizon,
-        "window": window_days,
-        "half_life_days": half_life_days,
-        "total_tweets": len(tweets),
-        "total_author_day_groups": author_day_groups_count,
-        "bull_count": bull_count,
-        "bull_weight_decayed": round(bull_weight, 4),
-        "bear_count": bear_count,
-        "bear_weight_decayed": round(bear_weight, 4),
-        "avg_time_decay_directional": round(avg_decay_directional, 4),
-        "bull_ratio_weighted": round(bull_ratio, 4),
-        "prediction": is_bullish,
-        "confidence": confidence,
-        "author_day_aggregates": [
-            {
-                "author": e["author"],
-                "utc_day": e["utc_day"],
-                "tweets_count": e["tweets_count"],
-                "avg_raw_score": round(e["avg_raw_score"], 6),
-                "avg_time_decay": round(e["avg_decay"], 6),
-                "weighted_score": round(e["weighted_score"], 6),
-                "bull_weight": round(e["bull_weight"], 6),
-                "bear_weight": round(e["bear_weight"], 6),
-            }
-            for e in author_day_entries
-        ],
-        "classifications": [
-            {
-                "author": t.get("author_username", "?"),
-                "signal": t.get("signal_type", "?"),
-                "confidence": t.get("signal_confidence", "?"),
-                "date": t.get("date", "?"),
-                "age_days": (
-                    round(_compute_time_decay_weight(t.get("created_at"), forecast_end_date, half_life_days)[1], 4)
-                    if _compute_time_decay_weight(t.get("created_at"), forecast_end_date, half_life_days)[1] is not None
-                    else None
-                ),
-                "time_decay": round(
-                    _compute_time_decay_weight(t.get("created_at"), forecast_end_date, half_life_days)[0], 6
-                ),
-                "text": (t.get("text") or "")[:120],
-            }
-            for t in tweets
-        ],
+    SCORE_MAP = {
+        ("BULL", "HIGH"): 3, ("BULL", "MIDDLE"): 2, ("BULL", "LOW"): 1,
+        ("BEAR", "LOW"): -1, ("BEAR", "MIDDLE"): -2, ("BEAR", "HIGH"): -3,
     }
-    (AGENT_DIR / "twitter_predict.json").write_text(
-        json.dumps(twitter_predict, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+
+    result: dict[str, dict[str, dict]] = {}
+
+    for date_key, tweets in signals_by_dates.items():
+        author_scores: dict[str, list[float]] = {}
+        for tweet in tweets:
+            signal_type = (tweet.get("signal_type") or "").upper()
+            confidence  = (tweet.get("signal_confidence") or "LOW").upper()
+            score = SCORE_MAP.get((signal_type, confidence))
+            if score is None:
+                continue
+            author = (tweet.get("author_username") or "unknown").lower()
+            author_scores.setdefault(author, []).append(score)
+
+        result[date_key] = {}
+        for author, scores in author_scores.items():
+            avg = sum(scores) / len(scores)
+
+            # 2) signal_confidence — floor от абсолютного среднего
+            signal_confidence = round(abs(avg))
+
+            # 3) нулевой confidence — автор не даёт сигнала, пропускаем
+            if signal_confidence == 0:
+                continue
+
+            signal_type = "BULL" if avg > 0 else "BEAR"
+
+            result[date_key][author] = {
+                "signal_type": signal_type,
+                "signal_confidence": signal_confidence,  # int: 1, 2 или 3
+                "avg_score": round(avg, 3),              # 1) float вместо строки
+                "tweets_count": len(scores),
+            }
+
+    return result
+
+def _merge_authors_signals_in_dates_into_one_signal(
+    aggregated: dict[str, dict[str, dict]]
+) -> dict[str, dict]:
+    """Merge all author signals for each date into one final signal.
+
+    Uses the same averaging principle:
+    - BULL author → +signal_confidence (signed score)
+    - BEAR author → -signal_confidence (signed score)
+    - Average signed scores across all authors
+    - Floor abs(avg) → final int confidence
+    - If confidence == 0 → no signal for that date
+
+    Returns:
+        {
+            "2026-03-27": {"signal_type": "BULL", "signal_confidence": 2, "avg_score": 1.8, "authors_count": 4},
+            ...
+        }
+    """
+    result: dict[str, dict] = {}
+
+    for date_key, authors in aggregated.items():
+        if not authors:
+            continue
+
+        signed_scores = []
+        for author_signal in authors.values():
+            conf = author_signal["signal_confidence"]  # int: 1, 2, 3
+            signed = conf if author_signal["signal_type"] == "BULL" else -conf
+            signed_scores.append(signed)
+
+        avg = sum(signed_scores) / len(signed_scores)
+        signal_confidence = round(abs(avg))
+
+        # Signals cancelled each other out — no actionable signal for this date
+        if signal_confidence == 0:
+            continue
+
+        result[date_key] = {
+            "signal_type": "BULL" if avg > 0 else "BEAR",
+            "signal_confidence": signal_confidence,   # int: 1, 2, 3
+            "avg_score": round(avg, 3),               # float
+            "authors_count": len(signed_scores),
+        }
+
+    return result
+
+def _merge_date_signals_into_final_verdict(
+    date_signals: dict[str, dict],
+    half_life_days: float = 7.0,
+    reference_date: str | date | None = None,
+) -> dict | None:
+    """Merge one-signal-per-date into a single verdict for the entire window.
+
+    Each day's signal is weighted by time decay: recent days matter more.
+    Decay formula: weight = 0.5 ^ (age_days / half_life_days)
+    Example with half_life_days=7: yesterday=0.91, 7 days ago=0.5, 14 days ago=0.25
+
+    - BULL date → +signal_confidence * decay
+    - BEAR date → -signal_confidence * decay
+    - Weighted average of signed scores
+    - round(abs(avg)) → final int confidence
+    - If confidence == 0 or no signals → returns None
+
+    Returns:
+        {"signal_type": "BULL", "signal_confidence": 2, "avg_score": 1.5, "dates_count": 7}
+        or None if no actionable signal
+    """
+    if not date_signals:
+        return None
+
+    if reference_date is None:
+        today = datetime.now(tz=timezone.utc).date()
+    elif isinstance(reference_date, str):
+        today = datetime.strptime(reference_date, "%Y-%m-%d").date()
+    elif isinstance(reference_date, datetime):
+        today = reference_date.date()
+    else:
+        today = reference_date  # already a date object
+
+    weighted_scores = []
+    total_weight = 0.0
+
+    for date_key, day_signal in date_signals.items():
+        # Вычисляем возраст даты в днях
+        try:
+            day_date = datetime.strptime(date_key, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        age_days = max((today - day_date).days, 0)
+
+        # Экспоненциальное затухание: чем старее день, тем меньше вес
+        decay = 0.5 ** (age_days / half_life_days)
+
+        conf = day_signal["signal_confidence"]   # int: 1, 2, 3
+        signed = conf if day_signal["signal_type"] == "BULL" else -conf
+        weighted_scores.append(signed * decay)
+        total_weight += decay
+
+    if total_weight == 0:
+        return None
+
+    avg = sum(weighted_scores) / total_weight
+    signal_confidence = round(abs(avg))
+
+    if signal_confidence == 0:
+        return None
+
+    return {
+        "signal_type": "BULL" if avg > 0 else "BEAR",
+        "signal_confidence": signal_confidence,
+        "avg_score": round(avg, 3),
+        "dates_count": len(weighted_scores),
+    }
 
 
 # -- Main agent function -------------------------------------------------------
@@ -375,120 +219,203 @@ def agent_for_twitter_analysis(state: AgentState):
     This node reads classifications and aggregates — no LLM calls.
     """
 
+    # Get the agents envolved in prediction process
     if AGENT_NAME not in state.get("agent_envolved_in_prediction", []):
         print(f"{LOG_TAG} Not in agent_envolved_in_prediction — skipping")
         return {}
 
-    retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
-    is_first_run = my_retries == 0
+    # ACCESS TO RETRY CLASS
+    # agent_retry = None
+    # for r in state.get("retry_agents", []):
+    #     if r["agent_name"] == AGENT_NAME:
+    #         agent_retry = r
+    #         break
+    # # Check retry
+    # if agent_retry is not None:
+    #     if agent_retry["currents_retry"] >= agent_retry["max_retries"]:
+    #         print(f"{LOG_TAG} Retry limit reached — skipping")
+    #         return {}
+    #     agent_retry["currents_retry"] += 1
 
-    if not is_first_run and AGENT_NAME not in retry_agents:
-        print(f"{LOG_TAG} Retry not required — skipping (retries so far: {my_retries})")
-        return {}
-
-    run_label = "FIRST RUN" if is_first_run else f"RETRY #{my_retries}"
-    print(f"\n{'='*60}")
-    print(f"{LOG_TAG} === {run_label} ===")
-    print(f"{'='*60}")
-
-    # --- Settings ---
-    settings = get_agent_settings(state, "agent_for_twitter_analysis")
-    horizon = state["horizon"]
+    
+    # Go through every author in database and take his signals in window
+    settings = get_agent_settings(state, AGENT_NAME)
     forecast_date = state["forecast_start_date"]
     window_days = settings["window_to_analysis"]
-    half_life_days = float(settings.get("half_life_days", 2.0))
-    print(
-        f"{LOG_TAG} [1/4] Settings loaded | horizon={horizon}d | forecast_date={forecast_date} "
-        f"| window={window_days}d | half_life={half_life_days}d"
-    )
+    half_life_days = float(settings.get("half_life_days", 7.0))
+    dt_from, dt_to = _get_window_dates(forecast_date, window_days)
+    print(f"{LOG_TAG} Window: {window_days}d  ({dt_from.date()} → {dt_to.date()})  half_life={half_life_days}d")
 
-    # --- Date boundaries ---
-    window_start, forecast_end_date, window_end_exclusive = _parse_forecast_window(forecast_date, window_days)
-    window_end_inclusive = window_end_exclusive - timedelta(microseconds=1)
-    print(f"{LOG_TAG} [2/4] Date window: {window_start.date()} -> {forecast_end_date.date()} (inclusive)")
+    tweets_raw = get_tweets_in_range(dt_from=dt_from, dt_to=dt_to)
+    print(f"{LOG_TAG} Fetched {len(tweets_raw)} tweets from DB")
 
-    # --- Load pre-classified tweets ---
-    allowed_authors = settings.get("authors")
-    print(f"{LOG_TAG} [3/4] Loading pre-classified tweets from SQLite archive...")
+    # Lookahead check
+    future_leak = [t for t in tweets_raw if (t.get("date") or "") > str(dt_to.date())]
+    if future_leak:
+        print(f"{LOG_TAG} !! LOOKAHEAD DETECTED — {len(future_leak)} tweets with date > {dt_to.date()}")
+        for t in future_leak[:5]:
+            print(f"{LOG_TAG}      date={t['date']}  created_at={t.get('created_at')}  @{t.get('author_username')}")
+    else:
+        print(f"{LOG_TAG} Lookahead check OK — no tweets beyond {dt_to.date()}")
+
+    # Filter authors by chosen in multiagent system
+    allowed_authors = [a.lower() for a in settings.get("authors", [])]
+    tweets = tweets_raw
     if allowed_authors:
-        print(f"{LOG_TAG}   Filtering by authors: {allowed_authors}")
-    tweets = _load_tweets_in_window(window_start, window_end_inclusive, allowed_authors=allowed_authors)
-    print(f"{LOG_TAG}   Found {len(tweets)} tweets in window")
+        tweets = [t for t in tweets if (t.get("author_username") or "").lower() in allowed_authors]
+        print(f"{LOG_TAG} After author filter ({allowed_authors}): {len(tweets)} tweets")
 
-    if not tweets:
-        print(f"{LOG_TAG}   No tweets found — returning empty signal")
+    # Drop tweets without a signal or explicitly marked as No Correlation to BTC
+    tweets = [
+        t for t in tweets
+        if (t.get("signal_type") or "").upper() not in ("", "NO_CORRELATION_TO_BTC")
+    ]
+    print(f"{LOG_TAG} After signal filter: {len(tweets)} actionable tweets")
+
+    # Print each actionable tweet in full
+    for t in sorted(tweets, key=lambda x: x.get("date") or ""):
+        text_full = (t.get("text") or "").replace("\n", " ")
+        print(f"{LOG_TAG}   [{t.get('date')}] @{t.get('author_username')} | {t.get('signal_type')} {t.get('signal_confidence')}")
+        print(f"{LOG_TAG}     {text_full}")
+
+    tweets_by_date = _group_tweets_by_date(tweets)
+
+    # Step 1: group by date
+    print(f"{LOG_TAG} --- Step 1: by date ---")
+    for d, day_tweets in sorted(tweets_by_date.items()):
+        print(f"{LOG_TAG}   {d}: {len(day_tweets)} tweets")
+
+    # Step 2: aggregate by author per date
+    by_author = _aggregate_signals_by_author_and_date(tweets_by_date)
+    print(f"{LOG_TAG} --- Step 2: by author ---")
+    for d, authors in sorted(by_author.items()):
+        for author, sig in authors.items():
+            print(f"{LOG_TAG}   {d} @{author}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['tweets_count']} tweets)")
+        if not authors:
+            print(f"{LOG_TAG}   {d}: (no actionable signals)")
+
+    # Step 3: one signal per date
+    by_date = _merge_authors_signals_in_dates_into_one_signal(by_author)
+    print(f"{LOG_TAG} --- Step 3: one signal/date ---")
+    for d, sig in sorted(by_date.items()):
+        print(f"{LOG_TAG}   {d}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['authors_count']} authors)")
+
+    verdict = _merge_date_signals_into_final_verdict(by_date, half_life_days=half_life_days, reference_date=forecast_date)
+
+    if verdict is None:
         return {"agent_signals": {AGENT_NAME: {"summary": None}}}
 
-    # --- Aggregate pre-classified sentiment ---
-    (
-        bull_weight,
-        bear_weight,
-        bull_count,
-        bear_count,
-        avg_decay_directional,
-        author_day_groups_count,
-        author_day_entries,
-    ) = _aggregate_sentiment(
-        tweets, forecast_end_date, half_life_days
-    )
-
-    print(
-        f"{LOG_TAG}   directional author-day groups={author_day_groups_count} | "
-        f"bull={bull_count} (decayed_w={bull_weight:.4f}), "
-        f"bear={bear_count} (decayed_w={bear_weight:.4f}), avg_decay={avg_decay_directional:.4f}"
-    )
-    for entry in author_day_entries:
-        print(
-            f"{LOG_TAG}     @{entry['author']} {entry['utc_day']} | tweets={entry['tweets_count']} "
-            f"| avg_raw={entry['avg_raw_score']:.3f} | avg_decay={entry['avg_decay']:.3f} "
-            f"| weighted={entry['weighted_score']:.3f}"
-        )
-
-    # --- Compute verdict ---
-    total_tweets = len(tweets)
-    normalized_score = _compute_batch_normalized_score(
-        author_day_entries, batch_size=30
-    )
-
-    if normalized_score is not None:
-        is_bullish, confidence, bull_ratio = _compute_verdict_from_normalized_score(normalized_score)
-        print(f"{LOG_TAG}   Batch-normalized: score={normalized_score:.3f}")
-    else:
-        is_bullish, confidence, bull_ratio = _compute_verdict_from_weights(bull_weight, bear_weight)
-
-    prediction_label = "HIGHER" if is_bullish else "LOWER"
-    print(f"{LOG_TAG} [4/4] Verdict: {prediction_label} | confidence={confidence} | bull_ratio={bull_ratio:.2f}")
-
-    # --- Save debug output ---
-    _save_prediction_debug(
-        forecast_date, horizon, window_days,
-        forecast_end_date, half_life_days,
-        tweets,
-        author_day_groups_count, author_day_entries,
-        bull_count, bull_weight, bear_count, bear_weight,
-        bull_ratio, is_bullish, confidence,
-        avg_decay_directional,
-    )
-    print(f"{LOG_TAG}   twitter_predict.json saved")
-
-    # --- Build agent signal ---
-    summary = (
-        f"Bull author-day groups: {bull_count} (w={bull_weight}), "
-        f"Bear author-day groups: {bear_count} (w={bear_weight}). "
-        f"Weighted bull ratio: {bull_ratio:.2f} → {prediction_label}, confidence: {confidence}."
-    )
-    reasoning = (
-        f"Out of {total_tweets} tweets, {author_day_groups_count} directional author-day groups "
-        f"were formed. Bullish groups: {bull_count} (weight={bull_weight}), "
-        f"bearish groups: {bear_count} (weight={bear_weight}). "
-        f"Weighted bull/bear ratio = {bull_ratio:.2f}."
-    )
-
+    is_bullish = verdict["signal_type"] == "BULL"
+    confidence = {3: "high", 2: "medium", 1: "low"}.get(verdict["signal_confidence"], "low")
+    
     return {"agent_signals": {AGENT_NAME: {
-        "reasoning": reasoning,
-        "summary": summary,
-        "risks": "",
-        "prediction": is_bullish,
-        "confidence": confidence,
+    "prediction": is_bullish,                          # bool: True=BULL / False=BEAR
+    "confidence": confidence,                          # str: "high" / "medium" / "low"
+    "summary": (
+        f"{verdict['signal_type']} signal over {verdict['dates_count']} days "
+        f"| avg_score={verdict['avg_score']} | confidence={confidence}"
+    ),
+    "reasoning": (
+        f"Aggregated twitter signals across window: "
+        f"avg_score={verdict['avg_score']}, dates_count={verdict['dates_count']}"
+    ),
+    "risks": "",
+    "description_of_the_reports_problem": [],
     }}}
+
+
+if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
+    import json
+
+    config_path = Path(__file__).resolve().parent.parent.parent / "multiagent_config.json"
+    with open(config_path, encoding="utf-8") as f:
+        config = json.load(f)
+
+    settings     = config["agent_settings"][AGENT_NAME]
+    forecast_date = "2026-03-28"
+    window_days  = 3
+    half_life_days = float(settings.get("half_life_days", 7.0))
+    # allowed_authors = [a.lower() for a in settings.get("authors", [])]
+    allowed_authors = ["rektcapital"]
+
+    dt_from, dt_to = _get_window_dates(forecast_date, window_days)
+    print(f"=== Config ===")
+    print(f"  forecast_date : {forecast_date}")
+    print(f"  window        : {window_days} days  ({dt_from.date()} → {dt_to.date()})")
+    print(f"  half_life_days: {half_life_days}")
+    print(f"  authors filter: {allowed_authors or '(all)'}")
+
+    tweets_raw = get_tweets_in_range(dt_from=dt_from, dt_to=dt_to)
+    print(f"\n  Total tweets fetched: {len(tweets_raw)}")
+
+    # ── Lookahead check ─────────────────────────────────────────────────────────
+    print(f"\n=== Lookahead check (boundary: {dt_to.date()}) ===")
+    dates_in_db = sorted({t.get("date") or "" for t in tweets_raw if t.get("date")})
+    print(f"  Unique dates in result : {dates_in_db}")
+    future_tweets = [t for t in tweets_raw if (t.get("date") or "") > str(dt_to.date())]
+    if future_tweets:
+        print(f"  !! LOOKAHEAD DETECTED — {len(future_tweets)} tweets with date > dt_to:")
+        for t in future_tweets[:10]:
+            print(f"     date={t['date']}  created_at={t.get('created_at')}  @{t.get('author_username')}")
+    else:
+        print(f"  OK — no tweets beyond dt_to ({dt_to.date()})")
+
+    # Check created_at vs date mismatches (timezone drift)
+    print(f"\n=== created_at vs date mismatch (sample) ===")
+    mismatches = []
+    for t in tweets_raw:
+        ca = t.get("created_at") or ""
+        d  = t.get("date") or ""
+        if ca and d:
+            ca_date = ca[:10]   # "YYYY-MM-DD" prefix
+            if ca_date != d:
+                mismatches.append(t)
+    print(f"  Tweets where created_at[:10] != date : {len(mismatches)}")
+    for t in mismatches[:5]:
+        print(f"    created_at={t.get('created_at')}  date={t.get('date')}  @{t.get('author_username')}")
+    if not mismatches:
+        print("  OK — created_at date matches 'date' field for all fetched tweets")
+
+    # ── Continue filtering ───────────────────────────────────────────────────────
+    tweets = tweets_raw
+    if allowed_authors:
+        tweets = [t for t in tweets if (t.get("author_username") or "").lower() in allowed_authors]
+        print(f"\n  After author filter : {len(tweets)} tweets")
+
+    tweets = [t for t in tweets if (t.get("signal_type") or "").upper() not in ("", "NO_CORRELATION_TO_BTC")]
+    print(f"  After signal filter : {len(tweets)} tweets with actionable signal")
+
+    # --- Шаг 1: группируем по дате ---
+    by_date = _group_tweets_by_date(tweets)
+    print("\n=== Step 1: group by date ===")
+    for d, day_tweets in sorted(by_date.items()):
+        print(f"  {d}: {len(day_tweets)} tweets")
+
+    # --- Шаг 2: агрегируем по автору внутри каждой даты ---
+    by_author = _aggregate_signals_by_author_and_date(by_date)
+    print("\n=== Step 2: aggregate by author ===")
+    for d, authors in sorted(by_author.items()):
+        print(f"  {d}:")
+        for author, sig in authors.items():
+            print(f"    @{author}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['tweets_count']} tweets)")
+        if not authors:
+            print("    (no actionable signals)")
+
+    # --- Шаг 3: один сигнал на дату ---
+    by_date_merged = _merge_authors_signals_in_dates_into_one_signal(by_author)
+    print("\n=== Step 3: one signal per date ===")
+    for d, sig in sorted(by_date_merged.items()):
+        print(f"  {d}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['authors_count']} authors)")
+
+    # --- Шаг 4: финальный вердикт по всему окну ---
+    verdict = _merge_date_signals_into_final_verdict(by_date_merged, half_life_days=half_life_days, reference_date=forecast_date)
+    print("\n=== Step 4: final verdict ===")
+    if verdict:
+        print(f"  {verdict['signal_type']} | conf={verdict['signal_confidence']} | avg_score={verdict['avg_score']} | over {verdict['dates_count']} days")
+    else:
+        print("  No actionable signal")
+

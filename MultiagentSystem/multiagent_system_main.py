@@ -15,6 +15,9 @@ from langgraph.graph import StateGraph, START, END
 from multiagent_types import AgentState, AgentRetry
 
 from .agents.twitter_analyser.agent_for_twitter_analysis import agent_for_twitter_analysis
+
+from .agents.tech_indicators import agent_for_analysing_tech_indicators
+
 from .agents.verdicts_validator import agent_for_verdicts_validation
 from .agents.reports_analyser import agent_reports_analyser
 
@@ -22,7 +25,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
 # News agents are excluded from retry tracking (formula-based, no LLM recompose)
-_NEWS_AGENTS = frozenset({"agent_for_news_analysis", "agent_for_twitter_analysis"})
+_NEWS_AGENTS = frozenset({"agent_for_twitter_analysis"})
 
 # Max retries per agent (default 2)
 MAX_RETRIES = 2
@@ -88,7 +91,7 @@ builder = StateGraph(AgentState)
 
 # Register all nodes (node names are defined as strings)
 builder.add_node("supervisor", supervisor_node)
-# builder.add_node("agent_for_analysing_tech_indicators", agent_for_analysing_tech_indicators)
+builder.add_node("agent_for_analysing_tech_indicators", agent_for_analysing_tech_indicators)
 # builder.add_node("agent_for_analysing_onchain_indicators", agent_for_analysing_onchain_indicators)
 # builder.add_node("agent_for_news_analysis", agent_for_news_analysis)
 builder.add_node("agent_for_twitter_analysis", agent_for_twitter_analysis)
@@ -105,7 +108,7 @@ builder.add_edge(START, "supervisor")
 # 2. PARALLEL BRANCHING (Fan-out)
 # Draw 4 edges from supervisor to agents.
 # LangGraph will detect this and run them simultaneously!
-# builder.add_edge("supervisor", "agent_for_analysing_tech_indicators")
+builder.add_edge("supervisor", "agent_for_analysing_tech_indicators")
 # builder.add_edge("supervisor", "agent_for_analysing_onchain_indicators")
 # builder.add_edge("supervisor", "agent_for_news_analysis")
 builder.add_edge("supervisor", "agent_for_twitter_analysis")
@@ -114,7 +117,7 @@ builder.add_edge("supervisor", "agent_for_twitter_analysis")
 # 3. MERGE (Fan-in)
 # The array means: "Wait for all these nodes to complete,
 # and only then pass control to validator"
-builder.add_edge(["agent_for_twitter_analysis"], "validator")
+builder.add_edge(["agent_for_twitter_analysis", "agent_for_analysing_tech_indicators"], "validator")
 
 # 4. Conditional exit: if there are agents with recompose_report=True — retry from supervisor
 builder.add_conditional_edges("validator", _should_retry)
@@ -137,12 +140,12 @@ if __name__ == "__main__":
     with open(config_path, encoding="utf-8") as f:
         config = json.load(f)
     
-    N = 100
+    N_days = 100
 
     load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
     os.environ["COINGLASS_API_KEY"]  # fail fast if key is missing
 
-    results_dataset = make_prediction_for_last_N_days(app, config, N)
+    results_dataset = make_prediction_for_last_N_days(app, config, N_days)
     results_dataset = add_y_true(results_dataset, config["horizon"])
 
     output_path = Path(__file__).parent / "predictions_results.csv"

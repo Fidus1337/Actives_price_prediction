@@ -237,13 +237,10 @@
     "model": "gpt-4o-mini",
     "horizon_days": 1,
     "authors": [
-      "DonAlt",
-      "caprioleio",
-      "CryptoCred",
-      "whale_alert",
-      "ki_young_ju",
-      "cz_binance",
-      "krugermacro"
+      "lookonchain",
+      "ericbalchunas",
+      "rektcapital",
+      "scottmelker"
     ]
   }
 }

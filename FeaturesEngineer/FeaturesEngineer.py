@@ -77,7 +77,15 @@ class FeaturesEngineer:
         new_cols = {}
         for c in base_numeric:
             new_cols[c + "__diff1"] = out[c].diff(1)
-            new_cols[c + "__pct1"] = out[c].pct_change(1)
+            pct1 = out[c].pct_change(1)
+            # Volume columns are 0 on weekends/holidays → 0/0 = NaN, 0→X = inf.
+            # Treat both as "no change" (0.0) to avoid dropping non-trading days.
+            pct1 = pct1.replace([np.inf, -np.inf], 0.0)
+            # Keep first-row NaN (legitimate "no previous value") — it gets dropped later anyway.
+            # Fill only interior NaN (from 0/0) with 0.
+            if len(pct1) > 1:
+                pct1.iloc[1:] = pct1.iloc[1:].fillna(0.0)
+            new_cols[c + "__pct1"] = pct1
         out = pd.concat([out, pd.DataFrame(new_cols, index=out.index)], axis=1)
 
         # imbalances (если пары колонок есть)

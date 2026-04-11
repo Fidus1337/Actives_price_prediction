@@ -140,9 +140,10 @@ def _merge_authors_signals_in_dates_into_one_signal(
 
     return result
 
+# TODO Exponential by decay (from 0.8 with step 0.05 from 7 day to 14 days)
 def _merge_date_signals_into_final_verdict(
     date_signals: dict[str, dict],
-    half_life_days: float = 7.0,
+    half_life_days: float = 7.0, 
     reference_date: str | date | None = None,
 ) -> dict | None:
     """Merge one-signal-per-date into a single verdict for the entire window.

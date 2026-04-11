@@ -239,7 +239,7 @@ def run_classify_unclassified(since_date: str, until_date: str) -> dict:
 
 if __name__ == "__main__":
     # Fetch all news
-    run_fetch_only()
+    # run_fetch_only()
 
     # Classify non-filled news in range from config
     run_classify_unclassified("2025-06-01", "2026-04-09")

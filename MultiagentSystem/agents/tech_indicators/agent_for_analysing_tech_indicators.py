@@ -26,25 +26,26 @@ def agent_for_analysing_tech_indicators(state: AgentState):
         print(f"{TAG} Not in agent_envolved_in_prediction — skipping")
         return {}
 
-    # Is it first iteration for this agent?
-    retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
-    is_first_run = my_retries == 0
+    my_retry = None
+    for r in state.get("retry_agents", []):
+        if r["agent_name"] == AGENT_NAME:
+            my_retry = r
+            break
 
-    if not is_first_run and AGENT_NAME not in retry_agents:
-        print(f"{TAG} Retry not required — skipping (retries so far: {my_retries})")
+    if my_retry is not None and my_retry["currents_retry"] >= my_retry["max_retries"]:
+        print(f"{TAG} Retry limit reached ({my_retry['currents_retry']}/{my_retry['max_retries']}) — skipping")
         return {}
 
-    run_label = "FIRST RUN" if is_first_run else f"RETRY #{my_retries}"
+    attempt = my_retry["currents_retry"] if my_retry is not None else 0
     print(f"\n{'='*60}")
-    print(f"{TAG} === {run_label} ===")
+    print(f"{TAG} === ATTEMPT #{attempt} ===")
     print(f"{'='*60}")
 
     # 1. Get all agent settings
     settings = get_agent_settings(state, "agent_for_analysing_tech_indicators")
     horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
-    llm_model = settings.get("llm_model", "gpt-4.1")
+    llm_model = settings.get("llm_model", "gpt-4o-mini")
     print(f"{TAG} [STEP 1/6] Settings loaded | horizon={horizon}d | forecast_date={forecast_date}")
     print(
         f"{TAG}   window_to_analysis={settings['window_to_analysis']} | "
@@ -66,9 +67,10 @@ def agent_for_analysing_tech_indicators(state: AgentState):
 
     # Validate that the last date in data matches forecast_date
     last_date = df["date"].iloc[-1].date() if len(df) > 0 else None
-    if last_date != forecast_date:
+    expected_date = pd.Timestamp(forecast_date).date()
+    if last_date != expected_date:
         raise ValueError(
-            f"{TAG} Data ends at {last_date}, expected {forecast_date}. "
+            f"{TAG} Data ends at {last_date}, expected {expected_date}. "
             f"SharedBaseDataCache may have a data gap."
         )
     print(f"{TAG}   Last date validated: {last_date} == {forecast_date}")
@@ -169,4 +171,5 @@ def agent_for_analysing_tech_indicators(state: AgentState):
         "risks": response.risks,
         "prediction": response.prediction,
         "confidence": response.confidence,
+        "description_of_the_reports_problem": [],
     }}}

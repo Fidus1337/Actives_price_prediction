@@ -1,14 +1,14 @@
 {
     "forecast_start_date": "2026-04-08",
-    "horizon": 1,
+    "horizon": 7,
     "agent_envolved_in_prediction": [
         "agent_for_twitter_analysis"
     ],
     "neutral_threshold": 0,
     "agent_settings": {
         "agent_for_analysing_tech_indicators": {
-            "system_prompt_file": "agents/tech_indicators/system_prompt_1d.md",
-            "window_to_analysis": 21,
+            "system_prompt_file": "agents/tech_indicators/system_prompt_general.md",
+            "window_to_analysis": 14,
             "base_feats": [
                 "spot_price_history__ta_rsi",
                 "spot_price_history__ta_adx",
@@ -44,7 +44,7 @@
         },
         "agent_for_twitter_analysis": {
             "window_to_analysis": 21,
-            "half_life_days": 14.0,
+            "half_life_days": 7.0,
             "authors": [
                 "lookonchain",
                 "ericbalchunas",

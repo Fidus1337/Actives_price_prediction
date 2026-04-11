@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -8,13 +9,16 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import yfinance as yf
 
+from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 
-def make_one_prediction(app, config: dict, forecast_start_date: str) -> dict:
+
+def make_one_prediction(app, config: dict, forecast_start_date: str, cached_dataset: pd.DataFrame) -> dict:
     final_state = app.invoke({
         "config": config,
         "horizon": config["horizon"],
         "forecast_start_date": forecast_start_date,
         "agent_envolved_in_prediction": config["agent_envolved_in_prediction"],
+        "cached_dataset": cached_dataset, # Tech agent dataset
     })
 
     row = {
@@ -38,6 +42,13 @@ def make_one_prediction(app, config: dict, forecast_start_date: str) -> dict:
 def make_prediction_for_last_N_days(app, config: dict, last_days: int) -> pd.DataFrame:
     end_date = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d")
 
+    # Fetch base dataset ONCE for all forecast dates (expensive API call)
+    api_key = os.environ["COINGLASS_API_KEY"]
+    shared_cache = SharedBaseDataCache(api_key=api_key)
+    cached_dataset = shared_cache.get_base_df()
+    print(f"[predictions] Base dataset loaded: {cached_dataset.shape} "
+          f"({cached_dataset['date'].min().date()} → {cached_dataset['date'].max().date()})")
+
     rows = []
     for i in range(last_days):
         forecast_date = (end_date - timedelta(days=i)).strftime("%Y-%m-%d")
@@ -46,8 +57,8 @@ def make_prediction_for_last_N_days(app, config: dict, last_days: int) -> pd.Dat
         print(f"{'='*60}")
 
         print("DATE PREDICT:", forecast_date)
-        row = make_one_prediction(app, config, forecast_date)
-        
+        row = make_one_prediction(app, config, forecast_date, cached_dataset)
+
         rows.append(row)
 
     return pd.DataFrame(rows)
@@ -60,6 +71,8 @@ def add_y_true(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
     сравнивает close[forecast_date + horizon] с close[forecast_date].
     Строки без данных получают y_true = None.
     """
+    
+    # Take the dates from minimum - 5 to maximum + 5, before downloading realt y_true
     dates = pd.to_datetime(df["forecast_start_date"])
     price_start = dates.min() - timedelta(days=5)
     price_end   = dates.max() + timedelta(days=horizon + 5)
@@ -67,6 +80,7 @@ def add_y_true(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
     btc = yf.download("BTC-USD", start=price_start, end=price_end, auto_adjust=True, progress=False)["Close"].squeeze()
     btc.index = pd.to_datetime(btc.index).normalize()
 
+    # Sometimes bitcoin do not trades, this is why we should make offset
     def nearest(dt):
         for offset in range(4):
             candidate = dt + timedelta(days=offset)

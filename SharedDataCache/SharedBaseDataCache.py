@@ -194,10 +194,10 @@ class SharedBaseDataCache:
         print(f"SharedBaseDataCache: Added lags {self._LAG_PERIODS}: "
               f"{cols_before} -> {df.shape[1]} columns (+{df.shape[1] - cols_before})")
 
-        # 9. Keep only longest continuous date segment
-        df = self._trim_to_longest_continuous_segment(df)
-
+        # 9. Drop NaN rows first (lag/TA lookbacks), THEN trim to longest segment —
+        # otherwise dropna creates gaps that trim can no longer clean up.
         df = df.dropna()
+        df = self._trim_to_longest_continuous_segment(df)
 
         # Save available features list to Logs/
         feature_names = sorted([c for c in df.columns if c != "date"])

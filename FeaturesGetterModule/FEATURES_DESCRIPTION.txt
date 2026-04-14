@@ -14,7 +14,7 @@
 Падение OI при падении цены = медвежий сигнал.
 
 • open_interest_history
-  - Данные по конкретной бирже и паре (например, Binance BTCUSDT)
+  - Данные по конкретной бирже и паре (например, Bybit BTCUSDT)
   - Параметры: exchange, symbol, interval
 
 • open_interest_aggregated

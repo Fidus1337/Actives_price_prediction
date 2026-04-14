@@ -61,19 +61,32 @@ def _normalize_limit(value: int | None) -> int | None:
     return value
 
 
-def run_fetch_only() -> dict:
+def run_fetch_only(
+    since_date: str | None = None,
+    until_date: str | None = None,
+    authors: list[str] | None = None,
+) -> dict:
     """
     Parse tweets from configured accounts and save to SQLite archive.
     No LLM / no classification at this stage.
+
+    Any of since_date / until_date / authors, if provided, overrides the value
+    from twitter_collector_settings.json for this call only.
     """
     init_db()
     config = _load_accounts_config()
 
     scraper_settings = config.get("scraper_settings", {})
-    accounts = _get_enabled_accounts(config)
 
-    since_date = scraper_settings.get("since_date")
-    until_date = scraper_settings.get("until_date")
+    if authors is not None:
+        accounts = [a.strip().lstrip("@") for a in authors if a and a.strip()]
+    else:
+        accounts = _get_enabled_accounts(config)
+
+    if since_date is None:
+        since_date = scraper_settings.get("since_date")
+    if until_date is None:
+        until_date = scraper_settings.get("until_date")
     max_tweets = _normalize_limit(scraper_settings.get("max_tweets_per_author", 20))
     max_scrolls = int(scraper_settings.get("max_scrolls", 100))
     pause_min = float(scraper_settings.get("pause_min_sec", 3))
@@ -238,8 +251,8 @@ def run_classify_unclassified(since_date: str, until_date: str) -> dict:
 
 
 if __name__ == "__main__":
-    # Fetch all news
-    # run_fetch_only()
+    # Step 1: Fetch tweets for enabled accounts
+    run_fetch_only()
 
-    # Classify non-filled news in range from config
-    run_classify_unclassified("2025-06-01", "2026-04-09")
+    # Step 2: Classify unclassified tweets in range
+    run_classify_unclassified("2025-09-01", "2026-04-12")

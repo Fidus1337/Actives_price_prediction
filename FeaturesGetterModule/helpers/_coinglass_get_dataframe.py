@@ -109,7 +109,7 @@ if __name__ == "__main__":
             endpoint="/futures/open-interest/history",
             api_key=API_KEY,
             params={
-                "exchange": "Binance",
+                "exchange": "Bybit",
                 "symbol": "BTCUSDT",
                 "interval": "1d",
             },
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             endpoint="/futures/funding-rate/history",
             api_key=API_KEY,
             params={
-                "exchange": "Binance",
+                "exchange": "Bybit",
                 "symbol": "ETHUSDT",
                 "interval": "1d",
             },
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             endpoint="/futures/liquidation/history",
             api_key=API_KEY,
             params={
-                "exchange": "Binance",
+                "exchange": "Bybit",
                 "symbol": "BTCUSDT",
                 "interval": "1d",
             },
@@ -178,7 +178,7 @@ if __name__ == "__main__":
             endpoint="/futures/global-long-short-account-ratio/history",
             api_key=API_KEY,
             params={
-                "exchange": "Binance",
+                "exchange": "Bybit",
                 "symbol": "BTCUSDT",
                 "interval": "1d",
             },

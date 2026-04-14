@@ -2,7 +2,12 @@ import json
 import os
 import sys
 from pathlib import Path
-from .multiagent_predictions_module import make_prediction_for_last_N_days, add_y_true, build_confusion_matrix
+
+from .multiagent_predictions_module import (
+    add_y_true,
+    build_confusion_matrix,
+    make_prediction_for_last_N_days,
+)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -20,6 +25,8 @@ from .agents.tech_indicators import agent_for_analysing_tech_indicators
 
 from .agents.verdicts_validator import agent_for_verdicts_validation
 from .agents.reports_analyser import agent_reports_analyser
+
+from LoggingSystem.LoggingSystem import LoggingSystem
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
@@ -135,12 +142,15 @@ app = builder.compile()
 # STEP 4: RUN (INVOKE)
 # ==========================================
 if __name__ == "__main__":
+    log_path = Path(__file__).parent / "logs.log"
+    sys.stdout = LoggingSystem(str(log_path), mode="w")
+    
     # Load multiagent system config
     config_path = Path(__file__).parent / "multiagent_config.json"
     with open(config_path, encoding="utf-8") as f:
         config = json.load(f)
     
-    N_days = 100
+    N_days = 110
 
     load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
     os.environ["COINGLASS_API_KEY"]  # fail fast if key is missing

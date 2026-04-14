@@ -1,6 +1,6 @@
 {
-    "forecast_start_date": "2026-04-08",
-    "horizon": 7,
+    "forecast_start_date": "2026-04-14",
+    "horizon": 1,
     "agent_envolved_in_prediction": [
         "agent_for_twitter_analysis"
     ],
@@ -44,11 +44,13 @@
         },
         "agent_for_twitter_analysis": {
             "window_to_analysis": 21,
-            "half_life_days": 7.0,
+            "decay_rate": 0.20,
+            "decay_start_day": 3.0,
+            "initial_weight": 1,
             "authors": [
                 "lookonchain",
-                "ericbalchunas",
                 "rektcapital",
+                "ericbalchunas",
                 "scottmelker"
             ]
         },

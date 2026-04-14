@@ -163,41 +163,6 @@ def _log_classification(
         f"signal={sig} confidence={conf} reason={reason} text='{text}'"
     )
 
-
-_BTC_RELEVANT_TERMS = (
-    "btc", "bitcoin", "$btc", "btcusd", "btcusdt",
-    "etf", "spot etf", "sec", "fed", "fomc", "rate cut", "rate hike",
-    "inflation", "cpi", "ppi", "treasury", "dollar", "usd liquidity",
-    "coinbase", "binance", "strategy", "saylor", "blackrock", "grayscale",
-    "whale", "liquidation", "open interest", "funding rate", "risk-on", "risk off",
-)
-
-_LIKELY_NEUTRAL_TERMS = (
-    "watch the full", "gm", "good morning", "syncing", "thread", "join us",
-    "happy", "conference panel", "podcast", "merch", "giveaway", "follow me",
-)
-
-
-def _is_potentially_non_neutral(tweet: dict) -> bool:
-    """Heuristic pre-filter: only likely market-relevant tweets go to LLM."""
-    text = (tweet.get("text") or "").lower().strip()
-    if not text:
-        return False
-
-    if any(term in text for term in _BTC_RELEVANT_TERMS):
-        return True
-
-    # If no BTC/macro marker and text has a typical social/promo pattern,
-    # treat as neutral without spending an LLM call.
-    if any(term in text for term in _LIKELY_NEUTRAL_TERMS):
-        return False
-
-    # Generic fallback: if text is very short and lacks key terms -> neutral.
-    if len(text) < 40:
-        return False
-    return False
-
-
 def _group_by_date(items: list[dict]) -> list[tuple[str, list[dict]]]:
     groups: dict[str, list[dict]] = {}
     for item in items:

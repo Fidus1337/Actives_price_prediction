@@ -37,7 +37,11 @@ async def lifespan(app: FastAPI):
         shared_data_cache = SharedBaseDataCache(api_key=api_key)
         Predictor.set_shared_cache(shared_data_cache)
         print("Shared data cache initialized. Fetching dataset...")
-        shared_data_cache.refresh()
+        try:
+            shared_data_cache.refresh()
+        except Exception as exc:
+            print(f"Warning: Failed to fetch CoinGlass dataset: {exc}")
+            print("API will start without cached dataset. Classic ML predictions may fail.")
     else:
         print("Warning: COINGLASS_API_KEY not found. Predictions will fail.")
 
@@ -51,36 +55,26 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="BTC Price Direction Prediction API",
     description="""
-API for predicting Bitcoin price direction using machine learning models.
+API for predicting Bitcoin price direction using ML models and a multiagent system.
 
-## Endpoints
+## Classic ML Predictions
 
-### POST /api/v1/predictions
-Get predictions for specific dates using a selected model.
+- **POST /api/predictions** — batch predict using sklearn models
+- **GET /api/models** — list available models with quality metrics
+- **GET /api/dataset-status** — dataset load status and shape
+- **POST /api/system/train_classic_ml_models** — retrain models from config
 
-### GET /api/v1/models
-List all available models with their quality metrics (AUC, accuracy, precision, recall, F1).
+## Multiagent Predictions
 
-## Models
-Models are stored in the `Models/` folder:
-- **base_model_Xd**: Uses standard market features
-- **range_model_Xd**: Includes volatility/range features
+- **POST /api/multiagent_predictions** — run LangGraph multiagent system for N dates
+- **POST /api/system/collect_agent_data** — collect news / calendar / twitter data
+- **GET /api/agents/data-status** — last fetched date per agent archive
+- **GET /api/agents/twitter-auth-status** — Twitter session health check
+- **POST /api/agents/twitter-upload-cookies** — upload Twitter cookies
 
-Where X is the prediction horizon (1, 3, 5, or 7 days).
+## Service
 
-## Example
-```python
-import requests
-
-# Get predictions
-response = requests.post(
-    "http://localhost:8000/api/v1/predictions",
-    json={
-        "model_name": "base_model_1d",
-        "dates": ["2025-01-20", "2025-01-21"]
-    }
-)
-```
+- **GET /api/health** — server status and loaded models
 """,
     version="2.0.0",
     lifespan=lifespan,

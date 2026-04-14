@@ -1,0 +1,12 @@
+{
+  "horizon": 14,
+  "eval_days": 100,
+  "step": 0.1,
+  "balance_penalty_weight": 1.0,
+  "min_accuracy": 0.57,
+  "max_gap": 0.3,
+  "total_trials": 1008,
+  "trials_completed": 1008,
+  "done": true,
+  "top": []
+}

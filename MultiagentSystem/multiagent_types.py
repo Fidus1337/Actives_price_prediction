@@ -42,7 +42,7 @@ class AgentRetry(TypedDict):
 class AgentState(TypedDict):
     config: dict # config from MultiagentSystem folder, all settings for launching precitions
     agent_envolved_in_prediction: list[str]
-    cached_dataset: pd.DataFrame
+    cached_dataset: pd.DataFrame | None
     horizon: int
     general_prediction_by_all_reports: Literal["LONG", "SHORT"] | None # after analysis by agent_reports_analyser, we can skip predicts
     general_reports_summary: str

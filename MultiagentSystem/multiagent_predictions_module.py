@@ -7,18 +7,17 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-import yfinance as yf
-
 from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
+from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 
 
-def make_one_prediction(app, config: dict, forecast_start_date: str, cached_dataset: pd.DataFrame) -> dict:
+def make_one_prediction(app, config: dict, forecast_start_date: str, cached_dataset: pd.DataFrame | None) -> dict:
     final_state = app.invoke({
         "config": config,
         "horizon": config["horizon"],
         "forecast_start_date": forecast_start_date,
         "agent_envolved_in_prediction": config["agent_envolved_in_prediction"],
-        "cached_dataset": cached_dataset, # Tech agent dataset
+        "cached_dataset": cached_dataset,
     })
 
     row = {
@@ -42,12 +41,22 @@ def make_one_prediction(app, config: dict, forecast_start_date: str, cached_data
 def make_prediction_for_last_N_days(app, config: dict, last_days: int) -> pd.DataFrame:
     end_date = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d")
 
-    # Fetch base dataset ONCE for all forecast dates (expensive API call)
-    api_key = os.environ["COINGLASS_API_KEY"]
-    shared_cache = SharedBaseDataCache(api_key=api_key)
-    cached_dataset = shared_cache.get_base_df()
-    print(f"[predictions] Base dataset loaded: {cached_dataset.shape} "
-          f"({cached_dataset['date'].min().date()} → {cached_dataset['date'].max().date()})")
+    # Agents that require the CoinGlass base dataset
+    _DATASET_AGENTS = {
+        "agent_for_analysing_tech_indicators",
+        "agent_for_analysing_onchain_indicators",
+    }
+    needs_dataset = bool(_DATASET_AGENTS & set(config.get("agent_envolved_in_prediction", [])))
+
+    cached_dataset: pd.DataFrame | None = None
+    if needs_dataset:
+        api_key = os.environ["COINGLASS_API_KEY"]
+        shared_cache = SharedBaseDataCache(api_key=api_key)
+        cached_dataset = shared_cache.get_base_df()
+        print(f"[predictions] Base dataset loaded: {cached_dataset.shape} "
+              f"({cached_dataset['date'].min().date()} → {cached_dataset['date'].max().date()})")
+    else:
+        print("[predictions] No dataset-dependent agents — skipping CoinGlass fetch")
 
     rows = []
     for i in range(last_days):
@@ -64,40 +73,63 @@ def make_prediction_for_last_N_days(app, config: dict, last_days: int) -> pd.Dat
     return pd.DataFrame(rows)
 
 
-def add_y_true(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
+def _fetch_bybit_btc_close_via_coinglass() -> pd.Series:
+    """Fetch BTCUSDT daily close from CoinGlass /spot/price/history with exchange=Bybit.
+
+    Single endpoint call — does not load the full SharedBaseDataCache pipeline.
+    """
+    api_key = os.environ["COINGLASS_API_KEY"]
+    getter = FeaturesGetter(api_key=api_key)
+    df = getter.get_history(
+        endpoint_name="spot_price_history",
+        exchange="Bybit",
+        symbol="BTCUSDT",
+        interval="1d",
+        prefix="spot",
+    )
+    if df.empty:
+        raise RuntimeError("CoinGlass returned empty spot_price_history for Bybit BTCUSDT")
+
+    df["date"] = pd.to_datetime(df["date"]).dt.normalize()
+    return df.set_index("date")["spot__close"].astype(float).sort_index()
+
+
+def add_y_true(
+    df: pd.DataFrame,
+    horizon: int,
+    close_col: str = "spot_price_history__close",
+) -> pd.DataFrame:
     """Добавляет колонку y_true: реальное направление BTC через horizon дней.
 
-    Скачивает исторические цены BTC через yfinance и для каждой строки
-    сравнивает close[forecast_date + horizon] с close[forecast_date].
-    Строки без данных получают y_true = None.
+    Источник цен — Bybit BTCUSDT spot через CoinGlass (один эндпоинт
+    /spot/price/history, без полного SharedBaseDataCache).
     """
-    
-    # Take the dates from minimum - 5 to maximum + 5, before downloading realt y_true
-    dates = pd.to_datetime(df["forecast_start_date"])
-    price_start = dates.min() - timedelta(days=5)
-    price_end   = dates.max() + timedelta(days=horizon + 5)
+    if df.empty:
+        df = df.copy()
+        df["y_true"] = None
+        return df
 
-    btc = yf.download("BTC-USD", start=price_start, end=price_end, auto_adjust=True, progress=False)["Close"].squeeze()
-    btc.index = pd.to_datetime(btc.index).normalize()
-
-    # Sometimes bitcoin do not trades, this is why we should make offset
-    def nearest(dt):
-        for offset in range(4):
-            candidate = dt + timedelta(days=offset)
-            if candidate in btc.index:
-                return btc.loc[candidate]
-        return None
+    try:
+        close = _fetch_bybit_btc_close_via_coinglass()
+    except Exception as exc:
+        print(f"[add_y_true] Failed to fetch Bybit prices via CoinGlass: {exc}")
+        print("[add_y_true] y_true will be None for all rows")
+        df = df.copy()
+        df["y_true"] = None
+        return df
 
     y_true = []
     for _, row in df.iterrows():
-        forecast_date = pd.Timestamp(row["forecast_start_date"])
-        target_date   = forecast_date + timedelta(days=horizon)
-        price_now  = nearest(forecast_date)
-        price_then = nearest(target_date)
+        forecast_date = pd.Timestamp(row["forecast_start_date"]).normalize()
+        target_date = forecast_date + timedelta(days=horizon)
+
+        price_now = close.loc[forecast_date] if forecast_date in close.index else None
+        price_then = close.loc[target_date] if target_date in close.index else None
+
         if price_now is None or price_then is None:
             y_true.append(None)
         else:
-            y_true.append("LONG" if price_then > price_now else "SHORT")
+            y_true.append("LONG" if float(price_then) > float(price_now) else "SHORT")
 
     df = df.copy()
     df["y_true"] = y_true
@@ -107,8 +139,8 @@ def add_y_true(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
 def build_confusion_matrix(results_df: pd.DataFrame, horizon: int, output_path: Path) -> None:
     """Compare predicted LONG/SHORT against actual BTC price movement.
 
-    Downloads BTC-USD prices via yfinance and for each forecast_start_date
-    checks whether close[date + horizon] > close[date] (actual LONG or SHORT).
+    Pulls BTCUSDT spot daily close from Bybit (via add_y_true) and for each
+    forecast_start_date checks whether close[date + horizon] > close[date].
     Saves a confusion matrix plot to output_path.
     """
     # Если y_true ещё не посчитан — считаем на месте

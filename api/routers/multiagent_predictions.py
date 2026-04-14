@@ -6,13 +6,14 @@ from fastapi import APIRouter, Body, HTTPException
 from fastapi.concurrency import run_in_threadpool
 import pandas as pd
 
-from MultiagentSystem.multiagent_predictions_module import make_prediction_for_last_N_days
+from MultiagentSystem.multiagent_predictions_module import make_prediction_for_last_N_days, add_y_true
+from MultiagentSystem.multiagent_system_main import app as multiagent_app
 from MultiagentSystem.agents.news_analyser.news_collector import collect_news
 from MultiagentSystem.agents.news_analyser.news_archive_database_manipulator import get_latest_date as news_get_latest_date
 from MultiagentSystem.agents.economic_calendar_analyser.calendar_collector import collect_calendar_events
 from MultiagentSystem.agents.economic_calendar_analyser.economic_calendar_database_manipulator import get_latest_date as calendar_get_latest_date
 from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twitter_db import get_latest_date as twitter_get_latest_date
-from MultiagentSystem.agents.twitter_analyser.full_scrapping_pipeline import collect_twitter_news
+from MultiagentSystem.agents.twitter_analyser.full_scrapping_pipeline import run_fetch_only as twitter_fetch
 from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.chrome_login_before_scrapping import (
     check_twitter_auth,
     save_cookies_from_upload,
@@ -58,32 +59,30 @@ async def multiagent_predictions(request: MultiagentPredictionsRequest) -> Multi
             config = request.model_dump(exclude={"n_last_dates"})
             results_df = await run_in_threadpool(
                 make_prediction_for_last_N_days,
+                multiagent_app,
                 config,
                 request.n_last_dates,
             )
+            results_df = add_y_true(results_df, request.horizon)
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Failed to run multiagent predictions: {exc}") from exc
 
+    _DIRECTION_MAP = {"LONG": 1, "SHORT": 0}
     predictions: list[MultiagentSinglePrediction] = []
-    horizon_col = f"y_up_{int(request.horizon)}d"
 
     for _, row in results_df.iterrows():
-        raw_date = row["date"]
+        raw_date = row["forecast_start_date"]
         if hasattr(raw_date, "strftime"):
             date_value = raw_date.strftime("%Y-%m-%d")
         else:
             date_value = str(raw_date)
 
-        raw_pred = row["y_predictions"]
-        prediction_value = None if pd.isna(raw_pred) else int(raw_pred)
-
-        raw_true = row[horizon_col]
         predictions.append(
             MultiagentSinglePrediction(
                 date=date_value,
-                y_true=None if pd.isna(raw_true) else int(raw_true),
-                y_prediction=prediction_value,
-                confidence_score=row["confidence_score"],
+                y_true=_DIRECTION_MAP.get(row.get("y_true")),
+                y_prediction=_DIRECTION_MAP.get(row.get("y_predict")),
+                confidence_score=row.get("y_predict_confidence"),
             )
         )
 
@@ -99,7 +98,7 @@ async def multiagent_predictions(request: MultiagentPredictionsRequest) -> Multi
 _AGENT_COLLECTORS = {
     "news_analyser": collect_news,
     "economic_calendar_analyser": collect_calendar_events,
-    "twitter_analyser": collect_twitter_news,
+    "twitter_analyser": twitter_fetch,
 }
 
 
@@ -121,19 +120,25 @@ async def collect_agent_data(request: CollectAgentDataRequest) -> CollectAgentDa
             raise HTTPException(status_code=409, detail=f"Collection for '{agent_name}' is already running")
         async with lock:
             try:
-                if agent_name == "twitter_analyser" and (
-                    request.twitter_authors is not None
-                    or request.twitter_since_date is not None
-                    or request.twitter_until_date is not None
-                ):
-                    stats = await run_in_threadpool(
-                        collect_twitter_news,
-                        request.twitter_authors,
+                if agent_name == "twitter_analyser":
+                    raw = await run_in_threadpool(
+                        twitter_fetch,
                         request.twitter_since_date,
                         request.twitter_until_date,
+                        request.twitter_authors,
                     )
                 else:
-                    stats = await run_in_threadpool(_AGENT_COLLECTORS[agent_name])
+                    raw = await run_in_threadpool(_AGENT_COLLECTORS[agent_name])
+                if agent_name == "twitter_analyser":
+                    stats = {
+                        "before": raw.get("db_total", 0) - raw.get("tweets_inserted", 0),
+                        "fetched": raw.get("tweets_fetched", 0),
+                        "new": raw.get("tweets_inserted", 0),
+                        "after": raw.get("db_total", 0),
+                        "date_range": raw.get("db_range"),
+                    }
+                else:
+                    stats = raw
                 results.append(CollectAgentDataResult(agent=agent_name, **stats))
             except Exception as exc:
                 raise HTTPException(status_code=500, detail=f"Collection failed for '{agent_name}': {exc}") from exc

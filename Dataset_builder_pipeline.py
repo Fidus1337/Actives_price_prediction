@@ -8,7 +8,7 @@ def get_features(getter: FeaturesGetter, API_KEY: str):
         ("open_interest_history",
          lambda: getter.get_history(
              endpoint_name="open_interest_history",
-             exchange="Binance", symbol="BTCUSDT", interval="1d",
+             exchange="Bybit", symbol="BTCUSDT", interval="1d",
              prefix="futures_open_interest_history")),
 
         ("open_interest_aggregated",
@@ -20,19 +20,19 @@ def get_features(getter: FeaturesGetter, API_KEY: str):
         ("open_interest_stablecoin",
          lambda: getter.get_history(
              endpoint_name="open_interest_stablecoin",
-             exchange_list="Binance", symbol="BTC", interval="1d",
+             exchange_list="Bybit", symbol="BTC", interval="1d",
              prefix="futures_open_interest_aggregated_stablecoin_history")),
 
         ("open_interest_coin_margin",
          lambda: getter.get_history(
              endpoint_name="open_interest_coin_margin",
-             exchange_list="Binance", symbol="BTC", interval="1d",
+             exchange_list="Bybit", symbol="BTC", interval="1d",
              prefix="futures_open_interest_aggregated_coin_margin_history")),
 
         ("funding_rate_history",
          lambda: getter.get_history(
              endpoint_name="funding_rate_history",
-             exchange="Binance", symbol="BTCUSDT", interval="1d",
+             exchange="Bybit", symbol="BTCUSDT", interval="1d",
              prefix="futures_funding_rate_history")),
 
         ("funding_rate_oi_weight",
@@ -50,61 +50,61 @@ def get_features(getter: FeaturesGetter, API_KEY: str):
         ("global_long_short_account_ratio",
          lambda: getter.get_history(
              endpoint_name="global_long_short_account_ratio",
-             exchange="Binance", symbol="BTCUSDT", interval="1d",
+             exchange="Bybit", symbol="BTCUSDT", interval="1d",
              prefix="futures_global_long_short_account_ratio_history")),
 
         ("top_long_short_account_ratio",
          lambda: getter.get_history(
              endpoint_name="top_long_short_account_ratio",
-             exchange="Binance", symbol="BTCUSDT", interval="1d",
+             exchange="Bybit", symbol="BTCUSDT", interval="1d",
              prefix="futures_top_long_short_account_ratio_history")),
 
         ("top_long_short_position_ratio",
          lambda: getter.get_history(
              endpoint_name="top_long_short_position_ratio",
-             exchange="Binance", symbol="BTCUSDT", interval="1d",
+             exchange="Bybit", symbol="BTCUSDT", interval="1d",
              prefix="futures_top_long_short_position_ratio_history")),
 
         ("net_position",
          lambda: getter.get_history(
              endpoint_name="net_position",
-             exchange="Binance", symbol="BTCUSDT", interval="1d",
+             exchange="Bybit", symbol="BTCUSDT", interval="1d",
              prefix="futures_v2_net_position_history")),
 
         ("liquidation_history",
          lambda: getter.get_history(
              endpoint_name="liquidation_history",
-             exchange="Binance", symbol="BTCUSDT", interval="1d",
+             exchange="Bybit", symbol="BTCUSDT", interval="1d",
              prefix="futures_liquidation_history")),
 
         ("liquidation_aggregated",
          lambda: getter.get_history(
              endpoint_name="liquidation_aggregated",
-             exchange_list="Binance", symbol="BTC", interval="1d",
+             exchange_list="Bybit", symbol="BTC", interval="1d",
              prefix="futures_liquidation_aggregated_history")),
 
         ("orderbook_ask_bids",
          lambda: getter.get_history(
              endpoint_name="orderbook_ask_bids",
-             exchange="Binance", symbol="BTCUSDT", interval="1d",
+             exchange="Bybit", symbol="BTCUSDT", interval="1d",
              prefix="futures_orderbook_ask_bids_history")),
 
         ("orderbook_aggregated",
          lambda: getter.get_history(
              endpoint_name="orderbook_aggregated",
-             exchange_list="Binance", symbol="BTC", interval="1d",
+             exchange_list="Bybit", symbol="BTC", interval="1d",
              prefix="futures_orderbook_aggregated_ask_bids_history")),
 
         ("taker_buy_sell_volume",
          lambda: getter.get_history(
              endpoint_name="taker_buy_sell_volume",
-             exchange="Binance", symbol="BTCUSDT", interval="1d",
+             exchange="Bybit", symbol="BTCUSDT", interval="1d",
              prefix="futures_v2_taker_buy_sell_volume_history")),
 
         ("taker_buy_sell_volume_aggregated",
          lambda: getter.get_history(
              endpoint_name="taker_buy_sell_volume_aggregated",
-             exchange_list="Binance", symbol="BTC", interval="1d",
+             exchange_list="Bybit", symbol="BTC", interval="1d",
              prefix="futures_aggregated_taker_buy_sell_volume_history")),
 
         ("btc_lth_supply",
@@ -229,7 +229,7 @@ def _fetch_coinbase_premium(getter: FeaturesGetter):
 def _fetch_spot(getter: FeaturesGetter):
     df = getter.get_history(
         endpoint_name="spot_price_history",
-        exchange="Binance", symbol="BTCUSDT", interval="1d",
+        exchange="Bybit", symbol="BTCUSDT", interval="1d",
         prefix="",
     )
     df.columns = df.columns.str.lstrip("_")

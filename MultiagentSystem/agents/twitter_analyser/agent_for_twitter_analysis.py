@@ -140,20 +140,30 @@ def _merge_authors_signals_in_dates_into_one_signal(
 
     return result
 
-# TODO Exponential by decay (from 0.8 with step 0.05 from 7 day to 14 days)
 def _merge_date_signals_into_final_verdict(
     date_signals: dict[str, dict],
-    half_life_days: float = 7.0, 
+    decay_rate: float,
+    decay_start_day: int,
+    initial_weight: float,
     reference_date: str | date | None = None,
 ) -> dict | None:
     """Merge one-signal-per-date into a single verdict for the entire window.
 
-    Each day's signal is weighted by time decay: recent days matter more.
-    Decay formula: weight = 0.5 ^ (age_days / half_life_days)
-    Example with half_life_days=7: yesterday=0.91, 7 days ago=0.5, 14 days ago=0.25
+    Each day's signal gets a weight based on its age relative to reference_date.
+    Weight function is piecewise:
+        age < decay_start_day:  weight = 1.0                                    (fresh zone)
+        age >= decay_start_day: weight = initial_weight * (1 - decay_rate) ** t
+                                where t = age - decay_start_day
 
-    - BULL date → +signal_confidence * decay
-    - BEAR date → -signal_confidence * decay
+    Example (initial_weight=0.8, decay_rate=0.05, decay_start_day=7):
+        age 0..6 → 1.00
+        age 7    → 0.800
+        age 8    → 0.760
+        age 14   → 0.559
+        age 20   → 0.410 (formula keeps working; no hard cutoff)
+
+    - BULL date → +signal_confidence * weight
+    - BEAR date → -signal_confidence * weight
     - Weighted average of signed scores
     - round(abs(avg)) → final int confidence
     - If confidence == 0 or no signals → returns None
@@ -185,8 +195,12 @@ def _merge_date_signals_into_final_verdict(
             continue
         age_days = max((today - day_date).days, 0)
 
-        # Экспоненциальное затухание: чем старее день, тем меньше вес
-        decay = 0.5 ** (age_days / half_life_days)
+        # Fresh zone holds weight = 1.0; after decay_start_day apply N0 * (1-r)^t
+        if age_days < decay_start_day:
+            decay = 1.0
+        else:
+            t = age_days - decay_start_day
+            decay = initial_weight * (1 - decay_rate) ** t
 
         conf = day_signal["signal_confidence"]   # int: 1, 2, 3
         signed = conf if day_signal["signal_type"] == "BULL" else -conf
@@ -243,9 +257,14 @@ def agent_for_twitter_analysis(state: AgentState):
     settings = get_agent_settings(state, AGENT_NAME)
     forecast_date = state["forecast_start_date"]
     window_days = settings["window_to_analysis"]
-    half_life_days = float(settings.get("half_life_days", 7.0))
+    decay_rate      = float(settings["decay_rate"])
+    decay_start_day = int(  settings["decay_start_day"])
+    initial_weight  = float(settings["initial_weight"])
     dt_from, dt_to = _get_window_dates(forecast_date, window_days)
-    print(f"{LOG_TAG} Window: {window_days}d  ({dt_from.date()} → {dt_to.date()})  half_life={half_life_days}d")
+    # print(
+    #     f"{LOG_TAG} Window: {window_days}d  ({dt_from.date()} → {dt_to.date()})  "
+    #     f"decay_rate={decay_rate} decay_start_day={decay_start_day} initial_weight={initial_weight}"
+    # )
 
     tweets_raw = get_tweets_in_range(dt_from=dt_from, dt_to=dt_to)
     print(f"{LOG_TAG} Fetched {len(tweets_raw)} tweets from DB")
@@ -282,26 +301,32 @@ def agent_for_twitter_analysis(state: AgentState):
     tweets_by_date = _group_tweets_by_date(tweets)
 
     # Step 1: group by date
-    print(f"{LOG_TAG} --- Step 1: by date ---")
-    for d, day_tweets in sorted(tweets_by_date.items()):
-        print(f"{LOG_TAG}   {d}: {len(day_tweets)} tweets")
+    # print(f"{LOG_TAG} --- Step 1: by date ---")
+    # for d, day_tweets in sorted(tweets_by_date.items()):
+    #     print(f"{LOG_TAG}   {d}: {len(day_tweets)} tweets")
 
     # Step 2: aggregate by author per date
     by_author = _aggregate_signals_by_author_and_date(tweets_by_date)
-    print(f"{LOG_TAG} --- Step 2: by author ---")
-    for d, authors in sorted(by_author.items()):
-        for author, sig in authors.items():
-            print(f"{LOG_TAG}   {d} @{author}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['tweets_count']} tweets)")
-        if not authors:
-            print(f"{LOG_TAG}   {d}: (no actionable signals)")
+    # print(f"{LOG_TAG} --- Step 2: by author ---")
+    # for d, authors in sorted(by_author.items()):
+    #     for author, sig in authors.items():
+    #         print(f"{LOG_TAG}   {d} @{author}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['tweets_count']} tweets)")
+    #     if not authors:
+    #         print(f"{LOG_TAG}   {d}: (no actionable signals)")
 
     # Step 3: one signal per date
     by_date = _merge_authors_signals_in_dates_into_one_signal(by_author)
-    print(f"{LOG_TAG} --- Step 3: one signal/date ---")
-    for d, sig in sorted(by_date.items()):
-        print(f"{LOG_TAG}   {d}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['authors_count']} authors)")
+    # print(f"{LOG_TAG} --- Step 3: one signal/date ---")
+    # for d, sig in sorted(by_date.items()):
+    #     print(f"{LOG_TAG}   {d}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['authors_count']} authors)")
 
-    verdict = _merge_date_signals_into_final_verdict(by_date, half_life_days=half_life_days, reference_date=forecast_date)
+    verdict = _merge_date_signals_into_final_verdict(
+        by_date,
+        decay_rate=decay_rate,
+        decay_start_day=decay_start_day,
+        initial_weight=initial_weight,
+        reference_date=forecast_date,
+    )
 
     if verdict is None:
         return {"agent_signals": {AGENT_NAME: {"summary": None}}}
@@ -339,16 +364,20 @@ if __name__ == "__main__":
     settings     = config["agent_settings"][AGENT_NAME]
     forecast_date = "2026-03-28"
     window_days  = 3
-    half_life_days = float(settings.get("half_life_days", 7.0))
+    decay_rate      = float(settings["decay_rate"])
+    decay_start_day = int(  settings["decay_start_day"])
+    initial_weight  = float(settings["initial_weight"])
     # allowed_authors = [a.lower() for a in settings.get("authors", [])]
     allowed_authors = ["rektcapital"]
 
     dt_from, dt_to = _get_window_dates(forecast_date, window_days)
     print(f"=== Config ===")
-    print(f"  forecast_date : {forecast_date}")
-    print(f"  window        : {window_days} days  ({dt_from.date()} → {dt_to.date()})")
-    print(f"  half_life_days: {half_life_days}")
-    print(f"  authors filter: {allowed_authors or '(all)'}")
+    print(f"  forecast_date   : {forecast_date}")
+    print(f"  window          : {window_days} days  ({dt_from.date()} → {dt_to.date()})")
+    print(f"  decay_rate      : {decay_rate}")
+    print(f"  decay_start_day : {decay_start_day}")
+    print(f"  initial_weight  : {initial_weight}")
+    print(f"  authors filter  : {allowed_authors or '(all)'}")
 
     tweets_raw = get_tweets_in_range(dt_from=dt_from, dt_to=dt_to)
     print(f"\n  Total tweets fetched: {len(tweets_raw)}")
@@ -413,7 +442,13 @@ if __name__ == "__main__":
         print(f"  {d}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['authors_count']} authors)")
 
     # --- Шаг 4: финальный вердикт по всему окну ---
-    verdict = _merge_date_signals_into_final_verdict(by_date_merged, half_life_days=half_life_days, reference_date=forecast_date)
+    verdict = _merge_date_signals_into_final_verdict(
+        by_date_merged,
+        decay_rate=decay_rate,
+        decay_start_day=decay_start_day,
+        initial_weight=initial_weight,
+        reference_date=forecast_date,
+    )
     print("\n=== Step 4: final verdict ===")
     if verdict:
         print(f"  {verdict['signal_type']} | conf={verdict['signal_confidence']} | avg_score={verdict['avg_score']} | over {verdict['dates_count']} days")

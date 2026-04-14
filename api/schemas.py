@@ -191,8 +191,8 @@ class MultiagentPredictionsRequest(BaseModel):
 
     model_config = ConfigDict(json_schema_extra={
         "example": {
-            "forecast_start_date": "2026-04-02",
-            "horizon": 1,
+            "forecast_start_date": "2026-04-14",
+            "horizon": 7,
             "n_last_dates": 1,
             "neutral_threshold": 0,
             "agent_envolved_in_prediction": [
@@ -203,8 +203,8 @@ class MultiagentPredictionsRequest(BaseModel):
             ],
             "agent_settings": {
                 "agent_for_analysing_tech_indicators": {
-                    "system_prompt_file": "agents/tech_indicators/system_prompt_1d.md",
-                    "window_to_analysis": 21,
+                    "system_prompt_file": "agents/tech_indicators/system_prompt_general.md",
+                    "window_to_analysis": 14,
                     "base_feats": [
                         "spot_price_history__ta_rsi",
                         "spot_price_history__ta_adx",
@@ -218,7 +218,17 @@ class MultiagentPredictionsRequest(BaseModel):
                         "spot_price_history__high",
                         "spot_price_history__low",
                         "spot_price_history__close",
-                        "spot_price_history__volume_usd"
+                        "spot_price_history__volume_usd",
+                        "spot_price_history__ta_rsi__lag7",
+                        "spot_price_history__ta_adx__lag7",
+                        "spot_price_history__ta_bbw__lag7",
+                        "spot_price_history__ta_obv__lag7",
+                        "spot_price_history__close__sma7_rel",
+                        "spot_price_history__close__sma14_rel",
+                        "spot_price_history__close__sma50_rel",
+                        "spot_price_history__close__zscore7",
+                        "spot_price_history__close__zscore14",
+                        "spot_price_history__close__zscore50"
                     ]
                 },
                 "agent_for_news_analysis": {
@@ -230,10 +240,13 @@ class MultiagentPredictionsRequest(BaseModel):
                 },
                 "agent_for_twitter_analysis": {
                     "window_to_analysis": 14,
-                    "half_life_days": 4.0,
+                    "decay_rate": 0.05,
+                    "decay_start_day": 1.0,
+                    "initial_weight": 1,
                     "authors": [
-                        "CarpeNoctom", "caprioleio", "JSeyff", "DonAlt", "krugermacro",
-                        "DavidDuong", "TraderMercury", "Yodaskk", "_Checkmatey_", "CrypNuevo"
+                        "lookonchain",
+                        "whale_alert",
+                        "ericbalchunas"
                     ]
                 }
             }

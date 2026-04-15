@@ -357,7 +357,7 @@ if __name__ == "__main__":
 
     import json
 
-    config_path = Path(__file__).resolve().parent.parent.parent / "multiagent_config.json"
+    config_path = Path(__file__).resolve().parent.parent.parent.parent / "configs" / "multiagent_config.json"
     with open(config_path, encoding="utf-8") as f:
         config = json.load(f)
 

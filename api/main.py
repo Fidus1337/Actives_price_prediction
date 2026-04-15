@@ -15,8 +15,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 os.chdir(PROJECT_ROOT)  # Set working directory for config/model paths
 
 from api.routers import classic_ml_predictions, multiagent_predictions
-from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
-from PredictWithModel.Predictor import Predictor
+from Classic_ml_model_solutions.Dataset_pipeline.SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
+from Classic_ml_model_solutions.Predict_with_ml_model.Predictor import Predictor
 
 # Module-level reference for access from routers
 shared_data_cache: SharedBaseDataCache | None = None

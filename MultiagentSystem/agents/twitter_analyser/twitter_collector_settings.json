@@ -146,7 +146,7 @@
     },
     {
       "username": "HenrikZeberg",
-      "enabled": false
+      "enabled": true
     },
     {
       "username": "CryptoVizArt",
@@ -190,23 +190,23 @@
     },
     {
       "username": "caprioleio",
-      "enabled": false
+      "enabled": true
     },
     {
       "username": "JSeyff",
-      "enabled": false
+      "enabled": true
     },
     {
       "username": "DonAlt",
-      "enabled": false
+      "enabled": true
     },
     {
       "username": "krugermacro",
-      "enabled": false
+      "enabled": true
     },
     {
       "username": "DavidDuong",
-      "enabled": false
+      "enabled": true
     },
     {
       "username": "TraderMercury",
@@ -235,6 +235,30 @@
     {
       "username": "Route2FI",
       "enabled": true
+    },
+    {
+      "username": "AltcoinPsycho",
+      "enabled": true
+    },
+    {
+      "username": "CryptoHayes",
+      "enabled": true
+    },
+    {
+      "username": "OnchainDataNerd",
+      "enabled": true
+    },
+    {
+      "username": "filbfilb",
+      "enabled": true
+    },
+    {
+      "username": "ecoinometrics",
+      "enabled": true
+    },
+    {
+      "username": "Pladizow",
+      "enabled": true
     }
   ],
   "scraper_settings": {
@@ -250,12 +274,24 @@
     "horizon_days": 1,
     "authors": [
       "CarpeNoctom",
+      "caprioleio",
+      "JSeyff",
+      "DonAlt",
+      "krugermacro",
+      "AltcoinPsycho",
+      "DavidDuong",
       "TraderMercury",
       "_Checkmatey_",
       "CrypNuevo",
       "TheDeFinvestor",
       "Tradermayne",
-      "Route2FI"
+      "CryptoHayes",
+      "OnchainDataNerd",
+      "filbfilb",
+      "Route2FI",
+      "ecoinometrics",
+      "Pladizow",
+      "HenrikZeberg"
     ]
   }
 }

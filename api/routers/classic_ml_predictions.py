@@ -15,12 +15,12 @@ from fastapi.concurrency import run_in_threadpool
 # Add project root to path for imports
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from Models_builder_pipeline import train_all_models_from_configs
+from Classic_ml_model_solutions.Models_builder_pipeline.Models_builder_pipeline import train_all_models_from_configs
 
 # Set working directory to project root (Predictor uses relative paths for models)
 os.chdir(PROJECT_ROOT)
 
-from PredictWithModel.Predictor import Predictor
+from Classic_ml_model_solutions.Predict_with_ml_model.Predictor import Predictor
 from api.schemas import (
     ClassicML_PredictionResponse,
     ClassicML_PredictionRequest,
@@ -43,7 +43,7 @@ _dataset_refresh_lock = asyncio.Lock()
 # Cache for Predictor instances (one per model)
 _predictor_cache: dict[str, Predictor] = {}
 
-MODELS_DIR = PROJECT_ROOT / "Models"
+MODELS_DIR = PROJECT_ROOT / "Classic_ml_model_solutions" / "Created_models_to_use"
 CONFIG_PATH = PROJECT_ROOT / "configs" / "config.json"
 
 

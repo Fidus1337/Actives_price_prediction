@@ -1,0 +1,102 @@
+import os
+import json
+import joblib
+import pandas as pd
+from Classic_ml_model_solutions.Models_builder_pipeline.ModelsTrainer.logistic_reg_model_train import walk_forward_logreg, add_price_vs_sma_target
+
+
+def range_model_train_pipeline(
+    df: pd.DataFrame,
+    base_feats: list[str],
+    cfg: dict,
+    n_splits: int = 5,
+    thr: float = 0.5,
+) -> tuple[dict, object, pd.DataFrame]:
+    """
+    Тренирует и сохраняет Range модель.
+
+    Модель предсказывает: будет ли close через N дней выше, чем
+    SMA(ma_window) по close на текущий день (close[t+N] > SMA[t]).
+    OOS-оценка — на последнем фолде. Финальная модель — обучена на всех данных.
+
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        DataFrame с подготовленными фичами
+    base_feats : list[str]
+        Список базовых фичей
+    cfg : dict
+        Конфигурация с ключами: name, N_DAYS, ma_window, range_feats
+    n_splits : int
+        Количество фолдов для walk-forward валидации
+    thr : float
+        Порог классификации
+
+    Returns:
+    --------
+    tuple : (results_dict, trained_model, oos_df, oos_last_df)
+    """
+    N_DAYS = cfg["N_DAYS"]
+    ma_window = cfg.get("ma_window", 14)
+    range_feats = cfg.get("range_feats", None)
+    CONFIG_NAME = cfg["name"]
+
+    CLOSE_COL = "spot_price_history__close"
+
+    df_range = add_price_vs_sma_target(
+        df,
+        close_col=CLOSE_COL,
+        ma_window=ma_window,
+        horizon=N_DAYS,
+    )
+
+    target_col = f"y_close_above_sma_today_ma{ma_window}_N{N_DAYS}"
+
+    if range_feats is None:
+        range_feats = [
+            f"close_sma{ma_window}",
+        ]
+
+    feat_set = [c for c in (base_feats + range_feats) if c in df_range.columns]
+
+    results, model, oos_df, oos_last_df = walk_forward_logreg(
+        df_range,
+        features=feat_set,
+        target=target_col,
+        n_splits=n_splits,
+        thr=thr,
+        purge_gap=N_DAYS,
+    )
+
+    models_folder = os.path.join("Classic_ml_model_solutions", "Created_models_to_use", CONFIG_NAME)
+    os.makedirs(models_folder, exist_ok=True)
+    model_path = os.path.join(models_folder, f"model_range_{CONFIG_NAME}.joblib")
+    joblib.dump(model, model_path)
+
+    oos_full = results["oos_full_metrics"]
+    cv_avg = results["cv_avg_metrics"]
+    metrics = {
+        "config_name": CONFIG_NAME,
+        "model_path": model_path,
+        "target": target_col,
+        "features": feat_set,
+        "n_features": results["n_features"],
+        "thr": results["thr"],
+        "eval_fold_idx": results["eval_fold_idx"],
+        "auc": oos_full["auc"],
+        "acc": oos_full["acc"],
+        "precision": oos_full["precision"],
+        "recall": oos_full["recall"],
+        "f1": oos_full["f1"],
+        "n_oos_samples": oos_full["n_oos_samples"],
+        "cv_avg_auc": cv_avg["auc"],
+        "cv_avg_acc": cv_avg["acc"],
+        "cv_avg_precision": cv_avg["precision"],
+        "cv_avg_recall": cv_avg["recall"],
+        "cv_avg_f1": cv_avg["f1"],
+    }
+    metrics_path = os.path.join(models_folder, f"metrics_range_{CONFIG_NAME}.json")
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=2, ensure_ascii=False)
+
+    return results, model, oos_df, oos_last_df

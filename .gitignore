@@ -187,9 +187,9 @@ dev.env
 
 *.png
 
-Models/plots/
+Classic_ml_model_solutions/Created_models_to_use/plots/
 
-Models/
+Classic_ml_model_solutions/Created_models_to_use/
 
 MultiagentSystem/agents/twitter_analyser/twitter_scrapper/chrome_profile/
 *.db

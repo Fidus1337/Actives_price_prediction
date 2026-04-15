@@ -171,7 +171,7 @@ The script sequentially trains models for **each configuration** from `config.js
 
 ### Data Sources (27 total)
 
-All data is fetched via `Dataset_builder_pipeline.py`:
+All data is fetched via `Classic_ml_model_solutions/Dataset_pipeline/Dataset_builder_pipeline.py`:
 
 | Category | Sources |
 |----------|---------|
@@ -695,7 +695,7 @@ print(train_resp.json())
 ├── dev.env                          # CoinGlass API key
 ├── Models_builder_pipeline.py       # Main training pipeline
 ├── Predictor.py                     # Prediction class
-├── Dataset_builder_pipeline.py         # Data collection from 27 sources
+├── Classic_ml_model_solutions/Dataset_pipeline/Dataset_builder_pipeline.py  # Data collection from 27 sources
 ├── PlotsBuilder/Plots_Builder.py    # ROC curves, metric plots, confusion matrices
 ├── requirements.txt                 # Dependencies
 │
@@ -707,8 +707,8 @@ print(train_resp.json())
 ├── FeaturesEngineer/                # Feature Engineering
 │   └── FeaturesEngineer.py          # ensure_spot_prefix, add_y_up_custom, add_engineered_features
 │
-├── CorrelationsAnalyzer/            # Statistical feature analysis
-│   └── CorrelationsAnalyzer.py      # corr_report (FDR), group_effect_report (Cohen's d)
+├── Filtering_features_pipeline/     # Feature filtering and analysis
+│   └── CorrelationsAnalyzer/        # Statistical feature analysis (corr_report/group_effect_report)
 │
 ├── ModelsTrainer/                   # Model training
 │   ├── logistic_reg_model_train.py  # Walk-forward CV, hyperparameter tuning

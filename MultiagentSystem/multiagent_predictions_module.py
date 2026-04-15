@@ -7,8 +7,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-from SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
-from FeaturesGetterModule.FeaturesGetter import FeaturesGetter
+from Classic_ml_model_solutions.Dataset_pipeline.SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
+from Classic_ml_model_solutions.Dataset_pipeline.FeaturesGetterModule.FeaturesGetter import FeaturesGetter
 
 
 def make_one_prediction(app, config: dict, forecast_start_date: str, cached_dataset: pd.DataFrame | None) -> dict:

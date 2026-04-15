@@ -19,13 +19,13 @@ python -m venv .venv
 .venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
-# Train all classic ML models (reads configs/config.json → saves to Models/)
-python Models_builder_pipeline.py
+# Train all classic ML models (reads configs/config.json → saves to Classic_ml_model_solutions/Created_models_to_use/)
+python -m Classic_ml_model_solutions.Models_builder_pipeline.Models_builder_pipeline
 
 # Start API (port 8000) — serves both classic ML and multiagent endpoints
 uvicorn api.main:app --reload
 
-# Run multiagent system standalone (reads MultiagentSystem/multiagent_config.json)
+# Run multiagent system standalone (reads configs/multiagent_config.json)
 python -m MultiagentSystem.multiagent_system_main
 
 # Tune multiagent hyperparameters (reads tuning_top.json grid)
@@ -47,32 +47,36 @@ python -m MultiagentSystem.hyperparameters_tuner
 │   └── routers/
 │       ├── classic_ml_predictions.py       # Classic ML: /api/predictions, /api/models, /api/health, /api/dataset-status, /api/system/train_classic_ml_models
 │       └── multiagent_predictions.py       # Multiagent: /api/multiagent_predictions, /api/system/collect_agent_data, /api/agents/*
-├── FeaturesGetterModule/                   # Data fetching layer (CoinGlass + yfinance)
-│   ├── FeaturesGetter.py                   # CoinGlass client + yfinance wrappers (S&P500, Gold, IGV)
-│   ├── features_endpoints.json             # 18 CoinGlass endpoint configs — default exchange pinned to Bybit
-│   └── helpers/                            # _coinglass_get_dataframe / _normalize_time_to_date / _prefix_columns / _merge_features_by_date
-├── FeaturesEngineer/
-│   ├── FeaturesEngineer.py                 # ensure_spot_prefix, add_y_up_custom, add_engineered_features, add_price_ma_features
-│   └── ta_features.py                      # add_ta_features_selected(): 8 TA indicators per asset
-├── ModelsTrainer/
+├── Classic_ml_model_solutions/Dataset_pipeline/
+│   ├── FeaturesGetterModule/               # Data fetching layer (CoinGlass + yfinance)
+│   │   ├── FeaturesGetter.py               # CoinGlass client + yfinance wrappers (S&P500, Gold, IGV)
+│   │   ├── features_endpoints.json         # 18 CoinGlass endpoint configs — default exchange pinned to Bybit
+│   │   └── helpers/                        # _coinglass_get_dataframe / _normalize_time_to_date / _prefix_columns / _merge_features_by_date
+│   ├── FeaturesEngineer/
+│   │   ├── FeaturesEngineer.py             # ensure_spot_prefix, add_y_up_custom, add_engineered_features, add_price_ma_features
+│   │   └── ta_features.py                  # add_ta_features_selected(): 8 TA indicators per asset
+├── Classic_ml_model_solutions/Filtering_features_pipeline/
+│   └── CorrelationsAnalyzer/CorrelationsAnalyzer.py    # corr_report, corr_table_with_pvalues, group_effect_report
+├── Classic_ml_model_solutions/Models_builder_pipeline/ModelsTrainer/
 │   ├── logistic_reg_model_train.py         # walk_forward_logreg, tune_logreg_timecv, add_range_target
 │   ├── base_model_trainer.py               # base_model_train_pipeline()
-│   └── range_model_trainer.py              # range_model_train_pipeline()
-├── CorrelationsAnalyzer/CorrelationsAnalyzer.py    # corr_report, corr_table_with_pvalues, group_effect_report
-├── LoggingSystem/LoggingSystem.py          # Tees stdout → logs.log (used during training/tuning)
-├── Models/                                 # 8 classic-ML artifact dirs: base_model_{1,3,5,7}d/ and range_model_{1,3,5,7}d/
-├── SharedDataCache/
+│   ├── range_model_trainer.py              # range_model_train_pipeline()
+│   ├── ret_threshold_model_trainer.py      # ret_threshold_model_train_pipeline()
+│   └── vol_scaled_model_trainer.py         # vol_scaled_model_train_pipeline()
+├── Logs/LoggingSystem/LoggingSystem.py     # Tees stdout → logs.log (used during training/tuning)
+├── Classic_ml_model_solutions/Created_models_to_use/  # classic-ML artifact dirs: base_model_{1,3,5,7}d/, range_model_{1,3,5,7}d/, ret_threshold_model_*d/, vol_scaled_model_*d/
+├── Classic_ml_model_solutions/Dataset_pipeline/SharedDataCache/
 │   ├── SharedBaseDataCache.py              # Single shared base-data pipeline with TTL + thread lock (used by classic ML and multiagent)
 │   └── __init__.py
-├── PredictWithModel/Predictor.py           # Classic-ML inference: loads joblib, reuses SharedBaseDataCache, returns probs
+├── Classic_ml_model_solutions/Predict_with_ml_model/Predictor.py  # Classic-ML inference: loads joblib, reuses SharedBaseDataCache, returns probs
 ├── MultiagentSystem/                       # LangGraph agent DAG (see "Multiagent System" section below)
-├── Dataset_builder_pipeline.py             # get_features() — fetches 28 datasets in parallel (ThreadPoolExecutor)
-├── Models_builder_pipeline.py              # Training orchestrator: main_pipeline() per config in configs/config.json
-├── PlotsBuilder/Plots_Builder.py           # ROC, metrics-vs-threshold, confusion matrix plots
+├── Classic_ml_model_solutions/Dataset_pipeline/Dataset_builder_pipeline.py  # get_features() — fetches 28 datasets in parallel (ThreadPoolExecutor)
+├── Classic_ml_model_solutions/Models_builder_pipeline/Models_builder_pipeline.py  # Training orchestrator: main_pipeline() per config in configs/config.json
+├── Classic_ml_model_solutions/PlotsBuilder/Plots_Builder.py  # ROC, metrics-vs-threshold, confusion matrix plots
 ├── new_targets.py                          # Experimental targets (triple barrier, vol-scaled, return-threshold)
 ├── configs/
 │   ├── config.json                         # 8 classic-ML experiment configs
-│   └── config2.json                        # Alternate feature sets (experimental)
+│   └── ml_config.json                      # Alternate feature sets (experimental)
 ├── notebooks/                              # Jupyter experiments
 ├── Logs/available_features.json            # Auto-generated on every data fetch — ground truth for feature names
 ├── dev.env                                 # COINGLASS_API_KEY, OPENAI_API_KEY, TWITTER_UPLOAD_KEY
@@ -81,7 +85,7 @@ python -m MultiagentSystem.hyperparameters_tuner
 
 ## Critical: Data Pipeline (SharedBaseDataCache)
 
-All data preparation runs through `SharedDataCache.SharedBaseDataCache._fetch_base_data()` — a single shared pipeline used by **classic ML training, classic ML prediction, and the multiagent system**. This ensures feature parity across all three. The cache is thread-safe (`threading.Lock`) with a TTL of 3600s; `api/main.py` creates one instance at startup, calls `.refresh()`, and injects it via `Predictor.set_shared_cache(...)`.
+All data preparation runs through `Classic_ml_model_solutions.Dataset_pipeline.SharedDataCache.SharedBaseDataCache._fetch_base_data()` — a single shared pipeline used by **classic ML training, classic ML prediction, and the multiagent system**. This ensures feature parity across all three. The cache is thread-safe (`threading.Lock`) with a TTL of 3600s; `api/main.py` creates one instance at startup, calls `.refresh()`, and injects it via `Predictor.set_shared_cache(...)`.
 
 ### Shared base pipeline (runs once, cached):
 
@@ -113,7 +117,7 @@ All data preparation runs through `SharedDataCache.SharedBaseDataCache._fetch_ba
 4. Train base or range model (TimeSeriesSplit n_splits=4, best_metric="accuracy")
 ```
 
-### Classic-ML prediction (`PredictWithModel/Predictor._fetch_and_prepare_data()`):
+### Classic-ML prediction (`Classic_ml_model_solutions/Predict_with_ml_model/Predictor._fetch_and_prepare_data()`):
 
 ```
 1. shared_cache.get_base_df()
@@ -160,7 +164,7 @@ Plus `GET /docs` (Swagger) and `GET /redoc`.
 
 ## Model Artifacts
 
-Each model saves two files in `Models/{config_name}/`:
+Each model saves two files in `Classic_ml_model_solutions/Created_models_to_use/{config_name}/`:
 - `model_{type}_{name}.joblib` — sklearn Pipeline (SimpleImputer → StandardScaler → LogisticRegression)
 - `metrics_{type}_{name}.json` — features, quality metrics, threshold, cv averages
 
@@ -171,7 +175,7 @@ Metrics JSON fields:
 
 **Feature source of truth for prediction**: `metrics_*.json["features"]` (saved at training time). Fallbacks: `model.feature_names_in_` → `config.json["base_feats"]`.
 
-## Data Sources (28 datasets in Dataset_builder_pipeline.py)
+## Data Sources (28 datasets in Classic_ml_model_solutions/Dataset_pipeline/Dataset_builder_pipeline.py)
 
 | Category | Count | Source |
 |----------|-------|--------|
@@ -189,7 +193,7 @@ Metrics JSON fields:
 | Gold Futures OHLCV | 1 | yfinance (GC=F) |
 | IGV Tech ETF OHLCV | 1 | yfinance (IGV) |
 
-"Bybit" means the `exchange` / `exchange_list` query param is pinned to Bybit in both `FeaturesGetterModule/features_endpoints.json` defaults and the explicit kwargs in `Dataset_builder_pipeline.get_features()`. To switch data source you must update BOTH files (there is no global `EXCHANGE` constant).
+"Bybit" means the `exchange` / `exchange_list` query param is pinned to Bybit in both `Classic_ml_model_solutions/Dataset_pipeline/FeaturesGetterModule/features_endpoints.json` defaults and the explicit kwargs in `Classic_ml_model_solutions/Dataset_pipeline/Dataset_builder_pipeline.py` (`get_features`). To switch data source you must update BOTH files (there is no global `EXCHANGE` constant).
 
 ## Data Conventions
 
@@ -225,7 +229,7 @@ Array of 8 classic-ML experiment objects. Each has:
 - `threshold`: probability threshold for binary classification
 - `ma_window`: (range models only) SMA window for baseline, typically 7 or 14
 
-`configs/config2.json` is an alternate/experimental feature-set file — not wired into the default training pipeline.
+`configs/ml_config.json` is an alternate/experimental feature-set file — not wired into the default training pipeline.
 
 ## Multiagent System
 

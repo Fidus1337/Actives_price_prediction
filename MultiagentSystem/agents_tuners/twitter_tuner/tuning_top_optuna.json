@@ -1,0 +1,52 @@
+{
+  "method": "optuna_nsga2_multiobjective",
+  "objectives": [
+    "score_max",
+    "n_valid_max"
+  ],
+  "horizon": 1,
+  "eval_days": 70,
+  "step": 0.1,
+  "balance_penalty_weight": 1.0,
+  "min_accuracy": 0.6,
+  "max_gap": 0.3,
+  "min_n_valid": 45,
+  "total_possible_trials": 32767,
+  "requested_trials": 1000,
+  "total_trials": 1000,
+  "trials_completed": 1000,
+  "done": true,
+  "pareto_size": 1,
+  "top": [
+    {
+      "rank": 1,
+      "score": 0.5732943469785575,
+      "accuracy": 0.6140350877192983,
+      "accuracy_lcb": 0.48429496444322906,
+      "tpr": 0.5925925925925926,
+      "tnr": 0.6333333333333333,
+      "balance_gap": 0.040740740740740744,
+      "tp": 16,
+      "tn": 19,
+      "fp": 11,
+      "fn": 11,
+      "n_valid": 57,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "_Checkmatey_",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    }
+  ]
+}

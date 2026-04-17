@@ -1,0 +1,2716 @@
+{
+  "horizon": 1,
+  "eval_days": 100,
+  "step": 0.1,
+  "balance_penalty_weight": 1.0,
+  "min_accuracy": 0.57,
+  "max_gap": 0.3,
+  "total_trials": 32767,
+  "trials_completed": 18400,
+  "done": false,
+  "top": [
+    {
+      "rank": 1,
+      "score": 0.6128767783940198,
+      "accuracy": 0.6181818181818182,
+      "tpr": 0.6153846153846154,
+      "tnr": 0.6206896551724138,
+      "balance_gap": 0.0053050397877983935,
+      "tp": 16,
+      "tn": 18,
+      "fp": 11,
+      "fn": 10,
+      "n_valid": 55,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "TraderMercury",
+          "_Checkmatey_",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 2,
+      "score": 0.6101481838121222,
+      "accuracy": 0.6119402985074627,
+      "tpr": 0.6129032258064516,
+      "tnr": 0.6111111111111112,
+      "balance_gap": 0.0017921146953404632,
+      "tp": 19,
+      "tn": 22,
+      "fp": 14,
+      "fn": 12,
+      "n_valid": 67,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 3,
+      "score": 0.6037581699346406,
+      "accuracy": 0.6176470588235294,
+      "tpr": 0.625,
+      "tnr": 0.6111111111111112,
+      "balance_gap": 0.01388888888888884,
+      "tp": 20,
+      "tn": 22,
+      "fp": 14,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "_Checkmatey_",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 4,
+      "score": 0.6032373423677772,
+      "accuracy": 0.6363636363636364,
+      "tpr": 0.6190476190476191,
+      "tnr": 0.6521739130434783,
+      "balance_gap": 0.0331262939958592,
+      "tp": 13,
+      "tn": 15,
+      "fp": 8,
+      "fn": 8,
+      "n_valid": 44,
+      "hyperparameters": {
+        "authors": [
+          "DonAlt",
+          "DavidDuong",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 5,
+      "score": 0.6025323802541545,
+      "accuracy": 0.609375,
+      "tpr": 0.6129032258064516,
+      "tnr": 0.6060606060606061,
+      "balance_gap": 0.006842619745845546,
+      "tp": 19,
+      "tn": 20,
+      "fp": 13,
+      "fn": 12,
+      "n_valid": 64,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "_Checkmatey_"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 6,
+      "score": 0.6022601548917338,
+      "accuracy": 0.6081081081081081,
+      "tpr": 0.6111111111111112,
+      "tnr": 0.6052631578947368,
+      "balance_gap": 0.005847953216374324,
+      "tp": 22,
+      "tn": 23,
+      "fp": 15,
+      "fn": 14,
+      "n_valid": 74,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "_Checkmatey_"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 7,
+      "score": 0.6010555842621983,
+      "accuracy": 0.6086956521739131,
+      "tpr": 0.6129032258064516,
+      "tnr": 0.6052631578947368,
+      "balance_gap": 0.007640067911714787,
+      "tp": 19,
+      "tn": 23,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 69,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 8,
+      "score": 0.6004882896897416,
+      "accuracy": 0.6140350877192983,
+      "tpr": 0.6071428571428571,
+      "tnr": 0.6206896551724138,
+      "balance_gap": 0.013546798029556717,
+      "tp": 17,
+      "tn": 18,
+      "fp": 11,
+      "fn": 11,
+      "n_valid": 57,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "TraderMercury",
+          "_Checkmatey_"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 9,
+      "score": 0.6,
+      "accuracy": 0.6,
+      "tpr": 0.6,
+      "tnr": 0.6,
+      "balance_gap": 0.0,
+      "tp": 18,
+      "tn": 21,
+      "fp": 14,
+      "fn": 12,
+      "n_valid": 65,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 10,
+      "score": 0.5966307277628032,
+      "accuracy": 0.6037735849056604,
+      "tpr": 0.6071428571428571,
+      "tnr": 0.6,
+      "balance_gap": 0.0071428571428571175,
+      "tp": 17,
+      "tn": 15,
+      "fp": 10,
+      "fn": 11,
+      "n_valid": 53,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "_Checkmatey_",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 11,
+      "score": 0.5954462659380692,
+      "accuracy": 0.6065573770491803,
+      "tpr": 0.6,
+      "tnr": 0.6111111111111112,
+      "balance_gap": 0.011111111111111183,
+      "tp": 15,
+      "tn": 22,
+      "fp": 14,
+      "fn": 10,
+      "n_valid": 61,
+      "hyperparameters": {
+        "authors": [
+          "krugermacro",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "CrypNuevo",
+          "TheDeFinvestor",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 12,
+      "score": 0.5945226917057902,
+      "accuracy": 0.6056338028169014,
+      "tpr": 0.6,
+      "tnr": 0.6111111111111112,
+      "balance_gap": 0.011111111111111183,
+      "tp": 21,
+      "tn": 22,
+      "fp": 14,
+      "fn": 14,
+      "n_valid": 71,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "CrypNuevo",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 13,
+      "score": 0.5933110367892976,
+      "accuracy": 0.6086956521739131,
+      "tpr": 0.6,
+      "tnr": 0.6153846153846154,
+      "balance_gap": 0.015384615384615441,
+      "tp": 18,
+      "tn": 24,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 69,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "_Checkmatey_",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 14,
+      "score": 0.5933110367892976,
+      "accuracy": 0.6086956521739131,
+      "tpr": 0.6,
+      "tnr": 0.6153846153846154,
+      "balance_gap": 0.015384615384615441,
+      "tp": 18,
+      "tn": 24,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 69,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 15,
+      "score": 0.5875428855182376,
+      "accuracy": 0.5915492957746479,
+      "tpr": 0.59375,
+      "tnr": 0.5897435897435898,
+      "balance_gap": 0.004006410256410242,
+      "tp": 19,
+      "tn": 23,
+      "fp": 16,
+      "fn": 13,
+      "n_valid": 71,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 16,
+      "score": 0.5867336284664216,
+      "accuracy": 0.6027397260273972,
+      "tpr": 0.59375,
+      "tnr": 0.6097560975609756,
+      "balance_gap": 0.016006097560975596,
+      "tp": 19,
+      "tn": 25,
+      "fp": 16,
+      "fn": 13,
+      "n_valid": 73,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 17,
+      "score": 0.5866071428571429,
+      "accuracy": 0.6,
+      "tpr": 0.6071428571428571,
+      "tnr": 0.59375,
+      "balance_gap": 0.013392857142857095,
+      "tp": 17,
+      "tn": 19,
+      "fp": 13,
+      "fn": 11,
+      "n_valid": 60,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "AltcoinPsycho",
+          "TraderMercury",
+          "_Checkmatey_",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 18,
+      "score": 0.5857142857142857,
+      "accuracy": 0.6142857142857143,
+      "tpr": 0.6,
+      "tnr": 0.6285714285714286,
+      "balance_gap": 0.02857142857142858,
+      "tp": 21,
+      "tn": 22,
+      "fp": 13,
+      "fn": 14,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "CrypNuevo",
+          "TheDeFinvestor",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 19,
+      "score": 0.5854497354497354,
+      "accuracy": 0.6,
+      "tpr": 0.6071428571428571,
+      "tnr": 0.5925925925925926,
+      "balance_gap": 0.014550264550264536,
+      "tp": 17,
+      "tn": 16,
+      "fp": 11,
+      "fn": 11,
+      "n_valid": 55,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "_Checkmatey_"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 20,
+      "score": 0.5851024620374465,
+      "accuracy": 0.5921052631578947,
+      "tpr": 0.5882352941176471,
+      "tnr": 0.5952380952380952,
+      "balance_gap": 0.007002801120448154,
+      "tp": 20,
+      "tn": 25,
+      "fp": 17,
+      "fn": 14,
+      "n_valid": 76,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 21,
+      "score": 0.5846986009257814,
+      "accuracy": 0.5882352941176471,
+      "tpr": 0.5862068965517241,
+      "tnr": 0.5897435897435898,
+      "balance_gap": 0.0035366931918656697,
+      "tp": 17,
+      "tn": 23,
+      "fp": 16,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "_Checkmatey_",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 22,
+      "score": 0.5846325452587312,
+      "accuracy": 0.6029411764705882,
+      "tpr": 0.6129032258064516,
+      "tnr": 0.5945945945945946,
+      "balance_gap": 0.018308631211856996,
+      "tp": 19,
+      "tn": 22,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "TraderMercury",
+          "Tradermayne",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 23,
+      "score": 0.584473137104716,
+      "accuracy": 0.6052631578947368,
+      "tpr": 0.5945945945945946,
+      "tnr": 0.6153846153846154,
+      "balance_gap": 0.02079002079002079,
+      "tp": 22,
+      "tn": 24,
+      "fp": 15,
+      "fn": 15,
+      "n_valid": 76,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 24,
+      "score": 0.5837972262075561,
+      "accuracy": 0.5866666666666667,
+      "tpr": 0.5882352941176471,
+      "tnr": 0.5853658536585366,
+      "balance_gap": 0.0028694404591105283,
+      "tp": 20,
+      "tn": 24,
+      "fp": 17,
+      "fn": 14,
+      "n_valid": 75,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "krugermacro",
+          "DavidDuong",
+          "_Checkmatey_",
+          "CrypNuevo",
+          "Tradermayne",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 25,
+      "score": 0.5831376426482099,
+      "accuracy": 0.603448275862069,
+      "tpr": 0.5925925925925926,
+      "tnr": 0.6129032258064516,
+      "balance_gap": 0.020310633213859064,
+      "tp": 16,
+      "tn": 19,
+      "fp": 12,
+      "fn": 11,
+      "n_valid": 58,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "_Checkmatey_"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 26,
+      "score": 0.5829000182448458,
+      "accuracy": 0.5892857142857143,
+      "tpr": 0.5925925925925926,
+      "tnr": 0.5862068965517241,
+      "balance_gap": 0.0063856960408684715,
+      "tp": 16,
+      "tn": 17,
+      "fp": 12,
+      "fn": 11,
+      "n_valid": 56,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "TraderMercury"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 27,
+      "score": 0.5825180970882767,
+      "accuracy": 0.5915492957746479,
+      "tpr": 0.5862068965517241,
+      "tnr": 0.5952380952380952,
+      "balance_gap": 0.009031198686371145,
+      "tp": 17,
+      "tn": 25,
+      "fp": 17,
+      "fn": 12,
+      "n_valid": 71,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "TraderMercury",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 28,
+      "score": 0.5821627647714603,
+      "accuracy": 0.6231884057971014,
+      "tpr": 0.6,
+      "tnr": 0.6410256410256411,
+      "balance_gap": 0.0410256410256411,
+      "tp": 18,
+      "tn": 25,
+      "fp": 14,
+      "fn": 12,
+      "n_valid": 69,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 29,
+      "score": 0.5819852941176471,
+      "accuracy": 0.59375,
+      "tpr": 0.6,
+      "tnr": 0.5882352941176471,
+      "balance_gap": 0.0117647058823529,
+      "tp": 18,
+      "tn": 20,
+      "fp": 14,
+      "fn": 12,
+      "n_valid": 64,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "TraderMercury"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 30,
+      "score": 0.5817418213969939,
+      "accuracy": 0.5846153846153846,
+      "tpr": 0.5862068965517241,
+      "tnr": 0.5833333333333334,
+      "balance_gap": 0.002873563218390718,
+      "tp": 17,
+      "tn": 21,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 65,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "DavidDuong",
+          "CrypNuevo",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 31,
+      "score": 0.5809815621136375,
+      "accuracy": 0.6037735849056604,
+      "tpr": 0.5925925925925926,
+      "tnr": 0.6153846153846154,
+      "balance_gap": 0.02279202279202286,
+      "tp": 16,
+      "tn": 16,
+      "fp": 10,
+      "fn": 11,
+      "n_valid": 53,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "TraderMercury",
+          "CrypNuevo",
+          "Tradermayne",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 32,
+      "score": 0.5804097951024487,
+      "accuracy": 0.5942028985507246,
+      "tpr": 0.5862068965517241,
+      "tnr": 0.6,
+      "balance_gap": 0.01379310344827589,
+      "tp": 17,
+      "tn": 24,
+      "fp": 16,
+      "fn": 12,
+      "n_valid": 69,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "krugermacro",
+          "DavidDuong",
+          "TraderMercury",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 33,
+      "score": 0.5794013801957952,
+      "accuracy": 0.582089552238806,
+      "tpr": 0.5806451612903226,
+      "tnr": 0.5833333333333334,
+      "balance_gap": 0.0026881720430107503,
+      "tp": 18,
+      "tn": 21,
+      "fp": 15,
+      "fn": 13,
+      "n_valid": 67,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "TraderMercury",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 34,
+      "score": 0.5794013801957952,
+      "accuracy": 0.582089552238806,
+      "tpr": 0.5806451612903226,
+      "tnr": 0.5833333333333334,
+      "balance_gap": 0.0026881720430107503,
+      "tp": 18,
+      "tn": 21,
+      "fp": 15,
+      "fn": 13,
+      "n_valid": 67,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TheDeFinvestor",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 35,
+      "score": 0.579130009775171,
+      "accuracy": 0.5818181818181818,
+      "tpr": 0.5833333333333334,
+      "tnr": 0.5806451612903226,
+      "balance_gap": 0.0026881720430107503,
+      "tp": 14,
+      "tn": 18,
+      "fp": 13,
+      "fn": 10,
+      "n_valid": 55,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "AltcoinPsycho",
+          "TraderMercury",
+          "CrypNuevo",
+          "TheDeFinvestor",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 36,
+      "score": 0.5790457945630358,
+      "accuracy": 0.6071428571428571,
+      "tpr": 0.5925925925925926,
+      "tnr": 0.6206896551724138,
+      "balance_gap": 0.028097062579821253,
+      "tp": 16,
+      "tn": 18,
+      "fp": 11,
+      "fn": 11,
+      "n_valid": 56,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "TraderMercury",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 37,
+      "score": 0.5769230769230769,
+      "accuracy": 0.5769230769230769,
+      "tpr": 0.5769230769230769,
+      "tnr": 0.5769230769230769,
+      "balance_gap": 0.0,
+      "tp": 15,
+      "tn": 15,
+      "fp": 11,
+      "fn": 11,
+      "n_valid": 52,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "AltcoinPsycho",
+          "TraderMercury",
+          "CrypNuevo",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 38,
+      "score": 0.5769151494331844,
+      "accuracy": 0.5915492957746479,
+      "tpr": 0.6,
+      "tnr": 0.5853658536585366,
+      "balance_gap": 0.014634146341463428,
+      "tp": 18,
+      "tn": 24,
+      "fp": 17,
+      "fn": 12,
+      "n_valid": 71,
+      "hyperparameters": {
+        "authors": [
+          "krugermacro",
+          "DavidDuong",
+          "_Checkmatey_",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 39,
+      "score": 0.5751056852751769,
+      "accuracy": 0.576271186440678,
+      "tpr": 0.5769230769230769,
+      "tnr": 0.5757575757575758,
+      "balance_gap": 0.0011655011655010705,
+      "tp": 15,
+      "tn": 19,
+      "fp": 14,
+      "fn": 11,
+      "n_valid": 59,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "AltcoinPsycho",
+          "TheDeFinvestor",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 40,
+      "score": 0.5744481619426384,
+      "accuracy": 0.589041095890411,
+      "tpr": 0.5806451612903226,
+      "tnr": 0.5952380952380952,
+      "balance_gap": 0.014592933947772613,
+      "tp": 18,
+      "tn": 25,
+      "fp": 17,
+      "fn": 13,
+      "n_valid": 73,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "DavidDuong",
+          "CrypNuevo",
+          "TheDeFinvestor",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 41,
+      "score": 0.5742594652494541,
+      "accuracy": 0.5862068965517241,
+      "tpr": 0.5925925925925926,
+      "tnr": 0.5806451612903226,
+      "balance_gap": 0.01194743130226994,
+      "tp": 16,
+      "tn": 18,
+      "fp": 13,
+      "fn": 11,
+      "n_valid": 58,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "TraderMercury",
+          "TheDeFinvestor",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 42,
+      "score": 0.5742594652494541,
+      "accuracy": 0.5862068965517241,
+      "tpr": 0.5925925925925926,
+      "tnr": 0.5806451612903226,
+      "balance_gap": 0.01194743130226994,
+      "tp": 16,
+      "tn": 18,
+      "fp": 13,
+      "fn": 11,
+      "n_valid": 58,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "TraderMercury",
+          "TheDeFinvestor",
+          "Tradermayne",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 43,
+      "score": 0.5742424242424243,
+      "accuracy": 0.5909090909090909,
+      "tpr": 0.6,
+      "tnr": 0.5833333333333334,
+      "balance_gap": 0.016666666666666607,
+      "tp": 18,
+      "tn": 21,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 66,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "TraderMercury",
+          "_Checkmatey_",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 44,
+      "score": 0.5737634576376969,
+      "accuracy": 0.6029411764705882,
+      "tpr": 0.5862068965517241,
+      "tnr": 0.6153846153846154,
+      "balance_gap": 0.02917771883289133,
+      "tp": 17,
+      "tn": 24,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "TraderMercury",
+          "_Checkmatey_",
+          "TheDeFinvestor",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 45,
+      "score": 0.5725166725166726,
+      "accuracy": 0.6142857142857143,
+      "tpr": 0.6363636363636364,
+      "tnr": 0.5945945945945946,
+      "balance_gap": 0.041769041769041726,
+      "tp": 21,
+      "tn": 22,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 46,
+      "score": 0.5721944570649705,
+      "accuracy": 0.5915492957746479,
+      "tpr": 0.5806451612903226,
+      "tnr": 0.6,
+      "balance_gap": 0.019354838709677358,
+      "tp": 18,
+      "tn": 24,
+      "fp": 16,
+      "fn": 13,
+      "n_valid": 71,
+      "hyperparameters": {
+        "authors": [
+          "krugermacro",
+          "DavidDuong",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 47,
+      "score": 0.5721343873517787,
+      "accuracy": 0.5797101449275363,
+      "tpr": 0.5757575757575758,
+      "tnr": 0.5833333333333334,
+      "balance_gap": 0.007575757575757569,
+      "tp": 19,
+      "tn": 21,
+      "fp": 15,
+      "fn": 14,
+      "n_valid": 69,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 48,
+      "score": 0.5720211161387632,
+      "accuracy": 0.5833333333333334,
+      "tpr": 0.5882352941176471,
+      "tnr": 0.5769230769230769,
+      "balance_gap": 0.011312217194570207,
+      "tp": 20,
+      "tn": 15,
+      "fp": 11,
+      "fn": 14,
+      "n_valid": 60,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "TraderMercury",
+          "CrypNuevo",
+          "TheDeFinvestor",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 49,
+      "score": 0.5719900062005325,
+      "accuracy": 0.618421052631579,
+      "tpr": 0.5945945945945946,
+      "tnr": 0.6410256410256411,
+      "balance_gap": 0.04643104643104645,
+      "tp": 22,
+      "tn": 25,
+      "fp": 14,
+      "fn": 15,
+      "n_valid": 76,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 50,
+      "score": 0.5714285714285714,
+      "accuracy": 0.5714285714285714,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5714285714285714,
+      "balance_gap": 0.0,
+      "tp": 16,
+      "tn": 20,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 63,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "TraderMercury",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 51,
+      "score": 0.5709701604438447,
+      "accuracy": 0.5846153846153846,
+      "tpr": 0.5925925925925926,
+      "tnr": 0.5789473684210527,
+      "balance_gap": 0.013645224171539905,
+      "tp": 16,
+      "tn": 22,
+      "fp": 16,
+      "fn": 11,
+      "n_valid": 65,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TheDeFinvestor",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 52,
+      "score": 0.5709116541353384,
+      "accuracy": 0.5857142857142857,
+      "tpr": 0.59375,
+      "tnr": 0.5789473684210527,
+      "balance_gap": 0.014802631578947345,
+      "tp": 19,
+      "tn": 22,
+      "fp": 16,
+      "fn": 13,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "TraderMercury",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 53,
+      "score": 0.5709116541353384,
+      "accuracy": 0.5857142857142857,
+      "tpr": 0.59375,
+      "tnr": 0.5789473684210527,
+      "balance_gap": 0.014802631578947345,
+      "tp": 19,
+      "tn": 22,
+      "fp": 16,
+      "fn": 13,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "krugermacro",
+          "DavidDuong",
+          "CrypNuevo",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 54,
+      "score": 0.5709116541353384,
+      "accuracy": 0.5857142857142857,
+      "tpr": 0.59375,
+      "tnr": 0.5789473684210527,
+      "balance_gap": 0.014802631578947345,
+      "tp": 19,
+      "tn": 22,
+      "fp": 16,
+      "fn": 13,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "TraderMercury",
+          "_Checkmatey_",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 55,
+      "score": 0.5708222811671086,
+      "accuracy": 0.6,
+      "tpr": 0.6153846153846154,
+      "tnr": 0.5862068965517241,
+      "balance_gap": 0.02917771883289133,
+      "tp": 16,
+      "tn": 17,
+      "fp": 12,
+      "fn": 10,
+      "n_valid": 55,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "TraderMercury",
+          "_Checkmatey_",
+          "TheDeFinvestor",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 56,
+      "score": 0.5699579831932773,
+      "accuracy": 0.5735294117647058,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.575,
+      "balance_gap": 0.0035714285714285587,
+      "tp": 16,
+      "tn": 23,
+      "fp": 17,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 57,
+      "score": 0.5694414874742743,
+      "accuracy": 0.5737704918032787,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5757575757575758,
+      "balance_gap": 0.0043290043290044045,
+      "tp": 16,
+      "tn": 19,
+      "fp": 14,
+      "fn": 12,
+      "n_valid": 61,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "TraderMercury",
+          "_Checkmatey_",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 58,
+      "score": 0.5694414874742743,
+      "accuracy": 0.5737704918032787,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5757575757575758,
+      "balance_gap": 0.0043290043290044045,
+      "tp": 16,
+      "tn": 19,
+      "fp": 14,
+      "fn": 12,
+      "n_valid": 61,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "AltcoinPsycho",
+          "TraderMercury",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 59,
+      "score": 0.5685795685795686,
+      "accuracy": 0.5740740740740741,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5769230769230769,
+      "balance_gap": 0.005494505494505475,
+      "tp": 16,
+      "tn": 15,
+      "fp": 11,
+      "fn": 12,
+      "n_valid": 54,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 60,
+      "score": 0.5684433621933621,
+      "accuracy": 0.5844155844155844,
+      "tpr": 0.59375,
+      "tnr": 0.5777777777777777,
+      "balance_gap": 0.015972222222222276,
+      "tp": 19,
+      "tn": 26,
+      "fp": 19,
+      "fn": 13,
+      "n_valid": 77,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "DonAlt",
+          "krugermacro",
+          "DavidDuong",
+          "_Checkmatey_",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 61,
+      "score": 0.5683345552297165,
+      "accuracy": 0.59375,
+      "tpr": 0.5806451612903226,
+      "tnr": 0.6060606060606061,
+      "balance_gap": 0.025415444770283457,
+      "tp": 18,
+      "tn": 20,
+      "fp": 13,
+      "fn": 13,
+      "n_valid": 64,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 62,
+      "score": 0.5682759863087732,
+      "accuracy": 0.5737704918032787,
+      "tpr": 0.5769230769230769,
+      "tnr": 0.5714285714285714,
+      "balance_gap": 0.005494505494505475,
+      "tp": 15,
+      "tn": 20,
+      "fp": 15,
+      "fn": 11,
+      "n_valid": 61,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "_Checkmatey_",
+          "TheDeFinvestor",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 63,
+      "score": 0.5682759863087732,
+      "accuracy": 0.5737704918032787,
+      "tpr": 0.5769230769230769,
+      "tnr": 0.5714285714285714,
+      "balance_gap": 0.005494505494505475,
+      "tp": 15,
+      "tn": 20,
+      "fp": 15,
+      "fn": 11,
+      "n_valid": 61,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DavidDuong",
+          "_Checkmatey_",
+          "CrypNuevo",
+          "Tradermayne",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 64,
+      "score": 0.5682387787650945,
+      "accuracy": 0.5757575757575758,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5789473684210527,
+      "balance_gap": 0.007518796992481258,
+      "tp": 16,
+      "tn": 22,
+      "fp": 16,
+      "fn": 12,
+      "n_valid": 66,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "TraderMercury",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 65,
+      "score": 0.5668772668772669,
+      "accuracy": 0.5857142857142857,
+      "tpr": 0.5757575757575758,
+      "tnr": 0.5945945945945946,
+      "balance_gap": 0.018837018837018826,
+      "tp": 19,
+      "tn": 22,
+      "fp": 15,
+      "fn": 14,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "_Checkmatey_"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 66,
+      "score": 0.5668772668772669,
+      "accuracy": 0.5857142857142857,
+      "tpr": 0.5757575757575758,
+      "tnr": 0.5945945945945946,
+      "balance_gap": 0.018837018837018826,
+      "tp": 19,
+      "tn": 22,
+      "fp": 15,
+      "fn": 14,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "Tradermayne",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 67,
+      "score": 0.5665038108266561,
+      "accuracy": 0.5764705882352941,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5813953488372093,
+      "balance_gap": 0.009966777408637939,
+      "tp": 24,
+      "tn": 25,
+      "fp": 18,
+      "fn": 18,
+      "n_valid": 85,
+      "hyperparameters": {
+        "authors": [
+          "DavidDuong",
+          "CrypNuevo",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 68,
+      "score": 0.566220238095238,
+      "accuracy": 0.578125,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5833333333333334,
+      "balance_gap": 0.011904761904761973,
+      "tp": 16,
+      "tn": 21,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 64,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 69,
+      "score": 0.566220238095238,
+      "accuracy": 0.578125,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5833333333333334,
+      "balance_gap": 0.011904761904761973,
+      "tp": 16,
+      "tn": 21,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 64,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "DavidDuong",
+          "TraderMercury",
+          "CrypNuevo",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 70,
+      "score": 0.5662087912087912,
+      "accuracy": 0.5892857142857143,
+      "tpr": 0.6,
+      "tnr": 0.5769230769230769,
+      "balance_gap": 0.023076923076923106,
+      "tp": 18,
+      "tn": 15,
+      "fp": 11,
+      "fn": 12,
+      "n_valid": 56,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "DavidDuong",
+          "TraderMercury",
+          "CrypNuevo",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 71,
+      "score": 0.5661258758916734,
+      "accuracy": 0.5753424657534246,
+      "tpr": 0.5806451612903226,
+      "tnr": 0.5714285714285714,
+      "balance_gap": 0.009216589861751223,
+      "tp": 18,
+      "tn": 24,
+      "fp": 18,
+      "fn": 13,
+      "n_valid": 73,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "_Checkmatey_",
+          "TheDeFinvestor"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 72,
+      "score": 0.5658730158730158,
+      "accuracy": 0.5777777777777777,
+      "tpr": 0.5833333333333334,
+      "tnr": 0.5714285714285714,
+      "balance_gap": 0.011904761904761973,
+      "tp": 14,
+      "tn": 12,
+      "fp": 9,
+      "fn": 10,
+      "n_valid": 45,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "TraderMercury",
+          "TheDeFinvestor",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 73,
+      "score": 0.5652209465868576,
+      "accuracy": 0.5949367088607594,
+      "tpr": 0.6111111111111112,
+      "tnr": 0.5813953488372093,
+      "balance_gap": 0.029715762273901825,
+      "tp": 22,
+      "tn": 25,
+      "fp": 18,
+      "fn": 14,
+      "n_valid": 79,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 74,
+      "score": 0.5641690432979,
+      "accuracy": 0.5789473684210527,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5862068965517241,
+      "balance_gap": 0.014778325123152691,
+      "tp": 16,
+      "tn": 17,
+      "fp": 12,
+      "fn": 12,
+      "n_valid": 57,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "TheDeFinvestor"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 75,
+      "score": 0.5638384386012469,
+      "accuracy": 0.5806451612903226,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5882352941176471,
+      "balance_gap": 0.01680672268907568,
+      "tp": 16,
+      "tn": 20,
+      "fp": 14,
+      "fn": 12,
+      "n_valid": 62,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "TraderMercury",
+          "_Checkmatey_",
+          "CrypNuevo",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 76,
+      "score": 0.5632385632385631,
+      "accuracy": 0.5714285714285714,
+      "tpr": 0.5757575757575758,
+      "tnr": 0.5675675675675675,
+      "balance_gap": 0.008190008190008258,
+      "tp": 19,
+      "tn": 21,
+      "fp": 16,
+      "fn": 14,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "krugermacro",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 77,
+      "score": 0.5619644723092999,
+      "accuracy": 0.5862068965517241,
+      "tpr": 0.6,
+      "tnr": 0.5757575757575758,
+      "balance_gap": 0.024242424242424176,
+      "tp": 15,
+      "tn": 19,
+      "fp": 14,
+      "fn": 10,
+      "n_valid": 58,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "AltcoinPsycho",
+          "_Checkmatey_",
+          "TheDeFinvestor",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 78,
+      "score": 0.5619047619047619,
+      "accuracy": 0.5857142857142857,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.5952380952380952,
+      "balance_gap": 0.023809523809523836,
+      "tp": 16,
+      "tn": 25,
+      "fp": 17,
+      "fn": 12,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "krugermacro",
+          "DavidDuong",
+          "_Checkmatey_",
+          "TheDeFinvestor",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 79,
+      "score": 0.5603957075788062,
+      "accuracy": 0.6056338028169014,
+      "tpr": 0.6285714285714286,
+      "tnr": 0.5833333333333334,
+      "balance_gap": 0.04523809523809519,
+      "tp": 22,
+      "tn": 21,
+      "fp": 15,
+      "fn": 13,
+      "n_valid": 71,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "CrypNuevo",
+          "TheDeFinvestor",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 80,
+      "score": 0.5597737272155877,
+      "accuracy": 0.6,
+      "tpr": 0.6216216216216216,
+      "tnr": 0.5813953488372093,
+      "balance_gap": 0.040226272784412265,
+      "tp": 23,
+      "tn": 25,
+      "fp": 18,
+      "fn": 14,
+      "n_valid": 80,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DavidDuong"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 81,
+      "score": 0.5596638655462185,
+      "accuracy": 0.5882352941176471,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.6,
+      "balance_gap": 0.02857142857142858,
+      "tp": 16,
+      "tn": 24,
+      "fp": 16,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "_Checkmatey_",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 82,
+      "score": 0.5596638655462185,
+      "accuracy": 0.5882352941176471,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.6,
+      "balance_gap": 0.02857142857142858,
+      "tp": 16,
+      "tn": 24,
+      "fp": 16,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "krugermacro",
+          "DavidDuong",
+          "TraderMercury",
+          "CrypNuevo",
+          "Tradermayne",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 83,
+      "score": 0.5596638655462185,
+      "accuracy": 0.5882352941176471,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.6,
+      "balance_gap": 0.02857142857142858,
+      "tp": 16,
+      "tn": 24,
+      "fp": 16,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "krugermacro",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "_Checkmatey_",
+          "TheDeFinvestor",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 84,
+      "score": 0.5579804898298049,
+      "accuracy": 0.589041095890411,
+      "tpr": 0.6060606060606061,
+      "tnr": 0.575,
+      "balance_gap": 0.031060606060606122,
+      "tp": 20,
+      "tn": 23,
+      "fp": 17,
+      "fn": 13,
+      "n_valid": 73,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "DavidDuong",
+          "TraderMercury",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 85,
+      "score": 0.5565563725490196,
+      "accuracy": 0.578125,
+      "tpr": 0.5666666666666667,
+      "tnr": 0.5882352941176471,
+      "balance_gap": 0.021568627450980427,
+      "tp": 17,
+      "tn": 20,
+      "fp": 14,
+      "fn": 13,
+      "n_valid": 64,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 86,
+      "score": 0.5565563725490196,
+      "accuracy": 0.578125,
+      "tpr": 0.5666666666666667,
+      "tnr": 0.5882352941176471,
+      "balance_gap": 0.021568627450980427,
+      "tp": 17,
+      "tn": 20,
+      "fp": 14,
+      "fn": 13,
+      "n_valid": 64,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "TraderMercury",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 87,
+      "score": 0.554437984496124,
+      "accuracy": 0.5733333333333334,
+      "tpr": 0.5625,
+      "tnr": 0.5813953488372093,
+      "balance_gap": 0.018895348837209336,
+      "tp": 18,
+      "tn": 25,
+      "fp": 18,
+      "fn": 14,
+      "n_valid": 75,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "DavidDuong",
+          "TraderMercury",
+          "TheDeFinvestor",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 88,
+      "score": 0.5539473684210526,
+      "accuracy": 0.6,
+      "tpr": 0.625,
+      "tnr": 0.5789473684210527,
+      "balance_gap": 0.046052631578947345,
+      "tp": 20,
+      "tn": 22,
+      "fp": 16,
+      "fn": 12,
+      "n_valid": 70,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 89,
+      "score": 0.5536460699681962,
+      "accuracy": 0.5915492957746479,
+      "tpr": 0.6129032258064516,
+      "tnr": 0.575,
+      "balance_gap": 0.03790322580645167,
+      "tp": 19,
+      "tn": 23,
+      "fp": 17,
+      "fn": 12,
+      "n_valid": 71,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 90,
+      "score": 0.5535277124951038,
+      "accuracy": 0.5797101449275363,
+      "tpr": 0.59375,
+      "tnr": 0.5675675675675675,
+      "balance_gap": 0.026182432432432456,
+      "tp": 19,
+      "tn": 21,
+      "fp": 16,
+      "fn": 13,
+      "n_valid": 69,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "DavidDuong",
+          "TraderMercury",
+          "CryptoHayes",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 91,
+      "score": 0.5535277124951038,
+      "accuracy": 0.5797101449275363,
+      "tpr": 0.59375,
+      "tnr": 0.5675675675675675,
+      "balance_gap": 0.026182432432432456,
+      "tp": 19,
+      "tn": 21,
+      "fp": 16,
+      "fn": 13,
+      "n_valid": 69,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "DavidDuong",
+          "_Checkmatey_",
+          "TheDeFinvestor",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 92,
+      "score": 0.5531137569081266,
+      "accuracy": 0.6052631578947368,
+      "tpr": 0.5757575757575758,
+      "tnr": 0.627906976744186,
+      "balance_gap": 0.05214940098661025,
+      "tp": 19,
+      "tn": 27,
+      "fp": 16,
+      "fn": 14,
+      "n_valid": 76,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "DonAlt",
+          "krugermacro",
+          "DavidDuong",
+          "Tradermayne"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 93,
+      "score": 0.5530588814170903,
+      "accuracy": 0.5970149253731343,
+      "tpr": 0.5714285714285714,
+      "tnr": 0.6153846153846154,
+      "balance_gap": 0.04395604395604402,
+      "tp": 16,
+      "tn": 24,
+      "fp": 15,
+      "fn": 12,
+      "n_valid": 67,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "_Checkmatey_",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 94,
+      "score": 0.5530214424951267,
+      "accuracy": 0.5789473684210527,
+      "tpr": 0.5925925925925926,
+      "tnr": 0.5666666666666667,
+      "balance_gap": 0.025925925925925908,
+      "tp": 16,
+      "tn": 17,
+      "fp": 13,
+      "fn": 11,
+      "n_valid": 57,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "TraderMercury",
+          "CrypNuevo",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 95,
+      "score": 0.5526960784313725,
+      "accuracy": 0.5735294117647058,
+      "tpr": 0.5625,
+      "tnr": 0.5833333333333334,
+      "balance_gap": 0.02083333333333337,
+      "tp": 18,
+      "tn": 21,
+      "fp": 15,
+      "fn": 14,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "DonAlt",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "CrypNuevo",
+          "Tradermayne",
+          "CryptoHayes"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 96,
+      "score": 0.5524812030075188,
+      "accuracy": 0.5714285714285714,
+      "tpr": 0.56,
+      "tnr": 0.5789473684210527,
+      "balance_gap": 0.0189473684210526,
+      "tp": 14,
+      "tn": 22,
+      "fp": 16,
+      "fn": 11,
+      "n_valid": 63,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 97,
+      "score": 0.5524766120948881,
+      "accuracy": 0.5753424657534246,
+      "tpr": 0.5625,
+      "tnr": 0.5853658536585366,
+      "balance_gap": 0.02286585365853655,
+      "tp": 18,
+      "tn": 24,
+      "fp": 17,
+      "fn": 14,
+      "n_valid": 73,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "krugermacro",
+          "DavidDuong",
+          "TheDeFinvestor",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 98,
+      "score": 0.5515873015873016,
+      "accuracy": 0.5873015873015873,
+      "tpr": 0.6071428571428571,
+      "tnr": 0.5714285714285714,
+      "balance_gap": 0.0357142857142857,
+      "tp": 17,
+      "tn": 20,
+      "fp": 15,
+      "fn": 11,
+      "n_valid": 63,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "krugermacro",
+          "AltcoinPsycho",
+          "_Checkmatey_",
+          "TheDeFinvestor",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 99,
+      "score": 0.5514250793155459,
+      "accuracy": 0.5735294117647058,
+      "tpr": 0.5862068965517241,
+      "tnr": 0.5641025641025641,
+      "balance_gap": 0.02210433244915999,
+      "tp": 17,
+      "tn": 22,
+      "fp": 17,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "CarpeNoctom",
+          "JSeyff",
+          "AltcoinPsycho",
+          "DavidDuong",
+          "TraderMercury",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    },
+    {
+      "rank": 100,
+      "score": 0.5514250793155459,
+      "accuracy": 0.5735294117647058,
+      "tpr": 0.5862068965517241,
+      "tnr": 0.5641025641025641,
+      "balance_gap": 0.02210433244915999,
+      "tp": 17,
+      "tn": 22,
+      "fp": 17,
+      "fn": 12,
+      "n_valid": 68,
+      "hyperparameters": {
+        "authors": [
+          "JSeyff",
+          "DonAlt",
+          "DavidDuong",
+          "_Checkmatey_",
+          "TheDeFinvestor",
+          "Tradermayne",
+          "rektcapital"
+        ],
+        "window_to_analysis": 14,
+        "decay_rate": 0.05,
+        "decay_start_day": 1,
+        "initial_weight": 1.0
+      }
+    }
+  ]
+}

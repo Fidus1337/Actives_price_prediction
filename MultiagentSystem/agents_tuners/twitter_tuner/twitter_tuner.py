@@ -55,6 +55,8 @@ def _all_author_subsets(authors: list[str]) -> list[list[str]]:
 def find_best_hyperparameters(
     app,
     authors: list[str],
+    forecast_date: str | None = None,
+    horizon: int | None = None,
     save_path: str | Path | None = None,
     step: float = 0.1,
     decay_rate_range: tuple = (0.05, 0.35, 0.05),
@@ -85,8 +87,14 @@ def find_best_hyperparameters(
     with open(config_path, encoding="utf-8") as f:
         base_config = json.load(f)
 
-    horizon = base_config["horizon"]
-    end_date = datetime.strptime(base_config["forecast_start_date"], "%Y-%m-%d")
+    if forecast_date is None:
+        forecast_date = base_config["forecast_start_date"]
+    if horizon is None:
+        horizon = int(base_config["horizon"])
+    else:
+        horizon = int(horizon)
+
+    end_date = datetime.strptime(forecast_date, "%Y-%m-%d")
 
     decay_rate_grid = _build_float_grid(decay_rate_range, default_step=step)
     initial_weight_grid = _build_float_grid(initial_weight_range, default_step=step)
@@ -181,6 +189,8 @@ def find_best_hyperparameters(
                     for initial_weight in initial_weight_grid:
                         trial_idx += 1
                         trial_config = copy.deepcopy(base_config)
+                        trial_config["forecast_start_date"] = forecast_date
+                        trial_config["horizon"] = horizon
                         trial_config["agent_envolved_in_prediction"] = [
                             "agent_for_twitter_analysis"
                         ]
@@ -280,6 +290,8 @@ if __name__ == "__main__":
     find_best_hyperparameters(
         app=app,
         authors=authors_pool,
+        forecast_date="2026-04-15",
+        horizon=1,
         step=0.1,
         decay_rate_range=(0.20, 0.20, 1),
         decay_start_day_range=(3, 3, 3),

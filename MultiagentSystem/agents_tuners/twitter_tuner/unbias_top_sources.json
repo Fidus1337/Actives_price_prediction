@@ -1,0 +1,196 @@
+{
+  "fetched_at_utc": "2026-04-16T16:32:13.758086+00:00",
+  "api_url": "https://unbias.fyi/api/analysts",
+  "params": {
+    "source": "all",
+    "order": "desc",
+    "top_n": 15,
+    "sorts": {
+      "Overall": "accuracy_score"
+    }
+  },
+  "top_by_accuracy": {
+    "Overall": [
+      {
+        "rank": 1,
+        "handle": "CarpeNoctom",
+        "name": "CarpeNoctom",
+        "source": "twitter",
+        "accuracy_score": 71.4,
+        "bull_score": 89.5,
+        "bear_score": 40.1,
+        "balanced_score": 40.1,
+        "call_count": 5292,
+        "follower_count": 149795
+      },
+      {
+        "rank": 2,
+        "handle": "caprioleio",
+        "name": "Charles Edwards",
+        "source": "twitter",
+        "accuracy_score": 70.7,
+        "bull_score": 100,
+        "bear_score": 20.1,
+        "balanced_score": 20.1,
+        "call_count": 2186,
+        "follower_count": 0
+      },
+      {
+        "rank": 3,
+        "handle": "JSeyff",
+        "name": "James Seyffart",
+        "source": "twitter",
+        "accuracy_score": 70.6,
+        "bull_score": 100,
+        "bear_score": 23.1,
+        "balanced_score": 23.1,
+        "call_count": 3772,
+        "follower_count": 0
+      },
+      {
+        "rank": 4,
+        "handle": "DonAlt",
+        "name": "DonAlt",
+        "source": "twitter",
+        "accuracy_score": 70,
+        "bull_score": 72.9,
+        "bear_score": 53.3,
+        "balanced_score": 53.3,
+        "call_count": 4612,
+        "follower_count": 0
+      },
+      {
+        "rank": 5,
+        "handle": "krugermacro",
+        "name": "Alex Kruger",
+        "source": "twitter",
+        "accuracy_score": 69.6,
+        "bull_score": 99.3,
+        "bear_score": 27.4,
+        "balanced_score": 27.4,
+        "call_count": 8233,
+        "follower_count": 0
+      },
+      {
+        "rank": 6,
+        "handle": "AltcoinPsycho",
+        "name": "Altcoin Psycho",
+        "source": "twitter",
+        "accuracy_score": 69.1,
+        "bull_score": 73.6,
+        "bear_score": 45.3,
+        "balanced_score": 45.3,
+        "call_count": 1789,
+        "follower_count": 0
+      },
+      {
+        "rank": 7,
+        "handle": "DavidDuong",
+        "name": "David Duong",
+        "source": "twitter",
+        "accuracy_score": 69,
+        "bull_score": 78.4,
+        "bear_score": 33.6,
+        "balanced_score": 33.6,
+        "call_count": 661,
+        "follower_count": 0
+      },
+      {
+        "rank": 8,
+        "handle": "TraderMercury",
+        "name": "Mercury",
+        "source": "twitter",
+        "accuracy_score": 68.7,
+        "bull_score": 85.6,
+        "bear_score": 39.5,
+        "balanced_score": 39.5,
+        "call_count": 5902,
+        "follower_count": 0
+      },
+      {
+        "rank": 9,
+        "handle": "_Checkmatey_",
+        "name": "Checkmate",
+        "source": "twitter",
+        "accuracy_score": 67.8,
+        "bull_score": 93.3,
+        "bear_score": 31,
+        "balanced_score": 31,
+        "call_count": 17316,
+        "follower_count": 0
+      },
+      {
+        "rank": 10,
+        "handle": "CrypNuevo",
+        "name": "CrypNuevo",
+        "source": "twitter",
+        "accuracy_score": 67.2,
+        "bull_score": 93.1,
+        "bear_score": 28,
+        "balanced_score": 28,
+        "call_count": 5426,
+        "follower_count": 0
+      },
+      {
+        "rank": 11,
+        "handle": "TheDeFinvestor",
+        "name": "The DeFi Investor",
+        "source": "twitter",
+        "accuracy_score": 67.2,
+        "bull_score": 98.3,
+        "bear_score": 21.6,
+        "balanced_score": 21.6,
+        "call_count": 6005,
+        "follower_count": 0
+      },
+      {
+        "rank": 12,
+        "handle": "Tradermayne",
+        "name": "Mayne",
+        "source": "twitter",
+        "accuracy_score": 66.9,
+        "bull_score": 99.3,
+        "bear_score": 22.9,
+        "balanced_score": 22.9,
+        "call_count": 8397,
+        "follower_count": 0
+      },
+      {
+        "rank": 13,
+        "handle": "CryptoHayes",
+        "name": "Arthur Hayes",
+        "source": "twitter",
+        "accuracy_score": 66.6,
+        "bull_score": 92.5,
+        "bear_score": 20.3,
+        "balanced_score": 20.3,
+        "call_count": 974,
+        "follower_count": 782151
+      },
+      {
+        "rank": 14,
+        "handle": "rektcapital",
+        "name": "Rekt Capital",
+        "source": "twitter",
+        "accuracy_score": 66.5,
+        "bull_score": 100,
+        "bear_score": 12,
+        "balanced_score": 12,
+        "call_count": 15255,
+        "follower_count": 0
+      },
+      {
+        "rank": 15,
+        "handle": "OnchainDataNerd",
+        "name": "The Data Nerd",
+        "source": "twitter",
+        "accuracy_score": 66.3,
+        "bull_score": 92.1,
+        "bear_score": 22.3,
+        "balanced_score": 22.3,
+        "call_count": 3930,
+        "follower_count": 0
+      }
+    ]
+  }
+}

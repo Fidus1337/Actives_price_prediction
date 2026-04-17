@@ -73,8 +73,13 @@ def make_prediction_for_last_N_days(app, config: dict, last_days: int) -> pd.Dat
     return pd.DataFrame(rows)
 
 
-def _fetch_bybit_btc_close_via_coinglass() -> pd.Series:
-    """Fetch BTCUSDT daily close from CoinGlass /spot/price/history with exchange=Bybit.
+def _fetch_bybit_btc_spot_via_coinglass() -> pd.DataFrame:
+    """Fetch BTCUSDT daily spot data from CoinGlass with exchange=Bybit.
+
+    Returns indexed DataFrame with:
+    - close: daily close price
+    - high: daily high price
+    - low: daily low price
 
     Single endpoint call — does not load the full SharedBaseDataCache pipeline.
     """
@@ -91,7 +96,21 @@ def _fetch_bybit_btc_close_via_coinglass() -> pd.Series:
         raise RuntimeError("CoinGlass returned empty spot_price_history for Bybit BTCUSDT")
 
     df["date"] = pd.to_datetime(df["date"]).dt.normalize()
-    return df.set_index("date")["spot__close"].astype(float).sort_index()
+    df = df.sort_values("date").set_index("date")
+
+    close = df["spot__close"].astype(float)
+    open_ = df["spot__open"].astype(float) if "spot__open" in df.columns else pd.Series(index=df.index, dtype=float)
+    high = df["spot__high"].astype(float) if "spot__high" in df.columns else pd.Series(index=df.index, dtype=float)
+    low = df["spot__low"].astype(float) if "spot__low" in df.columns else pd.Series(index=df.index, dtype=float)
+
+    return pd.DataFrame(
+        {
+            "close": close,
+            "open": open_,
+            "high": high,
+            "low": low,
+        }
+    ).sort_index()
 
 
 def add_y_true(
@@ -106,25 +125,64 @@ def add_y_true(
     """
     if df.empty:
         df = df.copy()
+        df["start_date_price"] = None
+        df["btc_bybit_close_price"] = None
+        df["btc_bybit_high_price"] = None
+        df["btc_bybit_low_price"] = None
         df["y_true"] = None
         return df
 
     try:
-        close = _fetch_bybit_btc_close_via_coinglass()
+        spot_data = _fetch_bybit_btc_spot_via_coinglass()
     except Exception as exc:
         print(f"[add_y_true] Failed to fetch Bybit prices via CoinGlass: {exc}")
         print("[add_y_true] y_true will be None for all rows")
         df = df.copy()
+        df["start_date_price"] = None
+        df["btc_bybit_close_price"] = None
+        df["btc_bybit_high_price"] = None
+        df["btc_bybit_low_price"] = None
         df["y_true"] = None
         return df
 
+    open_values = []
+    close_now_values = []
+    high_values = []
+    low_values = []
     y_true = []
     for _, row in df.iterrows():
         forecast_date = pd.Timestamp(row["forecast_start_date"]).normalize()
         target_date = forecast_date + timedelta(days=horizon)
 
-        price_now = close.loc[forecast_date] if forecast_date in close.index else None
-        price_then = close.loc[target_date] if target_date in close.index else None
+        price_now = (
+            spot_data.loc[forecast_date, "close"]
+            if forecast_date in spot_data.index
+            else None
+        )
+        price_then = (
+            spot_data.loc[target_date, "close"]
+            if target_date in spot_data.index
+            else None
+        )
+        open_price = (
+            spot_data.loc[forecast_date, "open"]
+            if forecast_date in spot_data.index
+            else None
+        )
+        high_price = (
+            spot_data.loc[forecast_date, "high"]
+            if forecast_date in spot_data.index
+            else None
+        )
+        low_price = (
+            spot_data.loc[forecast_date, "low"]
+            if forecast_date in spot_data.index
+            else None
+        )
+        open_values.append(float(open_price) if pd.notna(open_price) else None)
+        close_now_values.append(float(price_now) if price_now is not None else None)
+        high_values.append(float(high_price) if pd.notna(high_price) else None)
+        low_values.append(float(low_price) if pd.notna(low_price) else None)
 
         if price_now is None or price_then is None:
             y_true.append(None)
@@ -132,6 +190,10 @@ def add_y_true(
             y_true.append("LONG" if float(price_then) > float(price_now) else "SHORT")
 
     df = df.copy()
+    df["start_date_price"] = open_values
+    df["btc_bybit_close_price"] = close_now_values
+    df["btc_bybit_high_price"] = high_values
+    df["btc_bybit_low_price"] = low_values
     df["y_true"] = y_true
     return df
 

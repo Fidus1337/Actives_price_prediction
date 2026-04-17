@@ -12,6 +12,7 @@ joblib==1.5.3
 yfinance==1.1.0
 ta==0.11.0
 tqdm==4.67.1
+optuna>=3.0.0
 langchain-openai>=0.3.0
 langgraph>=0.4.0
 langchain-core>=0.3.0

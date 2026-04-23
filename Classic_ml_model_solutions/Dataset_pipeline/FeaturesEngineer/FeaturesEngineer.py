@@ -87,6 +87,67 @@ class FeaturesEngineer:
             "feat__orderbook_imbalance_usd",
         )
 
+        # Narrow 1d rebuild features: only a few short-horizon signals
+        # that are not covered by generic diff/pct transforms above.
+        if {
+            "spot_price_history__high",
+            "spot_price_history__low",
+            "spot_price_history__close",
+        }.issubset(out.columns):
+            high = pd.to_numeric(out["spot_price_history__high"], errors="coerce")
+            low = pd.to_numeric(out["spot_price_history__low"], errors="coerce")
+            close = pd.to_numeric(out["spot_price_history__close"], errors="coerce")
+            intraday_range = high - low
+            out["spot_price_history__intraday_range_pct"] = intraday_range / (close + eps)
+            out["spot_price_history__close_to_high"] = (high - close) / (close + eps)
+            out["spot_price_history__close_to_low"] = (close - low) / (close + eps)
+
+            close_ret1 = close.pct_change(1)
+            out["spot_price_history__realized_vol_3d"] = close_ret1.rolling(3).std()
+            out["spot_price_history__realized_vol_7d"] = close_ret1.rolling(7).std()
+
+        if {
+            "futures_open_interest_aggregated_history__close",
+            "spot_price_history__volume_usd",
+        }.issubset(out.columns):
+            oi_agg = pd.to_numeric(out["futures_open_interest_aggregated_history__close"], errors="coerce")
+            spot_volume = pd.to_numeric(out["spot_price_history__volume_usd"], errors="coerce")
+            out["feat__oi_to_volume"] = oi_agg / (spot_volume + eps)
+
+        # feat__stablecoin_oi_share / feat__coin_margin_oi_share были удалены:
+        # CoinGlass v4 возвращает `aggregated-stablecoin-history.close` и
+        # `aggregated-coin-margin-history.close` в РАЗНЫХ единицах (одна — USD,
+        # другая — нативные coin-количества), из-за чего shares получались почти
+        # константами (~0.00007 / ~0.99993) и не несли сигнала.
+        # Для scale-invariant сигнала по этим источникам используйте
+        # `futures_open_interest_aggregated_stablecoin_history__close__pct1`
+        # и `futures_open_interest_aggregated_coin_margin_history__close__pct1`,
+        # которые автоматически генерируются блоком pct1 выше.
+
+        if {
+            "futures_funding_rate_history__close",
+            "futures_funding_rate_oi_weight_history__close",
+        }.issubset(out.columns):
+            funding = pd.to_numeric(out["futures_funding_rate_history__close"], errors="coerce")
+            funding_oi_weight = pd.to_numeric(
+                out["futures_funding_rate_oi_weight_history__close"],
+                errors="coerce",
+            )
+            out["feat__funding_minus_oi_weight"] = funding - funding_oi_weight
+
+        if {
+            "futures_liquidation_history__long_liquidation_usd",
+            "futures_liquidation_history__short_liquidation_usd",
+        }.issubset(out.columns):
+            long_liq = pd.to_numeric(out["futures_liquidation_history__long_liquidation_usd"], errors="coerce")
+            short_liq = pd.to_numeric(out["futures_liquidation_history__short_liquidation_usd"], errors="coerce")
+            liq_total = long_liq + short_liq
+            liq_total_pct1 = liq_total.pct_change(1).replace([np.inf, -np.inf], 0.0)
+            if len(liq_total_pct1) > 1:
+                liq_total_pct1.iloc[1:] = liq_total_pct1.iloc[1:].fillna(0.0)
+            out["feat__liq_total_usd"] = liq_total
+            out["feat__liq_total_pct1"] = liq_total_pct1
+
         # Clean up infinities
         out = out.replace([np.inf, -np.inf], np.nan)
         return out

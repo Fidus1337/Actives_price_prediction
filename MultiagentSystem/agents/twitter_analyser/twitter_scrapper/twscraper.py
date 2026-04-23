@@ -339,6 +339,8 @@ def fetch_tweets_sync(
     until_date: str | None = None,
     driver: uc.Chrome | None = None,
     max_scrolls: int = 100,
+    existing_tweet_ids: set[str] | None = None,
+    duplicates_stop_threshold: int | None = None,
 ) -> list[dict]:
     """Fetch recent tweets from a Twitter user profile.
 
@@ -350,6 +352,12 @@ def fetch_tweets_sync(
         driver: Reusable Chrome driver (created via create_driver()).
                 If None, creates and closes a temporary one.
         max_scrolls: Safety limit on page scrolls (default 100).
+        existing_tweet_ids: Optional set of tweet_ids already present in the archive.
+            Used together with duplicates_stop_threshold to abort early on re-scrape.
+        duplicates_stop_threshold: If set (and existing_tweet_ids is provided), stop
+            scrolling once this many already-archived tweet_ids have been seen
+            CONSECUTIVELY (the counter resets whenever a new in-range tweet is
+            collected, so a stray duplicate among fresh tweets won't abort).
 
     Returns:
         List of tweet dicts ready for archiving.
@@ -376,6 +384,13 @@ def fetch_tweets_sync(
         no_new_count = 0
         consecutive_old_only = 0
 
+        dup_stop_enabled = (
+            existing_tweet_ids is not None
+            and duplicates_stop_threshold is not None
+            and duplicates_stop_threshold > 0
+        )
+        consecutive_duplicates = 0
+
         for scroll_i in range(max_scrolls):
             prev_article_count = _get_article_count(driver)
             prev_height = _get_page_height(driver)
@@ -397,6 +412,19 @@ def fetch_tweets_sync(
 
                 if until_date and t["date"] and t["date"] > until_date:
                     continue
+
+                if dup_stop_enabled and t["tweet_id"] in existing_tweet_ids:
+                    consecutive_duplicates += 1
+                    if consecutive_duplicates >= duplicates_stop_threshold:
+                        print(
+                            f"{LOG_TAG}   Stopping @{username}: "
+                            f"{consecutive_duplicates} consecutive tweets already "
+                            f"in archive (threshold={duplicates_stop_threshold})"
+                        )
+                        stop_scrolling = True
+                        break
+                elif dup_stop_enabled:
+                    consecutive_duplicates = 0
 
                 all_tweets.append(t)
                 new_count += 1

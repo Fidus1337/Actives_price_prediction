@@ -42,13 +42,13 @@ class AgentRetry(TypedDict):
 class AgentState(TypedDict):
     config: dict # config from MultiagentSystem folder, all settings for launching precitions
     agent_envolved_in_prediction: list[str]
-    cached_dataset: pd.DataFrame | None
+    cached_dataset: pd.DataFrame | None  # SharedBaseDataCache base_df
     horizon: int
     general_prediction_by_all_reports: Literal["LONG", "SHORT"] | None # after analysis by agent_reports_analyser, we can skip predicts
     general_reports_summary: str
     general_reports_reasoning: str
     general_reports_risks: str
-    confidence_score: int
+    confidence_score: float  # in [-3, +3], sign indicates direction, |score| indicates strength
     forecast_start_date: str 
     agent_signals: Annotated[dict[str, AgentSignal], merge_dicts] # every agent returns signal
     retry_agents: Annotated[list[AgentRetry], merge_retry_agents]
@@ -56,3 +56,18 @@ class AgentState(TypedDict):
 def get_agent_settings(state: AgentState, agent_name: str) -> dict:
     """Get settings for a specific agent from state."""
     return state["config"]["agent_settings"][agent_name]
+
+
+# Single source of truth for which agents are NOT validated AND NOT retry-tracked.
+# Imported by both multiagent_graph._NO_RETRY_AGENTS and verdicts_validator._SKIP_AGENTS,
+# so the two sets cannot drift out of sync.
+#
+# Excluded agents:
+# - agent_for_twitter_analysis: formula-based, no LLM report to validate.
+# - agent_for_news_analysis: pre-classified articles, no LLM report to validate.
+# - agent_for_economic_calendar_analysis: LLM-based but deterministic at temp=0;
+#   validator prompt is written for indicator-based reasoning and doesn't apply.
+NON_VALIDATED_AGENTS = frozenset({
+    "agent_for_twitter_analysis",
+    "agent_for_news_analysis"
+})

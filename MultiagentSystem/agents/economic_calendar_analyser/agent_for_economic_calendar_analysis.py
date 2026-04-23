@@ -15,10 +15,10 @@ from pathlib import Path
 from typing import Literal
 import os
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
+from llm_factory import make_chat_llm
 from multiagent_types import AgentState, get_agent_settings
 from .calendar_collector import get_events_in_range
 
@@ -146,17 +146,19 @@ def agent_for_economic_calendar_analysis(state: AgentState):
         print(f"{LOG_TAG} Not in agent_envolved_in_prediction — skipping")
         return {}
 
-    retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
-    is_first_run = my_retries == 0
+    my_retry = None
+    for r in state.get("retry_agents", []):
+        if r["agent_name"] == AGENT_NAME:
+            my_retry = r
+            break
 
-    if not is_first_run and AGENT_NAME not in retry_agents:
-        print(f"{LOG_TAG} Retry not required — skipping (retries so far: {my_retries})")
+    if my_retry is not None and my_retry["currents_retry"] >= my_retry["max_retries"]:
+        print(f"{LOG_TAG} Retry limit reached ({my_retry['currents_retry']}/{my_retry['max_retries']}) — skipping")
         return {}
 
-    run_label = "FIRST RUN" if is_first_run else f"RETRY #{my_retries}"
+    attempt = my_retry["currents_retry"] if my_retry is not None else 0
     print(f"\n{'='*60}")
-    print(f"{LOG_TAG} === {run_label} ===")
+    print(f"{LOG_TAG} === ATTEMPT #{attempt} ===")
     print(f"{'='*60}")
 
     # --- Settings ---
@@ -164,7 +166,8 @@ def agent_for_economic_calendar_analysis(state: AgentState):
     horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
     window_days = settings["window_to_analysis"]
-    print(f"{LOG_TAG} [1/4] Settings | horizon={horizon}d | forecast_date={forecast_date} | window={window_days}d")
+    llm_model = settings.get("llm_model", "gpt-4o-mini")
+    print(f"{LOG_TAG} [1/4] Settings | horizon={horizon}d | forecast_date={forecast_date} | window={window_days}d | llm_model={llm_model}")
 
     # --- Date boundaries ---
     window_start, forecast_end_date, window_end_exclusive = _parse_forecast_window(forecast_date, window_days)
@@ -177,9 +180,37 @@ def agent_for_economic_calendar_analysis(state: AgentState):
     filtered = _filter_events_by_importance(all_events)
     print(f"{LOG_TAG}   Raw: {len(all_events)} events | After filter (Major only): {len(filtered)}")
 
+    if filtered:
+        from collections import Counter
+        date_counts = Counter(e.get("date", "?") for e in filtered)
+        print(f"{LOG_TAG}   Events by date ({len(date_counts)} unique dates):")
+        for d in sorted(date_counts):
+            print(f"{LOG_TAG}     {d}: {date_counts[d]} event(s)")
+
+        print(f"{LOG_TAG}   Detailed event list:")
+        for e in sorted(filtered, key=lambda x: x.get("date", "")):
+            d = e.get("date", "?")
+            country = e.get("country_name", "?")
+            name = e.get("calendar_name", "?")
+            actual = e.get("published_value", "—")
+            forecast = e.get("forecast_value", "") or "—"
+            previous = e.get("previous_value", "") or "—"
+            effect = e.get("data_effect", "—")
+            print(
+                f"{LOG_TAG}     [{d}] [{country}] {name} | "
+                f"actual={actual} forecast={forecast} previous={previous} | effect={effect}"
+            )
+
     if not filtered:
-        print(f"{LOG_TAG}   No events found — returning empty signal")
-        return {"agent_signals": {AGENT_NAME: {"summary": None}}}
+        print(f"{LOG_TAG}   No events found — returning neutral stub signal")
+        return {"agent_signals": {AGENT_NAME: {
+            "reasoning": f"No major macro events in window {window_start.date()} -> {forecast_end_date.date()}.",
+            "summary": "No macro data — abstain from voting.",
+            "risks": "",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
+        }}}
 
     # --- LLM call ---
     events_text = _format_all_events(filtered)
@@ -187,7 +218,8 @@ def agent_for_economic_calendar_analysis(state: AgentState):
     system_msg = SYSTEM_PROMPT.format(horizon=horizon, window=window_days)
 
     print(f"{LOG_TAG}   Sending {len(filtered)} events to LLM...")
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
+    
+    llm = make_chat_llm(llm_model, temperature=0.0)
     try:
         verdict = llm.with_structured_output(CalendarVerdict).invoke([
             SystemMessage(content=system_msg),
@@ -198,14 +230,25 @@ def agent_for_economic_calendar_analysis(state: AgentState):
         print(f"{LOG_TAG}   ERROR: {err}")
         return {"agent_signals": {AGENT_NAME: {
             "reasoning": err,
-            "summary": "LLM temporarily unavailable. Fallback signal returned.",
+            "summary": "LLM temporarily unavailable — abstain from voting.",
             "risks": "Network/API issue during model call.",
-            "prediction": False,
-            "confidence": "low",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
         }}}
 
-    is_bullish = verdict.direction == "bullish"
-    prediction_label = "HIGHER" if is_bullish else "LOWER"
+    if verdict.direction == "bullish":
+        prediction = True
+        confidence = verdict.confidence
+        prediction_label = "HIGHER"
+    elif verdict.direction == "bearish":
+        prediction = False
+        confidence = verdict.confidence
+        prediction_label = "LOWER"
+    else:
+        prediction = None
+        confidence = None
+        prediction_label = "NEUTRAL"
     print(f"{LOG_TAG} [4/4] Verdict: {verdict.direction} | confidence={verdict.confidence} | → {prediction_label}")
     print(f"{LOG_TAG}   Reasoning: {verdict.reasoning}")
 
@@ -223,6 +266,7 @@ def agent_for_economic_calendar_analysis(state: AgentState):
         "reasoning": verdict.reasoning,
         "summary": summary,
         "risks": "",
-        "prediction": is_bullish,
-        "confidence": verdict.confidence,
+        "prediction": prediction,
+        "confidence": confidence,
+        "description_of_the_reports_problem": [],
     }}}

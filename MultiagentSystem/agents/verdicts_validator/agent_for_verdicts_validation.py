@@ -1,9 +1,10 @@
+import os
 from pathlib import Path
 from typing import cast
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
-from multiagent_types import AgentState, AgentSignal, AgentRetry
+from llm_factory import make_chat_llm
+from multiagent_types import AgentState, AgentSignal, AgentRetry, NON_VALIDATED_AGENTS
 from pydantic import BaseModel
 
 
@@ -15,14 +16,31 @@ class AgentValidationResult(BaseModel):
 _PROMPT_PATH = Path(__file__).parent / "system_prompt.md"
 VALIDATOR_SYSTEM_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8").strip()
 
-# Agents that are NOT validated (formula-based, no LLM report to check)
-_SKIP_AGENTS = frozenset({"agent_for_twitter_analysis"})
+# Skip-list for validation — shared with multiagent_graph._NO_RETRY_AGENTS via
+# multiagent_types.NON_VALIDATED_AGENTS so the two cannot drift apart.
+_SKIP_AGENTS = NON_VALIDATED_AGENTS
 
 TAG = "[validator]"
 
 
+_DEFAULT_VALIDATOR_MODEL = "claude-sonnet-4-5"
+
+
+def _resolve_validator_model(state: AgentState) -> str:
+    cfg = state.get("config", {}) or {}
+    return (
+        cfg.get("validator_llm_model")
+        or cfg.get("agent_settings", {}).get("verdicts_validator", {}).get("llm_model")
+        or _DEFAULT_VALIDATOR_MODEL
+    )
+
+
 def agent_for_verdicts_validation(state: AgentState):
-    llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
+    model = _resolve_validator_model(state)
+    if model.startswith("claude") and not os.getenv("CLAUDE_KEY"):
+        print(f"{TAG} CLAUDE_KEY env var not set — validator will skip all checks (model={model})")
+        return {"retry_agents": [], "agent_signals": {}}
+    llm = make_chat_llm(model, temperature=0)
 
     # Build mutable lookup: agent_name → copy of AgentRetry entry
     retry_map: dict[str, AgentRetry] = {r["agent_name"]: cast(AgentRetry, dict(r)) for r in state.get("retry_agents", [])}
@@ -47,6 +65,12 @@ def agent_for_verdicts_validation(state: AgentState):
             continue
 
         prediction = signal.get("prediction")
+        # Agent already chose to abstain — nothing to validate. Without this skip
+        # the validator would label `None` as "False (LOWER)" and likely flag a
+        # bogus retry (data-gap reasoning vs. SHORT vote), wasting LLM budget.
+        if prediction is None:
+            print(f"{TAG} {agent_name}: skipped (agent abstained — nothing to validate)")
+            continue
         prediction_label = "True (HIGHER)" if prediction else "False (LOWER)"
 
         messages = [
@@ -83,6 +107,13 @@ def agent_for_verdicts_validation(state: AgentState):
 
             print(f"{TAG} {agent_name}: PROBLEM (attempt {entry['currents_retry']}/{entry['max_retries']}) — {result.description}")
         else:
+            # Clear outstanding retry_requirements for this agent so the router
+            # does not re-trigger a retry loop on stale history from a previous
+            # failed attempt. currents_retry is preserved as an attempt counter.
+            entry = retry_map[agent_name]
+            if entry.get("retry_requirements"):
+                entry["retry_requirements"] = []
+                updated_retry.append(entry)
             print(f"{TAG} {agent_name}: OK")
 
     return {"retry_agents": updated_retry, "agent_signals": updated_signals}

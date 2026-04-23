@@ -216,6 +216,34 @@ def get_latest_date() -> str | None:
     return row[0] if row and row[0] else None
 
 
+def get_tweet_ids_by_author_in_range(
+    author_username: str,
+    since_date: str | None = None,
+    until_date: str | None = None,
+) -> set[str]:
+    """Return tweet_id set for the given author within an optional [since, until] range.
+
+    Case-insensitive match on author_username. Bounds are inclusive. If both dates
+    are None, returns all tweet_ids for the author.
+    """
+    author = (author_username or "").strip().lstrip("@").lower()
+    if not author:
+        return set()
+
+    query = "SELECT tweet_id FROM tweets WHERE LOWER(author_username) = ?"
+    params: list = [author]
+    if since_date:
+        query += " AND date >= ?"
+        params.append(since_date)
+    if until_date:
+        query += " AND date <= ?"
+        params.append(until_date)
+
+    with _get_conn() as conn:
+        rows = conn.execute(query, params).fetchall()
+    return {row["tweet_id"] for row in rows if row["tweet_id"]}
+
+
 def get_tweets_in_range(dt_from: datetime, dt_to: datetime) -> list[dict]:
     """Return tweets within [dt_from, dt_to], newest first.
 

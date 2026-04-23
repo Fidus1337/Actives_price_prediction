@@ -574,21 +574,23 @@ class FeaturesGetter:
         self,
         interval: str = "1d",
         eps: float = 1e-9,
-        rate_is_fraction: bool = True,
+        rate_is_percent: bool = True,
         prefix: str = "coinbase_premium",
     ) -> pd.DataFrame:
         """
         Coinbase Premium Index с расчётными фичами для прогнозирования.
-        
+
         Coinbase Premium показывает разницу цены BTC на Coinbase vs другие биржи.
         Положительный premium = покупательский спрос со стороны US институционалов.
-        
+
         Args:
             interval: Интервал (1d, 4h, etc.)
             eps: Epsilon для избежания деления на ноль
-            rate_is_fraction: True если premium_rate в долях (0.01 = 1%), False если уже в %
+            rate_is_percent: True если premium_rate в процентах (0.17 = 0.17%),
+                             False если уже в долях (0.0017 = 0.17%).
+                             По наблюдениям, CoinGlass v4 возвращает rate в процентах.
             prefix: Префикс для колонок
-        
+
         Returns:
             DataFrame с колонками:
               - date
@@ -632,16 +634,22 @@ class FeaturesGetter:
         
         # Feature 1: absolute premium
         df["premium_abs"] = aprem
-        
+
         # Feature 2: softsign normalized premium (-1..1 bounded)
         df["premium_softsign"] = prem / (1.0 + aprem + eps)
-        
-        # Feature 3: premium rate in basis points
-        df["premium_rate_bps"] = rate * 10_000.0
-        
-        # Feature 4: implied reference price (обратный расчёт цены из premium и rate)
-        # premium = ref_price * rate -> ref_price = premium / rate
-        if rate_is_fraction:
+
+        # Feature 3: premium rate in basis points.
+        # CoinGlass v4 отдаёт rate в процентах (0.17 = 0.17%), поэтому множитель = 100
+        # (1% = 100 bps). Если API когда-то перейдёт на доли — выставить rate_is_percent=False.
+        if rate_is_percent:
+            df["premium_rate_bps"] = rate * 100.0
+        else:
+            df["premium_rate_bps"] = rate * 10_000.0
+
+        # Feature 4: implied reference price (обратный расчёт цены из premium и rate).
+        # premium = ref_price * (rate / 100)  если rate в процентах -> ref = premium * 100 / rate.
+        # premium = ref_price * rate          если rate в долях      -> ref = premium / rate.
+        if rate_is_percent:
             df["implied_ref_price"] = prem * 100.0 / (rate + eps)
         else:
             df["implied_ref_price"] = prem / (rate + eps)

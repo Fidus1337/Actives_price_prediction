@@ -139,26 +139,149 @@ class TrainConfigRequest(BaseModel):
                             "name": "base_model_1d",
                             "N_DAYS": 1,
                             "threshold": 0.5,
+                            "base_feats": [
+                                "spot_price_history__close__pct1",
+                                "spot_price_history__close__diff1",
+                                "futures_open_interest_aggregated_history__close__pct1",
+                                "futures_liquidation_aggregated_history__aggregated_short_liquidation_usd__diff1",
+                                "futures_global_long_short_account_ratio_history__global_account_long_percent__pct1",
+                                "futures_top_long_short_account_ratio_history__top_account_long_short_ratio__pct1",
+                                "premium__diff1",
+                                "cb_premium_abs"
+                            ]
+                        },
+                        {
+                            "name": "range_model_1d",
+                            "N_DAYS": 1,
+                            "threshold": 0.5,
                             "ma_window": 14,
                             "range_feats": [
                                 "range_pct",
                                 "range_pct_ma14"
                             ],
                             "base_feats": [
-                                "spot_price_history__ta_rsi",
-                                "spot_price_history__ta_adx",
-                                "spot_price_history__ta_cci",
-                                "spot_price_history__ta_roc",
-                                "spot_price_history__ta_bbw",
-                                "spot_price_history__ta_mfi",
-                                "spot_price_history__ta_obv",
-                                "spot_price_history__ta_atr",
-                                "gold__ta_rsi",
-                                "gold__ta_adx",
-                                "sp500__ta_rsi",
-                                "sp500__ta_adx",
-                                "futures_funding_rate_history__open__pct1",
-                                "futures_open_interest_aggregated_history__close__pct1"
+                                "spot_price_history__close__pct1",
+                                "spot_price_history__close__diff1",
+                                "futures_open_interest_aggregated_history__close__pct1",
+                                "futures_liquidation_aggregated_history__aggregated_short_liquidation_usd__diff1",
+                                "futures_global_long_short_account_ratio_history__global_account_long_percent__pct1",
+                                "futures_top_long_short_account_ratio_history__top_account_long_short_ratio__pct1",
+                                "premium__diff1",
+                                "cb_premium_abs"
+                            ]
+                        },
+                        {
+                            "name": "base_model_3d",
+                            "N_DAYS": 3,
+                            "threshold": 0.5,
+                            "base_feats": [
+                                "spot_price_history__close__pct1",
+                                "spot_price_history__close__diff1",
+                                "feat__orderbook_imbalance_usd",
+                                "futures_liquidation_aggregated_history__aggregated_short_liquidation_usd__diff1",
+                                "futures_open_interest_aggregated_stablecoin_history__close",
+                                "futures_open_interest_aggregated_stablecoin_history__low",
+                                "cgdi_log_level",
+                                "cgdi_dev_softsign",
+                                "cgdi_dev_from_base",
+                                "cgdi_index_value"
+                            ]
+                        },
+                        {
+                            "name": "range_model_3d",
+                            "N_DAYS": 3,
+                            "threshold": 0.5,
+                            "ma_window": 14,
+                            "range_feats": [
+                                "range_pct",
+                                "range_pct_ma14"
+                            ],
+                            "base_feats": [
+                                "spot_price_history__close__pct1",
+                                "spot_price_history__close__diff1",
+                                "feat__orderbook_imbalance_usd",
+                                "futures_liquidation_aggregated_history__aggregated_short_liquidation_usd__diff1",
+                                "futures_open_interest_aggregated_stablecoin_history__close",
+                                "futures_open_interest_aggregated_stablecoin_history__low",
+                                "cgdi_log_level",
+                                "cgdi_dev_softsign",
+                                "cgdi_dev_from_base",
+                                "cgdi_index_value"
+                            ]
+                        },
+                        {
+                            "name": "base_model_5d",
+                            "N_DAYS": 5,
+                            "threshold": 0.5,
+                            "base_feats": [
+                                "cgdi_dev_from_base",
+                                "cgdi_index_value",
+                                "cgdi_log_level",
+                                "cgdi_dev_softsign",
+                                "futures_open_interest_aggregated_stablecoin_history__close",
+                                "futures_open_interest_aggregated_stablecoin_history__low",
+                                "futures_open_interest_aggregated_stablecoin_history__high",
+                                "futures_open_interest_aggregated_stablecoin_history__open",
+                                "futures_orderbook_aggregated_ask_bids_history__aggregated_asks_usd__pct1",
+                                "futures_orderbook_ask_bids_history__asks_usd__pct1"
+                            ]
+                        },
+                        {
+                            "name": "range_model_5d",
+                            "N_DAYS": 5,
+                            "threshold": 0.6,
+                            "ma_window": 14,
+                            "range_feats": [
+                                "range_pct",
+                                "range_pct_ma14"
+                            ],
+                            "base_feats": [
+                                "cgdi_dev_from_base",
+                                "cgdi_index_value",
+                                "cgdi_log_level",
+                                "cgdi_dev_softsign",
+                                "futures_open_interest_aggregated_stablecoin_history__close",
+                                "futures_open_interest_aggregated_stablecoin_history__low",
+                                "futures_open_interest_aggregated_stablecoin_history__high",
+                                "futures_open_interest_aggregated_stablecoin_history__open",
+                                "futures_orderbook_aggregated_ask_bids_history__aggregated_asks_usd__pct1",
+                                "futures_orderbook_ask_bids_history__asks_usd__pct1"
+                            ]
+                        },
+                        {
+                            "name": "base_model_7d",
+                            "N_DAYS": 7,
+                            "threshold": 0.5,
+                            "base_feats": [
+                                "cgdi_dev_from_base",
+                                "cgdi_index_value",
+                                "cgdi_log_level",
+                                "cgdi_dev_softsign",
+                                "futures_open_interest_aggregated_stablecoin_history__close",
+                                "futures_open_interest_aggregated_stablecoin_history__low",
+                                "futures_open_interest_aggregated_stablecoin_history__high",
+                                "futures_open_interest_aggregated_stablecoin_history__open",
+                                "futures_orderbook_aggregated_ask_bids_history__aggregated_asks_usd__pct1",
+                                "futures_orderbook_ask_bids_history__asks_usd__pct1"
+                            ]
+                        },
+                        {
+                            "name": "range_model_7d",
+                            "N_DAYS": 7,
+                            "threshold": 0.5,
+                            "ma_window": 14,
+                            "range_feats": [
+                                "range_pct",
+                                "range_pct_ma14"
+                            ],
+                            "base_feats": [
+                                "long_quantity",
+                                "index_btc_reserve_risk__reserve_risk_index",
+                                "index_btc_sth_supply__supply_z180",
+                                "index_btc_reserve_risk__hodl_bank__pct1",
+                                "index_btc_lth_supply__supply_z180__pct1",
+                                "gold__volume",
+                                "sp500__low__diff1__lag3"
                             ]
                         }
                     ]
@@ -191,62 +314,102 @@ class MultiagentPredictionsRequest(BaseModel):
 
     model_config = ConfigDict(json_schema_extra={
         "example": {
-            "forecast_start_date": "2026-04-14",
-            "horizon": 7,
+            "forecast_start_date": "2026-04-20",
+            "horizon": 1,
             "n_last_dates": 1,
-            "neutral_threshold": 0,
             "agent_envolved_in_prediction": [
-                "agent_for_analysing_tech_indicators",
-                "agent_for_news_analysis",
-                "agent_for_economic_calendar_analysis",
-                "agent_for_twitter_analysis"
+                "agent_for_twitter_analysis",
+                "agent_for_analysing_tech_indicators"
             ],
+            "neutral_threshold": 0.0,
             "agent_settings": {
                 "agent_for_analysing_tech_indicators": {
                     "system_prompt_file": "agents/tech_indicators/system_prompt_general.md",
-                    "window_to_analysis": 14,
+                    "llm_model": "gpt-4.1",
+                    "window_to_analysis": 21,
                     "base_feats": [
-                        "spot_price_history__ta_rsi",
-                        "spot_price_history__ta_adx",
-                        "spot_price_history__ta_cci",
-                        "spot_price_history__ta_roc",
-                        "spot_price_history__ta_bbw",
-                        "spot_price_history__ta_mfi",
-                        "spot_price_history__ta_obv",
-                        "spot_price_history__ta_atr",
-                        "spot_price_history__open",
-                        "spot_price_history__high",
-                        "spot_price_history__low",
                         "spot_price_history__close",
-                        "spot_price_history__volume_usd",
-                        "spot_price_history__ta_rsi__lag7",
-                        "spot_price_history__ta_adx__lag7",
-                        "spot_price_history__ta_bbw__lag7",
-                        "spot_price_history__ta_obv__lag7",
+                        "spot_price_history__intraday_range_pct",
+                        "spot_price_history__volume_usd__pct1",
+                        "spot_price_history__realized_vol_3d",
+                        "spot_price_history__realized_vol_7d",
                         "spot_price_history__close__sma7_rel",
                         "spot_price_history__close__sma14_rel",
-                        "spot_price_history__close__sma50_rel",
-                        "spot_price_history__close__zscore7",
-                        "spot_price_history__close__zscore14",
-                        "spot_price_history__close__zscore50"
+                        "spot_price_history__ta_rsi",
+                        "spot_price_history__ta_adx",
+                        "spot_price_history__ta_bbw",
+                        "futures_open_interest_aggregated_history__close__pct1",
+                        "futures_open_interest_aggregated_stablecoin_history__close__pct1",
+                        "futures_open_interest_aggregated_coin_margin_history__close__pct1",
+                        "futures_funding_rate_oi_weight_history__close",
+                        "feat__funding_minus_oi_weight",
+                        "feat__taker_imbalance_agg",
+                        "feat__liq_imbalance_short_minus_long",
+                        "feat__liq_total_pct1",
+                        "futures_global_long_short_account_ratio_history__global_account_long_short_ratio",
+                        "cb_premium_rate_bps",
+                        "cb_premium_abs"
                     ]
                 },
                 "agent_for_news_analysis": {
                     "system_prompt_file": "agents/news_analyser/system_prompt.md",
-                    "window_to_analysis": 7
+                    "window_to_analysis": 1,
+                    "decay_rate": 0.20,
+                    "decay_start_day": 1,
+                    "initial_weight": 1.0
                 },
                 "agent_for_economic_calendar_analysis": {
-                    "window_to_analysis": 7
+                    "llm_model": "gpt-4.1",
+                    "window_to_analysis": 1
                 },
                 "agent_for_twitter_analysis": {
+                    "authors": [
+                        "CarpeNoctom",
+                        "JSeyff",
+                        "AltcoinPsycho",
+                        "DavidDuong",
+                        "TraderMercury",
+                        "_Checkmatey_",
+                        "CryptoHayes",
+                        "rektcapital"
+                    ],
                     "window_to_analysis": 14,
                     "decay_rate": 0.05,
-                    "decay_start_day": 1.0,
-                    "initial_weight": 1,
-                    "authors": [
-                        "lookonchain",
-                        "whale_alert",
-                        "ericbalchunas"
+                    "decay_start_day": 1,
+                    "initial_weight": 1.0
+                },
+                "verdicts_validator": {
+                    "llm_model": "gpt-4.1"
+                },
+                "agent_for_analysing_onchain_indicators": {
+                    "system_prompt_file": "agents/onchain_indicators/system_prompt_1d.md",
+                    "llm_model": "claude-sonnet-4-5",
+                    "window_to_analysis": 21,
+                    "base_feats": [
+                        "spot_price_history__open",
+                        "spot_price_history__high",
+                        "spot_price_history__low",
+                        "spot_price_history__close",
+                        "index_btc_lth_supply__lth_supply",
+                        "index_btc_lth_supply__supply_slope14",
+                        "index_btc_lth_supply__supply_z180",
+                        "index_btc_lth_supply__lth_supply__lag3",
+                        "index_btc_lth_supply__lth_supply__lag5",
+                        "index_btc_lth_supply__lth_supply__lag7",
+                        "index_btc_sth_supply__sth_supply",
+                        "index_btc_sth_supply__supply_slope14",
+                        "index_btc_sth_supply__supply_z180",
+                        "index_btc_sth_supply__sth_supply__lag1",
+                        "index_btc_sth_supply__sth_supply__lag3",
+                        "index_btc_sth_supply__sth_supply__lag5",
+                        "index_btc_sth_supply__sth_supply__lag7",
+                        "index_btc_active_addresses__active_address_count",
+                        "index_btc_active_addresses__aa_z180",
+                        "index_btc_active_addresses__aa_slope14",
+                        "index_btc_reserve_risk__reserve_risk_index",
+                        "index_btc_reserve_risk__log_rr",
+                        "index_btc_reserve_risk__rr_z180",
+                        "index_btc_reserve_risk__rr_slope14"
                     ]
                 }
             }
@@ -258,7 +421,12 @@ class MultiagentPredictionsRequest(BaseModel):
     agent_envolved_in_prediction: list[str] = Field(
         ...,
         min_length=1,
-        description="List of active agent names for this run",
+        description=(
+            "List of active agent names for this run. Supported: "
+            "agent_for_analysing_tech_indicators, agent_for_twitter_analysis, "
+            "agent_for_news_analysis, agent_for_economic_calendar_analysis, "
+            "agent_for_analysing_onchain_indicators"
+        ),
     )
     neutral_threshold: float = Field(
         default=0.0,
@@ -266,7 +434,13 @@ class MultiagentPredictionsRequest(BaseModel):
     )
     agent_settings: dict[str, dict[str, Any]] = Field(
         ...,
-        description="Per-agent settings map, same shape as multiagent_config.json",
+        description=(
+            "Per-agent settings map, same shape as multiagent_config.json. "
+            "Each agent block may include: system_prompt_file, llm_model "
+            "(e.g. 'gpt-4.1' or 'claude-sonnet-4-5'), window_to_analysis, "
+            "base_feats, decay_rate, decay_start_day, initial_weight, authors. "
+            "Reserved keys: 'verdicts_validator' (llm_model override for the validator node)."
+        ),
     )
     n_last_dates: int = Field(
         default=10,
@@ -286,6 +460,10 @@ class MultiagentPredictionsRequest(BaseModel):
 
 class MultiagentSinglePrediction(BaseModel):
     date: str = Field(..., description="Date in YYYY-MM-DD format")
+    base_price: float | None = Field(
+        None,
+        description="BTC spot close price (Bybit) on forecast_start_date — the price the prediction is anchored to",
+    )
     y_true: int | None = Field(..., description="Observed binary outcome (None if future date)")
     y_prediction: int | None = Field(None, ge=0, le=1, description="Predicted binary direction")
     confidence_score: float | int | None = Field(None, description="Aggregated multiagent confidence score")

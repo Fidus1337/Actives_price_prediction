@@ -1,62 +1,73 @@
 {
-    "forecast_start_date": "2026-04-14",
-    "horizon": 3,
+    "forecast_start_date": "2026-04-21",
+    "horizon": 1,
     "agent_envolved_in_prediction": [
-        "agent_for_twitter_analysis"
+        "agent_for_twitter_analysis",
+        "agent_for_analysing_tech_indicators"
     ],
-    "neutral_threshold": 0,
+    "neutral_threshold": 0.0,
     "agent_settings": {
         "agent_for_analysing_tech_indicators": {
             "system_prompt_file": "agents/tech_indicators/system_prompt_general.md",
-            "window_to_analysis": 14,
+            "llm_model": "gpt-4.1",
+            "window_to_analysis": 21,
             "base_feats": [
-                "spot_price_history__ta_rsi",
-                "spot_price_history__ta_adx",
-                "spot_price_history__ta_cci",
-                "spot_price_history__ta_roc",
-                "spot_price_history__ta_bbw",
-                "spot_price_history__ta_mfi",
-                "spot_price_history__ta_obv",
-                "spot_price_history__ta_atr",
-                "spot_price_history__open",
-                "spot_price_history__high",
-                "spot_price_history__low",
                 "spot_price_history__close",
-                "spot_price_history__volume_usd",
-                "spot_price_history__ta_rsi__lag7",
-                "spot_price_history__ta_adx__lag7",
-                "spot_price_history__ta_bbw__lag7",
-                "spot_price_history__ta_obv__lag7",
+                "spot_price_history__intraday_range_pct",
+                "spot_price_history__volume_usd__pct1",
+                "spot_price_history__realized_vol_3d",
+                "spot_price_history__realized_vol_7d",
                 "spot_price_history__close__sma7_rel",
                 "spot_price_history__close__sma14_rel",
-                "spot_price_history__close__sma50_rel",
-                "spot_price_history__close__zscore7",
-                "spot_price_history__close__zscore14",
-                "spot_price_history__close__zscore50"
+                "spot_price_history__ta_rsi",
+                "spot_price_history__ta_adx",
+                "spot_price_history__ta_bbw",
+                "futures_open_interest_aggregated_history__close__pct1",
+                "futures_open_interest_aggregated_stablecoin_history__close__pct1",
+                "futures_open_interest_aggregated_coin_margin_history__close__pct1",
+                "futures_funding_rate_oi_weight_history__close",
+                "feat__funding_minus_oi_weight",
+                "feat__taker_imbalance_agg",
+                "feat__liq_imbalance_short_minus_long",
+                "feat__liq_total_pct1",
+                "futures_global_long_short_account_ratio_history__global_account_long_short_ratio",
+                "cb_premium_rate_bps",
+                "cb_premium_abs"
             ]
         },
         "agent_for_news_analysis": {
             "system_prompt_file": "agents/news_analyser/system_prompt.md",
-            "window_to_analysis": 7
+            "window_to_analysis": 1,
+            "decay_rate": 0.20,
+            "decay_start_day": 1,
+            "initial_weight": 1.0
         },
         "agent_for_economic_calendar_analysis": {
-            "window_to_analysis": 7
+            "llm_model": "gpt-4.1",
+            "window_to_analysis": 1
         },
         "agent_for_twitter_analysis": {
             "authors": [
-                "lookonchain",
-                "scottmelker",
-                "ericbalchunas",
-                "caprioleio",
-                "ki_young_ju"
+                "CarpeNoctom",
+                "JSeyff",
+                "AltcoinPsycho",
+                "DavidDuong",
+                "TraderMercury",
+                "_Checkmatey_",
+                "CryptoHayes",
+                "rektcapital"
             ],
-            "window_to_analysis": 7,
-            "decay_rate": 0.2,
-            "decay_start_day": 3,
+            "window_to_analysis": 14,
+            "decay_rate": 0.05,
+            "decay_start_day": 1,
             "initial_weight": 1.0
+        },
+        "verdicts_validator": {
+            "llm_model": "gpt-4.1"
         },
         "agent_for_analysing_onchain_indicators": {
             "system_prompt_file": "agents/onchain_indicators/system_prompt_1d.md",
+            "llm_model": "claude-sonnet-4-5",
             "window_to_analysis": 21,
             "base_feats": [
                 "spot_price_history__open",

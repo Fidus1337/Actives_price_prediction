@@ -6,10 +6,9 @@
     "httpOnly": true,
     "name": "auth_token",
     "path": "/",
-    "sameSite": "no_restriction",
+    "sameSite": "None",
     "secure": true,
     "session": false,
-    "storeId": null,
     "value": "95f2312c3cb30c61c120867b58c01ae7b0f77413"
   },
   {
@@ -19,37 +18,34 @@
     "httpOnly": false,
     "name": "guest_id",
     "path": "/",
-    "sameSite": "no_restriction",
+    "sameSite": "None",
     "secure": true,
     "session": false,
-    "storeId": null,
     "value": "v1%3A177461367993510150"
   },
   {
     "domain": ".x.com",
-    "expirationDate": 1807726756.933886,
+    "expirationDate": 1808334469.591922,
     "hostOnly": false,
     "httpOnly": false,
     "name": "twid",
     "path": "/",
-    "sameSite": "no_restriction",
+    "sameSite": "None",
     "secure": true,
     "session": false,
-    "storeId": null,
     "value": "u%3D2036857051335290880"
   },
   {
     "domain": ".x.com",
-    "expirationDate": 1776192565.271959,
+    "expirationDate": 1776800268.942984,
     "hostOnly": false,
     "httpOnly": true,
     "name": "__cf_bm",
     "path": "/",
-    "sameSite": null,
+    "sameSite": "None",
     "secure": true,
     "session": false,
-    "storeId": null,
-    "value": "NuR1uH1uARO6WWbKNgRRjFAGLuOfsX5DCZF0DXAG_cU-1776190765.1316833-1.0.1.1-jjEgBQCNkhx4LQIjsmn5HnPJ3wqQBfNOK7iVKxQVUQp37A8Xw12XsA3p56pTjMgL0WUsj.5SbF2ZUhkEFTEEYeb34npjC8i7TSqARn5_HfU.ZY6zPLgKTeHxNuwIJV7l"
+    "value": "GS.hE6n0Gle_lW5vmaM02LkqUX70bXKjbVa6_cSZ14w-1776798468.6598566-1.0.1.1-k5ifL3H4V0MGq2kKmXAB8riU2CptqHIzcUW.XZo5av8RBqsS9vKVJGdPPTehuIuq5hGa2k0yRXZv9aTgjIJ4kRbygjiHHuly3S9fzGuPPDaPjhE2vthBpk8PMIGMwMoQ"
   },
   {
     "domain": ".x.com",
@@ -58,10 +54,9 @@
     "httpOnly": false,
     "name": "ct0",
     "path": "/",
-    "sameSite": "lax",
+    "sameSite": "Lax",
     "secure": true,
     "session": false,
-    "storeId": null,
     "value": "39d200b4d7396f045c6b455cad1cd836da9efc1523d7afb0e546cd804bf55192f728d59a43c9b4b06cd5c10eb53ea39a3edfce9e9ccdd4ca39f5fbaebfc7a02ad301fffc94ff7bfc09cbb6f59762f401"
   },
   {
@@ -71,10 +66,9 @@
     "httpOnly": false,
     "name": "d_prefs",
     "path": "/",
-    "sameSite": null,
+    "sameSite": "None",
     "secure": true,
     "session": false,
-    "storeId": null,
     "value": "MToxLGNvbnNlbnRfdmVyc2lvbjoyLHRleHRfdmVyc2lvbjoxMDAw"
   },
   {
@@ -84,10 +78,9 @@
     "httpOnly": false,
     "name": "guest_id_ads",
     "path": "/",
-    "sameSite": "no_restriction",
+    "sameSite": "None",
     "secure": true,
     "session": false,
-    "storeId": null,
     "value": "v1%3A177461367993510150"
   },
   {
@@ -97,10 +90,9 @@
     "httpOnly": false,
     "name": "guest_id_marketing",
     "path": "/",
-    "sameSite": "no_restriction",
+    "sameSite": "None",
     "secure": true,
     "session": false,
-    "storeId": null,
     "value": "v1%3A177461367993510150"
   },
   {
@@ -110,10 +102,9 @@
     "httpOnly": true,
     "name": "kdt",
     "path": "/",
-    "sameSite": null,
+    "sameSite": "None",
     "secure": true,
     "session": false,
-    "storeId": null,
     "value": "afJWBndCnuxfk5ZZAlZyJCG6MTVJs27leBZ3JhDS"
   },
   {
@@ -123,10 +114,9 @@
     "httpOnly": false,
     "name": "personalization_id",
     "path": "/",
-    "sameSite": "no_restriction",
+    "sameSite": "None",
     "secure": true,
     "session": false,
-    "storeId": null,
     "value": "\"v1_Yy6cU5QpV0zsoWTCmqi6CQ==\""
   }
 ]

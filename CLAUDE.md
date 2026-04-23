@@ -33,7 +33,8 @@ python -m MultiagentSystem.hyperparameters_tuner
 
 # Required env in dev.env:
 # COINGLASS_API_KEY=...
-# OPENAI_API_KEY=... (for multiagent LLM calls)
+# OPENAI_API_KEY=... (for multiagent LLM calls routed via MultiagentSystem/llm_factory.py)
+# CLAUDE_KEY=... (optional, used when an agent's model id starts with "claude-")
 # TWITTER_UPLOAD_KEY=... (optional, for /api/agents/twitter-upload-cookies)
 ```
 
@@ -254,6 +255,7 @@ Currently enabled nodes: `agent_for_analysing_tech_indicators`, `agent_for_twitt
 | `multiagent_system_main.py` | LangGraph builder + `__main__` runner; exports compiled `app` |
 | `multiagent_predictions_module.py` | `make_one_prediction`, `make_prediction_for_last_N_days`, `add_y_true`, `build_confusion_matrix` |
 | `multiagent_types.py` | `AgentState` TypedDict, `AgentSignal`, `AgentRetry`, reducers (`merge_dicts`, `merge_retry_agents`) |
+| `llm_factory.py` | `make_chat_llm(model, temperature, **kwargs)` — routes `claude-*` ids to `ChatAnthropic` (uses `CLAUDE_KEY`), everything else to `ChatOpenAI` (uses `OPENAI_API_KEY`) |
 | `multiagent_config.json` | `forecast_start_date`, `horizon`, `agent_envolved_in_prediction`, per-agent settings (`window_to_analysis`, `base_feats`, Twitter authors/decay, etc.) |
 | `hyperparameters_tuner.py` | Grid search over ranges for multiagent hyperparams, logs top-N to `tuning_top.json` |
 | `predictions_results.csv` | Last batch-prediction output (standalone runner) |

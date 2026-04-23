@@ -1,10 +1,10 @@
 import json
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 import pandas as pd
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from llm_factory import make_chat_llm
 from multiagent_types import AgentState, get_agent_settings
 from pydantic import BaseModel
 
@@ -15,7 +15,7 @@ class OnchainAnalysisResponse(BaseModel):
     summary: str          # brief final conclusion: forecast + confidence
     risks: str            # risks and counter-arguments to the forecast
     prediction: bool      # True = HIGHER, False = LOWER (always pick a direction)
-    confidence: str       # high / medium / low
+    confidence: Literal["high", "medium", "low"]
 
 
 AGENT_DIR = Path(__file__).parent
@@ -30,25 +30,28 @@ def agent_for_analysing_onchain_indicators(state: AgentState):
         print(f"{TAG} Not in agent_envolved_in_prediction — skipping")
         return {}
 
-    # Is it first iteration for this agent?
-    retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
-    is_first_run = my_retries == 0
-    if not is_first_run and AGENT_NAME not in retry_agents:
-        print(f"{TAG} Retry not required — skipping (retries so far: {my_retries})")
+    my_retry = None
+    for r in state.get("retry_agents", []):
+        if r["agent_name"] == AGENT_NAME:
+            my_retry = r
+            break
+
+    if my_retry is not None and my_retry["currents_retry"] >= my_retry["max_retries"]:
+        print(f"{TAG} Retry limit reached ({my_retry['currents_retry']}/{my_retry['max_retries']}) — skipping")
         return {}
 
-    run_label = "FIRST RUN" if is_first_run else f"RETRY #{my_retries}"
+    attempt = my_retry["currents_retry"] if my_retry is not None else 0
     print(f"\n{'='*60}")
-    print(f"{TAG} === {run_label} ===")
+    print(f"{TAG} === ATTEMPT #{attempt} ===")
     print(f"{'='*60}")
 
     # 1. Get all agent settings
     settings = get_agent_settings(state, CONFIG_KEY)
     horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
+    llm_model = settings.get("llm_model", "gpt-4o-mini")
     print(f"{TAG} [STEP 1/7] Settings loaded | horizon={horizon}d | forecast_date={forecast_date}")
-    print(f"{TAG}   window_to_analysis={settings['window_to_analysis']} | base_feats count={len(settings['base_feats'])}")
+    print(f"{TAG}   window_to_analysis={settings['window_to_analysis']} | base_feats count={len(settings['base_feats'])} | llm_model={llm_model}")
 
     # 2. We should predict values by the forecast_start_date
     df = state["cached_dataset"].copy()
@@ -63,14 +66,23 @@ def agent_for_analysing_onchain_indicators(state: AgentState):
     df = df.loc[df["date"] <= pd.Timestamp(forecast_date), ["date"] + cols].tail(settings["window_to_analysis"])
     print(f"{TAG}   Filtered data shape: {df.shape} | date range: {df['date'].iloc[0].date()} -> {df['date'].iloc[-1].date()}")
 
-    # Validate that the last date in data matches forecast_date
     last_date = df["date"].iloc[-1].date() if len(df) > 0 else None
-    if last_date != forecast_date:
-        raise ValueError(
-            f"{TAG} Data ends at {last_date}, expected {forecast_date}. "
+    expected_date = pd.Timestamp(forecast_date).date()
+    if last_date != expected_date:
+        msg = (
+            f"Data ends at {last_date}, expected {expected_date}. "
             f"SharedBaseDataCache may have a data gap."
         )
-    print(f"{TAG}   Last date validated: {last_date} == {forecast_date}")
+        print(f"{TAG}   WARNING: {msg} — returning neutral stub signal")
+        return {"agent_signals": {AGENT_NAME: {
+            "reasoning": msg,
+            "summary": "Data gap — abstain from voting.",
+            "risks": "",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
+        }}}
+    print(f"{TAG}   Last date validated: {last_date} == {expected_date}")
 
     # 3. Convert to JSON for the prompt and save for debugging
     data_json = df.to_json(orient="records", date_format="iso")
@@ -86,10 +98,11 @@ def agent_for_analysing_onchain_indicators(state: AgentState):
         print(f"{TAG}   ERROR: {msg}")
         return {"agent_signals": {AGENT_NAME: {
             "reasoning": msg,
-            "summary": msg,
+            "summary": "Missing close_price — abstain from voting.",
             "risks": "",
-            "prediction": False,
-            "confidence": "low",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
         }}}
 
     # 5. Load system prompt (from file or inline)
@@ -100,16 +113,19 @@ def agent_for_analysing_onchain_indicators(state: AgentState):
     else:
         system_prompt = settings["system_prompt"]
         print(f"{TAG} [STEP 5/7] System prompt loaded from config ({len(system_prompt)} chars)")
+    system_prompt = system_prompt.replace("{HORIZON_DAYS}", str(horizon))
 
     # 6. Call LLM with CoT: reasoning is filled first, summary is based on it
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    llm = make_chat_llm(llm_model, temperature=0)
 
-    # Validator feedback from previous iteration
-    prev_feedback: list[str] = (
-        state.get("agent_signals", {})
-        .get(AGENT_NAME, {})
-        .get("description_of_the_reports_problem", [])
-    )
+    # Read full validator-feedback history from retry_agents.retry_requirements
+    # (accumulates across iterations) instead of agent_signals.description_of_the_reports_problem
+    # (gets wiped by merge_dicts when this agent returns its new signal).
+    prev_feedback: list[str] = []
+    for r in state.get("retry_agents", []):
+        if r["agent_name"] == AGENT_NAME:
+            prev_feedback = list(r.get("retry_requirements", []))
+            break
 
     # 7. Build conversation prompt
     messages = [
@@ -140,7 +156,7 @@ def agent_for_analysing_onchain_indicators(state: AgentState):
     else:
         print(f"{TAG} [STEP 6/7] No previous validator feedback")
 
-    print(f"{TAG} [STEP 7/7] Calling LLM (gpt-4o-mini) with {len(messages)} messages...")
+    print(f"{TAG} [STEP 7/7] Calling LLM ({llm_model}) with {len(messages)} messages...")
 
     # Tells the LLM to return a JSON object that matches the Pydantic schema, instead of free-form text.
     try:
@@ -150,10 +166,11 @@ def agent_for_analysing_onchain_indicators(state: AgentState):
         print(f"{TAG}   ERROR: {err}")
         return {"agent_signals": {AGENT_NAME: {
             "reasoning": err,
-            "summary": "LLM temporarily unavailable. Fallback signal returned.",
+            "summary": "LLM temporarily unavailable — abstain from voting.",
             "risks": "Network/API issue during model call.",
-            "prediction": False,
-            "confidence": "low",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
         }}}
 
     pred_label = "HIGHER" if response.prediction else "LOWER"
@@ -188,4 +205,5 @@ def agent_for_analysing_onchain_indicators(state: AgentState):
         "risks": response.risks,
         "prediction": response.prediction,
         "confidence": response.confidence,
+        "description_of_the_reports_problem": [],
     }}}

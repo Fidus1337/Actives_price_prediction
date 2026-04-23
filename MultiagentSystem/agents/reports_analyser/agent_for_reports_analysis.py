@@ -6,38 +6,59 @@ CONFIDENCE_WEIGHTS = {"high": 3, "medium": 2, "low": 1}
 
 def compute_confidence_score(
     agent_signals: dict,
-    neutral_threshold: int = 1,
-) -> tuple[int, str | None, str]:
+    neutral_threshold: float = 1.0,
+) -> tuple[float, str | None, str]:
     """
-    Mathematical aggregation of agent predictions.
+    Mathematical aggregation of agent predictions on the same scale as a single
+    agent vote, i.e. score in [-3, +3].
+
+    Each agent contributes sign(prediction) * weight, where
+        weight  = CONFIDENCE_WEIGHTS[confidence]  (low=1, medium=2, high=3)
+        sign    = +1 if prediction is True (HIGHER), else -1 (LOWER)
+
+    The final score is the arithmetic mean over all *real* (non-stub) agents,
+    so adding more agents does not inflate the magnitude.
 
     Returns (score, direction, breakdown_text).
-    - score: sum of weighted predictions (+high=3, +medium=2, +low=1 for HIGHER; negative for LOWER)
-    - direction: "LONG" | "SHORT" | None
+    - score: float in [-3, 3]
+    - direction: "LONG" | "SHORT" | None (None inside the neutral band)
     - breakdown_text: text breakdown of the calculation
     """
-    score = 0
-    parts = []
+    
+    # Agent votes
+    agents_votes: list[float] = []
+    # For general logs about predictions from agents
+    parts: list[str] = []
 
     for name, signal in agent_signals.items():
-        # Skip stub agents (agent_c, agent_d)
-        if signal.get("summary") is None or not signal.get("reasoning"):
+        prediction = signal.get("prediction")
+        confidence = signal.get("confidence")
+
+        # Skip signals that do not carry a vote (stub agents, or formula-based
+        # agents that returned "no actionable signal" for this forecast date).
+        if prediction is None or confidence is None:
+            parts.append(f"{name}: no vote (skipped)")
             continue
 
-        confidence = signal.get("confidence", "low")
-        weight = CONFIDENCE_WEIGHTS.get(confidence, 1)
-        prediction = signal.get("prediction")
+        weight = CONFIDENCE_WEIGHTS.get(str(confidence).strip().lower(), 1)
+        sign = 1 if prediction is True else -1
+        vote = sign * weight
 
-        if prediction is True:
-            score += weight
-            parts.append(f"{name}: HIGHER ({confidence}) -> +{weight}")
-        else:
-            score -= weight
-            parts.append(f"{name}: LOWER ({confidence}) -> -{weight}")
+        agents_votes.append(vote)
+        label = "HIGHER" if sign > 0 else "LOWER"
+        parts.append(f"{name}: {label} ({confidence}) -> {vote:+d}")
 
-    breakdown = " | ".join(parts) if parts else "No real reports"
+    if not agents_votes:
+        return 0.0, None, "No real reports"
 
-    # Determine direction with neutral zone
+    score = sum(agents_votes) / len(agents_votes)
+
+    # GENERAL VERDICT
+    breakdown = (
+        " | ".join(parts)
+        + f" => mean({len(agents_votes)} agents) = {score:+.2f}"
+    )
+
     if score > neutral_threshold:
         direction = "LONG"
     elif score < -neutral_threshold:
@@ -71,10 +92,10 @@ def agent_reports_analyser(state: AgentState):
 
     direction_label = direction or "NEUTRAL"
     print(f"{TAG} Score calculation: {breakdown}")
-    print(f"{TAG} Final score: {score} (neutral zone: +/-{threshold}) -> {direction_label}")
+    print(f"{TAG} Final score: {score:+.2f} in [-3, +3] (neutral zone: +/-{threshold}) -> {direction_label}")
 
-    reasoning = f"Confidence score: {score} (neutral zone: +/-{threshold}). {breakdown}"
-    summary = f"{direction_label} (score={score})"
+    reasoning = f"Confidence score: {score:+.2f} in [-3, +3] (neutral zone: +/-{threshold}). {breakdown}"
+    summary = f"{direction_label} (score={score:+.2f})"
 
     print(f"{TAG} Done. Final verdict: {direction_label}")
 

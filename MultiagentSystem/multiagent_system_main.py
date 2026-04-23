@@ -29,14 +29,25 @@ if __name__ == "__main__":
     with open(config_path, encoding="utf-8") as f:
         config = json.load(f)
 
+    # Last days to analyis
     N_days = 100
 
     load_dotenv(Path(__file__).resolve().parent.parent / "dev.env")
     os.environ["COINGLASS_API_KEY"]  # fail fast if key is missing
 
-    results_dataset = make_prediction_for_last_N_days(app, config, N_days)
+    cm_path = Path(__file__).parent / "confusion_matrix.png"
+    
+    # Gather predictions
+    
+    print(f"{N_days} | {cm_path}")
+    results_dataset = make_prediction_for_last_N_days(
+        app, config, N_days,
+        checkpoint_every=10,
+        cm_path=cm_path,
+    )
     results_dataset = add_y_true(results_dataset, config["horizon"])
 
+    # Report by analysis
     output_path = Path(__file__).parent / "predictions_results.csv"
     results_dataset[
         [
@@ -52,5 +63,4 @@ if __name__ == "__main__":
     ].to_csv(output_path, index=False)
     print(f"\n✅ Predictions saved → {output_path}")
 
-    cm_path = Path(__file__).parent / "confusion_matrix.png"
     build_confusion_matrix(results_dataset, config["horizon"], cm_path)

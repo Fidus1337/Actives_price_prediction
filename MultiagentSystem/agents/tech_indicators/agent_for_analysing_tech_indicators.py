@@ -1,23 +1,26 @@
 import json
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 import pandas as pd
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from llm_factory import make_chat_llm
 from multiagent_types import AgentState, get_agent_settings
 from pydantic import BaseModel
 
 AGENT_DIR = Path(__file__).parent
 AGENT_NAME = "agent_for_analysing_tech_indicators"
 
-# Agent cannot return None values or the value that does not match the schema
+# Schema for the LLM's structured output only. Early abstain-branches below
+# (data gap, missing close_price, LLM failure) return a plain dict with
+# prediction=None / confidence=None, bypassing this schema. Downstream
+# (validator, reports_analyser) explicitly skips None votes.
 class TechAnalysisResponse(BaseModel):
     reasoning: str        # step-by-step analysis of all indicators following the prompt structure
     summary: str          # brief final conclusion: forecast + confidence + range
     risks: str            # risks and counter-arguments to the forecast (2-5 points or "")
     prediction: bool      # True = HIGHER, False = LOWER (always pick a direction)
-    confidence: str       # high / medium / low
+    confidence: Literal["high", "medium", "low"]
 
 def agent_for_analysing_tech_indicators(state: AgentState):
     TAG = "[agent_for_analysing_tech_indicators]"
@@ -37,8 +40,9 @@ def agent_for_analysing_tech_indicators(state: AgentState):
         return {}
 
     attempt = my_retry["currents_retry"] if my_retry is not None else 0
+    max_attempts = my_retry["max_retries"] if my_retry is not None else 2
     print(f"\n{'='*60}")
-    print(f"{TAG} === ATTEMPT #{attempt} ===")
+    print(f"{TAG} === ATTEMPT #{attempt + 1}/{max_attempts} ===")
     print(f"{'='*60}")
 
     # 1. Get all agent settings
@@ -52,7 +56,9 @@ def agent_for_analysing_tech_indicators(state: AgentState):
         f"base_feats count={len(settings['base_feats'])} | llm_model={llm_model}"
     )
 
-    # 2. We should predict values by the forecast_start_date
+    # 2. We should predict values by the forecast_start_date.
+    # Dataset source: SharedBaseDataCache (built in
+    # multiagent_predictions_module.make_prediction_for_last_N_days).
     df = state["cached_dataset"].copy()
     print(f"{TAG} [STEP 2/6] Cached dataset shape: {df.shape}")
     # We must take only base_feats columns from dataset
@@ -61,18 +67,31 @@ def agent_for_analysing_tech_indicators(state: AgentState):
     if missing_cols:
         print(f"{TAG}   WARNING: {len(missing_cols)} features missing from dataset: {missing_cols[:5]}...")
     print(f"{TAG}   Matched {len(cols)}/{len(settings['base_feats'])} features from config")
+
     # Take the dates before forecast_date (including forecast_date) and take base_feats columns
     df = df.loc[df["date"] <= pd.Timestamp(forecast_date), ["date"] + cols].tail(settings["window_to_analysis"])
     print(f"{TAG}   Filtered data shape: {df.shape} | date range: {df['date'].iloc[0].date()} -> {df['date'].iloc[-1].date()}")
 
-    # Validate that the last date in data matches forecast_date
+    input_csv_path = AGENT_DIR / "input_data.csv"
+    df.to_csv(input_csv_path, index=False)
+    print(f"{TAG}   Window dataset saved to {input_csv_path.name} ({df.shape[0]} rows x {df.shape[1]} cols)")
+
     last_date = df["date"].iloc[-1].date() if len(df) > 0 else None
     expected_date = pd.Timestamp(forecast_date).date()
     if last_date != expected_date:
-        raise ValueError(
-            f"{TAG} Data ends at {last_date}, expected {expected_date}. "
+        msg = (
+            f"Data ends at {last_date}, expected {expected_date}. "
             f"SharedBaseDataCache may have a data gap."
         )
+        print(f"{TAG}   WARNING: {msg} — returning neutral stub signal")
+        return {"agent_signals": {AGENT_NAME: {
+            "reasoning": msg,
+            "summary": "Data gap — abstain from voting.",
+            "risks": "",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
+        }}}
     print(f"{TAG}   Last date validated: {last_date} == {forecast_date}")
 
     # 3. Convert to JSON for the prompt and save for debugging
@@ -80,8 +99,12 @@ def agent_for_analysing_tech_indicators(state: AgentState):
     (AGENT_DIR / "input_data.json").write_text(data_json, encoding="utf-8")
     print(f"{TAG} [STEP 3/6] Input data saved to input_data.json ({len(data_json)} chars)")
 
-    # 4. Extract current closing price (last row)
-    close_col = "spot_price_history__close"
+    # 4. Extract current closing price (last row). Close column is configurable
+    # (defaults to spot_price_history__close) but remains a hard dependency:
+    # if it's not in base_feats the agent abstains on every forecast.
+    close_col = settings.get("close_col", "spot_price_history__close")
+    if close_col not in settings["base_feats"]:
+        print(f"{TAG}   WARNING: close_col '{close_col}' not in base_feats — agent will abstain every day")
     close_price = df[close_col].iloc[-1] if close_col in df.columns else "N/A"
     print(f"{TAG} [STEP 4/6] Close price on {forecast_date}: {close_price}")
     if close_price == "N/A":
@@ -89,10 +112,11 @@ def agent_for_analysing_tech_indicators(state: AgentState):
         print(f"{TAG}   ERROR: {msg}")
         return {"agent_signals": {AGENT_NAME: {
             "reasoning": msg,
-            "summary": msg,
+            "summary": "Missing close_price — abstain from voting.",
             "risks": "",
-            "prediction": False,
-            "confidence": "low",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
         }}}
 
     # 5. Load system prompt (from file or inline)
@@ -107,13 +131,19 @@ def agent_for_analysing_tech_indicators(state: AgentState):
     system_prompt = system_prompt.replace("{HORIZON_DAYS}", str(horizon))
 
     # 6. Call LLM with CoT: reasoning is filled first, summary is based on it
-    llm = ChatOpenAI(model=llm_model, temperature=0.2)
+    # temperature=0 for deterministic backtesting and reduced sampling noise on
+    # confidence boundaries (medium/high). Non-zero temperature added ~5-10%
+    # vote variance on borderline days.
+    llm = make_chat_llm(llm_model, temperature=0)
 
-    prev_feedback: list[str] = (
-        state.get("agent_signals", {})
-        .get(AGENT_NAME, {})
-        .get("description_of_the_reports_problem", [])
-    )
+    # Read full validator-feedback history from retry_agents.retry_requirements
+    # (accumulates across iterations) instead of agent_signals.description_of_the_reports_problem
+    # (gets wiped by merge_dicts when this agent returns its new signal).
+    prev_feedback: list[str] = []
+    for r in state.get("retry_agents", []):
+        if r["agent_name"] == AGENT_NAME:
+            prev_feedback = list(r.get("retry_requirements", []))
+            break
 
     # 6. Build conversation prompt
     messages = [
@@ -140,6 +170,12 @@ def agent_for_analysing_tech_indicators(state: AgentState):
     else:
         print(f"{TAG}   No previous validator feedback")
 
+    message_csv_path = AGENT_DIR / "message_to_bot.csv"
+    pd.DataFrame(
+        [{"role": type(m).__name__, "content": m.content} for m in messages]
+    ).to_csv(message_csv_path, index=False)
+    print(f"{TAG}   Prompt saved to {message_csv_path.name} ({len(messages)} message(s))")
+
     print(f"{TAG} [STEP 6/6] Calling LLM ({llm_model}) with {len(messages)} messages...")
 
     # Tells the LLM to return a JSON object that matches the Pydantic schema, instead of free-form text.
@@ -150,10 +186,11 @@ def agent_for_analysing_tech_indicators(state: AgentState):
         print(f"{TAG}   ERROR: {err}")
         return {"agent_signals": {AGENT_NAME: {
             "reasoning": err,
-            "summary": "LLM temporarily unavailable. Fallback signal returned.",
+            "summary": "LLM temporarily unavailable — abstain from voting.",
             "risks": "Network/API issue during model call.",
-            "prediction": False,
-            "confidence": "low",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
         }}}
 
     prediction_label = "HIGHER" if response.prediction else "LOWER"

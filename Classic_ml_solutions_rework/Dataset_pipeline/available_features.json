@@ -1,0 +1,107 @@
+{
+  "_meta": {
+    "description": "Список фич, которые умеет выдавать пайплайн get_dataset_by_all_features. Раз биение по источникам: raw — приходят с CoinGlass как есть; derivatives — считаются в feature_transforms; cross — считаются в cross_features. zscore — динамический шаблон, окна берутся из аргумента z_score_windows.",
+    "default_zscore_windows": [14, 30, 180],
+    "zscore_template": "<feature>__z{window}",
+    "notes": [
+      "Имена 'raw' колонок зависят от ответа CoinGlass v4. Для нестандартных эндпоинтов (taker, liq, ls_ratio) ниже даны наиболее вероятные варианты — фактическое имя надо подтвердить по getter.get_feature(name).columns.",
+      "feat__* и cb_premium_* считаются _add_cross_features через _resolve_col, поэтому они появятся, только если найдутся нужные raw-колонки."
+    ]
+  },
+
+  "raw": {
+    "spot_price_history": [
+      "spot_price_history__open",
+      "spot_price_history__high",
+      "spot_price_history__low",
+      "spot_price_history__close",
+      "spot_price_history__volume_usd"
+    ],
+
+    "futures_open_interest_aggregated_history": [
+      "futures_open_interest_aggregated_history__open",
+      "futures_open_interest_aggregated_history__high",
+      "futures_open_interest_aggregated_history__low",
+      "futures_open_interest_aggregated_history__close"
+    ],
+    "futures_open_interest_aggregated_stablecoin_history": [
+      "futures_open_interest_aggregated_stablecoin_history__open",
+      "futures_open_interest_aggregated_stablecoin_history__high",
+      "futures_open_interest_aggregated_stablecoin_history__low",
+      "futures_open_interest_aggregated_stablecoin_history__close"
+    ],
+    "futures_open_interest_aggregated_coin_margin_history": [
+      "futures_open_interest_aggregated_coin_margin_history__open",
+      "futures_open_interest_aggregated_coin_margin_history__high",
+      "futures_open_interest_aggregated_coin_margin_history__low",
+      "futures_open_interest_aggregated_coin_margin_history__close"
+    ],
+
+    "futures_funding_rate_history": [
+      "futures_funding_rate_history__open",
+      "futures_funding_rate_history__high",
+      "futures_funding_rate_history__low",
+      "futures_funding_rate_history__close"
+    ],
+    "futures_funding_rate_oi_weight_history": [
+      "futures_funding_rate_oi_weight_history__open",
+      "futures_funding_rate_oi_weight_history__high",
+      "futures_funding_rate_oi_weight_history__low",
+      "futures_funding_rate_oi_weight_history__close"
+    ],
+
+    "futures_aggregated_taker_buy_sell_volume_history": [
+      "futures_aggregated_taker_buy_sell_volume_history__aggregated_buy_volume_usd",
+      "futures_aggregated_taker_buy_sell_volume_history__aggregated_sell_volume_usd"
+    ],
+
+    "futures_liquidation_aggregated_history": [
+      "futures_liquidation_aggregated_history__aggregated_long_liquidation_usd",
+      "futures_liquidation_aggregated_history__aggregated_short_liquidation_usd"
+    ],
+
+    "futures_global_long_short_account_ratio_history": [
+      "futures_global_long_short_account_ratio_history__global_account_long_short_ratio",
+      "futures_global_long_short_account_ratio_history__long_account",
+      "futures_global_long_short_account_ratio_history__short_account"
+    ],
+
+    "coinbase_premium_index": [
+      "cb_premium__premium",
+      "cb_premium__premium_rate"
+    ]
+  },
+
+  "derivatives": {
+    "spot_price_history": [
+      "spot_price_history__intraday_range_pct",
+      "spot_price_history__realized_vol_3d",
+      "spot_price_history__realized_vol_7d",
+      "spot_price_history__close__sma7_rel",
+      "spot_price_history__close__sma14_rel",
+      "spot_price_history__ta_rsi",
+      "spot_price_history__ta_adx",
+      "spot_price_history__ta_bbw",
+      "spot_price_history__volume_usd__pct1"
+    ],
+
+    "futures_open_interest_aggregated_history": [
+      "futures_open_interest_aggregated_history__close__pct1"
+    ],
+    "futures_open_interest_aggregated_stablecoin_history": [
+      "futures_open_interest_aggregated_stablecoin_history__close__pct1"
+    ],
+    "futures_open_interest_aggregated_coin_margin_history": [
+      "futures_open_interest_aggregated_coin_margin_history__close__pct1"
+    ]
+  },
+
+  "cross": [
+    "feat__funding_minus_oi_weight",
+    "feat__taker_imbalance_agg",
+    "feat__liq_imbalance_short_minus_long",
+    "feat__liq_total_pct1",
+    "cb_premium_abs",
+    "cb_premium_rate_bps"
+  ]
+}

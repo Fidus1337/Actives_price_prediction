@@ -20,6 +20,7 @@ from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twscraper import 
 from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twitter_db import (
     count_tweets,
     get_date_range,
+    get_tweet_ids_by_author_in_range,
     get_tweets_in_range,
     init_db,
     insert_tweets,
@@ -65,6 +66,8 @@ def run_fetch_only(
     since_date: str | None = None,
     until_date: str | None = None,
     authors: list[str] | None = None,
+    stop_on_existing_duplicates: bool = False,
+    duplicates_threshold: int = 5,
 ) -> dict:
     """
     Parse tweets from configured accounts and save to SQLite archive.
@@ -72,6 +75,15 @@ def run_fetch_only(
 
     Any of since_date / until_date / authors, if provided, overrides the value
     from twitter_collector_settings.json for this call only.
+
+    stop_on_existing_duplicates:
+        When True, for each source fetch the set of tweet_ids already stored
+        in the DB within [since_date, until_date] and pass it to the scraper.
+        As soon as the scraper encounters `duplicates_threshold` tweets that
+        are already archived, it stops scrolling that source and moves on.
+    duplicates_threshold:
+        Number of already-archived tweets after which fetching for the current
+        source is aborted. Only used when stop_on_existing_duplicates is True.
     """
     init_db()
     config = _load_accounts_config()
@@ -117,6 +129,22 @@ def run_fetch_only(
 
         for idx, username in enumerate(accounts, start=1):
             print(f"{LOG_TAG} [{idx}/{len(accounts)}] Fetching @{username} ...")
+
+            existing_ids: set[str] | None = None
+            dup_threshold: int | None = None
+            if stop_on_existing_duplicates and duplicates_threshold > 0:
+                existing_ids = get_tweet_ids_by_author_in_range(
+                    author_username=username,
+                    since_date=since_date,
+                    until_date=until_date,
+                )
+                dup_threshold = duplicates_threshold
+                print(
+                    f"{LOG_TAG} @{username}: {len(existing_ids)} tweets already in archive "
+                    f"for [{since_date} -> {until_date}], "
+                    f"will stop after {dup_threshold} duplicates"
+                )
+
             try:
                 tweets = fetch_tweets_sync(
                     username=username,
@@ -125,6 +153,8 @@ def run_fetch_only(
                     until_date=until_date,
                     driver=driver,
                     max_scrolls=max_scrolls,
+                    existing_tweet_ids=existing_ids,
+                    duplicates_stop_threshold=dup_threshold,
                 )
             except Exception as exc:
                 print(f"{LOG_TAG} ERROR while fetching @{username}: {exc}")
@@ -162,7 +192,11 @@ def run_fetch_only(
     return result
 
 
-def run_classify_unclassified(since_date: str, until_date: str) -> dict:
+def run_classify_unclassified(
+    since_date: str,
+    until_date: str,
+    authors: list[str] | None = None,
+) -> dict:
     """Classify tweets in the DB that have no signal yet, for a given date range.
 
     Reads the author list from twitter_collector_settings.json (classifier_settings.authors).
@@ -178,8 +212,11 @@ def run_classify_unclassified(since_date: str, until_date: str) -> dict:
         Summary dict: authors processed, tweets found, tweets classified, tweets updated in DB.
     """
     # --- Load target authors from collector settings ---
-    collector_cfg = _load_accounts_config()
-    authors: list[str] = collector_cfg.get("classifier_settings", {}).get("authors", [])
+    if authors is None:
+        collector_cfg = _load_accounts_config()
+        authors = collector_cfg.get("classifier_settings", {}).get("authors", [])
+    else:
+        authors = [a.strip().lstrip("@") for a in authors if a and a.strip()]
 
     if not authors:
         print(f"{LOG_TAG} No authors found in classifier_settings.authors. Nothing to classify.")
@@ -252,7 +289,7 @@ def run_classify_unclassified(since_date: str, until_date: str) -> dict:
 
 if __name__ == "__main__":
     # Step 1: Fetch tweets for enabled accounts
-    run_fetch_only()
+    # run_fetch_only()
 
     # Step 2: Classify unclassified tweets in range
-    run_classify_unclassified("2025-09-01", "2026-04-12")
+    run_classify_unclassified("2026-04-10", "2026-04-20")

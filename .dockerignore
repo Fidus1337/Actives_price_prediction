@@ -1,18 +1,74 @@
+# ---- Virtual envs ----
+.venv/
+venv/
+env/
+
+# ---- Python cache (use **/ to match at any depth) ----
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# ---- Git ----
+.git/
+.gitignore
+.gitattributes
+
+# ---- IDE ----
+.vscode/
+.idea/
+**/*.swp
+.DS_Store
+
+# ---- Environment / secrets ----
 dev.env
 *.env
-.venv/
-__pycache__/
-**/__pycache__/
-*.pyc
-*.pyo
-Logs/
+.env.local
+
+# ---- Logs (any depth) -- but keep Logs/LoggingSystem/ (it's a Python package) ----
+Logs/logs.log
+Logs/available_features.json
+**/*.log
+**/logs.log
+
+# ---- Graphics / notebooks ----
 graphics/
 notebooks/
+**/.ipynb_checkpoints/
+
+# ---- Generated plots ----
+Classic_ml_model_solutions/PlotsBuilder/plots/
+
+# ---- Hyperparameter tuning artifacts (BIGGEST WIN -- 17 GB) ----
+MultiagentSystem/agents_tuners/
+
+# ---- Dev-only analysis (not needed in runtime) ----
+Risk_management_calculation/
+
+# ---- SQLite WAL/SHM only (transient; actual .db files are KEPT in image as baseline data) ----
+**/*.db-shm
+**/*.db-wal
+
+# ---- Twitter Chrome profile (huge, contains live session -- mount as volume at runtime) ----
 MultiagentSystem/agents/twitter_analyser/twitter_scrapper/chrome_profile/
-*.db
-*.db-shm
-*.db-wal
-*.joblib
-*.log
-*.ipynb
-*.csv
+MultiagentSystem/agents/twitter_analyser/twitter_cookies.json
+
+# ---- Data caches (regenerate in container if needed) ----
+Classic_ml_model_solutions/Dataset_pipeline/FeaturesGetterModule/yfinance_cache/
+Classic_ml_model_solutions/Dataset_pipeline/SharedDataCache/*.pkl
+
+# NOTE: SQLite .db archives of agents are NOT excluded -- they ship with the image as baseline data.
+# (twitter_archive.db, news_archive.db, economic_calendar_*.db, news_archive.json, etc.)
+
+# ---- Docker itself ----
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# ---- Tests / CI ----
+tests/
+.pytest_cache/
+.coverage
+
+# ---- Debug files ----
+**/debug-*.log

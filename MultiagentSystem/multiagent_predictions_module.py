@@ -7,17 +7,29 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-from Classic_ml_model_solutions.Dataset_pipeline.SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 from Classic_ml_model_solutions.Dataset_pipeline.FeaturesGetterModule.FeaturesGetter import FeaturesGetter
+from Classic_ml_model_solutions.Dataset_pipeline.SharedDataCache.SharedBaseDataCache import SharedBaseDataCache
 
 
-def make_one_prediction(app, config: dict, forecast_start_date: str, cached_dataset: pd.DataFrame | None) -> dict:
+def make_one_prediction(
+    app,
+    config: dict,
+    forecast_start_date: str,
+    cached_dataset: pd.DataFrame | None,
+) -> dict:
     final_state = app.invoke({
         "config": config,
         "horizon": config["horizon"],
         "forecast_start_date": forecast_start_date,
         "agent_envolved_in_prediction": config["agent_envolved_in_prediction"],
         "cached_dataset": cached_dataset,
+        "general_prediction_by_all_reports": None,
+        "general_reports_summary": "",
+        "general_reports_reasoning": "",
+        "general_reports_risks": "",
+        "confidence_score": 0.0,
+        "agent_signals": {},
+        "retry_agents": [],
     })
 
     row = {
@@ -38,23 +50,40 @@ def make_one_prediction(app, config: dict, forecast_start_date: str, cached_data
     return row
 
 
-def make_prediction_for_last_N_days(app, config: dict, last_days: int) -> pd.DataFrame:
+def make_prediction_for_last_N_days(
+    app,
+    config: dict,
+    last_days: int,
+    checkpoint_every: int = 0,
+    cm_path: Path | None = None,
+) -> pd.DataFrame:
     end_date = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d")
+    print(f"FORECAST_DATE: {end_date}")
 
-    # Agents that require the CoinGlass base dataset
+    active_agents = set(config.get("agent_envolved_in_prediction", []))
+
+    # Agents which use tech indicators
     _DATASET_AGENTS = {
         "agent_for_analysing_tech_indicators",
         "agent_for_analysing_onchain_indicators",
     }
-    needs_dataset = bool(_DATASET_AGENTS & set(config.get("agent_envolved_in_prediction", [])))
-
+    
+    # Check if we need ddataset for this launch
+    needs_dataset = bool(_DATASET_AGENTS & active_agents)
     cached_dataset: pd.DataFrame | None = None
     if needs_dataset:
         api_key = os.environ["COINGLASS_API_KEY"]
-        shared_cache = SharedBaseDataCache(api_key=api_key)
-        cached_dataset = shared_cache.get_base_df()
-        print(f"[predictions] Base dataset loaded: {cached_dataset.shape} "
-              f"({cached_dataset['date'].min().date()} → {cached_dataset['date'].max().date()})")
+        print("[predictions] Building SharedBaseDataCache...")
+        cache = SharedBaseDataCache(api_key=api_key)
+        cached_dataset = cache.get_base_df()
+        if cached_dataset is None or cached_dataset.empty:
+            raise RuntimeError(
+                "[predictions] SharedBaseDataCache returned empty dataframe."
+            )
+        print(
+            f"[predictions] SharedBaseDataCache loaded: {cached_dataset.shape} "
+            f"({cached_dataset['date'].min().date()} → {cached_dataset['date'].max().date()})"
+        )
     else:
         print("[predictions] No dataset-dependent agents — skipping CoinGlass fetch")
 
@@ -69,6 +98,16 @@ def make_prediction_for_last_N_days(app, config: dict, last_days: int) -> pd.Dat
         row = make_one_prediction(app, config, forecast_date, cached_dataset)
 
         rows.append(row)
+
+        # UPDATE CONFUSION MATRIX AFTER N PREDICTS
+        if (
+            checkpoint_every > 0
+            and cm_path is not None
+            and (i + 1) % checkpoint_every == 0
+        ):
+            partial = add_y_true(pd.DataFrame(rows), config["horizon"])
+            print(f"[predictions] Checkpoint CM after {i + 1}/{last_days} predictions...")
+            build_confusion_matrix(partial, config["horizon"], cm_path)
 
     return pd.DataFrame(rows)
 

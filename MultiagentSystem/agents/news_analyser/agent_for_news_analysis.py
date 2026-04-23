@@ -29,14 +29,16 @@ def _distance_to_confidence(distance: float) -> str:
 
 def _compute_verdict_from_weights(
     bull_weight: float, bear_weight: float,
-) -> tuple[bool, str, float]:
+) -> tuple[bool | None, str | None, float]:
     """Compute prediction from absolute weighted scores.
 
-    Returns (is_bullish, confidence, bull_ratio).
+    Returns (is_bullish, confidence, bull_ratio). When there is no directional
+    signal (no bull or bear weight at all), returns (None, None, 0.5) so the
+    caller can emit an abstain signal instead of a paragraph SHORT vote.
     """
     total_weight = bull_weight + bear_weight
     if total_weight == 0:
-        return False, "low", 0.5
+        return None, None, 0.5
 
     # Neutral point: equal bull and bear weight means no directional signal
     bull_ratio = bull_weight / total_weight
@@ -59,17 +61,27 @@ def _compute_verdict_from_normalized_score(
     return is_bullish, confidence, bull_ratio_equivalent
 
 
-def _time_decay(article: dict, forecast_end_date: datetime, horizon: int) -> float:
-    """Exponential time decay: half-life = horizon days.
+def _time_decay(
+    article: dict,
+    reference_date: datetime,
+    decay_rate: float,
+    decay_start_day: int,
+    initial_weight: float,
+) -> float:
+    """Piecewise decay aligned with twitter-agent schema.
 
-    An article published exactly `horizon` days ago gets weight 0.5.
-    An article published today gets weight 1.0.
+    age < decay_start_day:   weight = 1.0                            (fresh zone)
+    age >= decay_start_day:  weight = initial_weight * (1 - decay_rate) ** t
+                             where t = age - decay_start_day
     """
     release_time = parse_release_time(article.get("article_release_time"))
-    if release_time is None or horizon <= 0:
+    if release_time is None:
         return 1.0
-    age_days = max((forecast_end_date - release_time).total_seconds() / 86400.0, 0.0)
-    return 0.5 ** (age_days / horizon)
+    age_days = max((reference_date - release_time).total_seconds() / 86400.0, 0.0)
+    if age_days < decay_start_day:
+        return 1.0
+    t = age_days - decay_start_day
+    return initial_weight * (1 - decay_rate) ** t
 
 
 # -- Extracted single-responsibility functions ---------------------------------
@@ -129,14 +141,16 @@ def _load_articles_in_window(
 
 def _aggregate_sentiment(
     articles: list[dict],
-    forecast_end_date: datetime,
-    horizon: int,
+    reference_date: datetime,
+    decay_rate: float,
+    decay_start_day: int,
+    initial_weight: float,
 ) -> tuple[float, float, int, int, int]:
     """Aggregate pre-classified articles into weighted sentiment scores.
 
-    Weights are scaled by STRENGTH_WEIGHTS and multiplied by an exponential
-    time-decay factor (half-life = horizon days), so newer articles contribute
-    more to a short-horizon forecast than older ones.
+    Weights are scaled by STRENGTH_WEIGHTS and multiplied by a piecewise
+    time-decay factor (see `_time_decay`), so newer articles contribute
+    more than older ones according to the configured decay parameters.
 
     Returns (bull_weight, bear_weight, bull_count, bear_count, not_correlated_count).
     """
@@ -149,7 +163,9 @@ def _aggregate_sentiment(
     for article in articles:
         category = article.get("category", "not_correlated")
         strength = article.get("strength", "low")
-        weight = STRENGTH_WEIGHTS.get(strength, 1) * _time_decay(article, forecast_end_date, horizon)
+        weight = STRENGTH_WEIGHTS.get(strength, 1) * _time_decay(
+            article, reference_date, decay_rate, decay_start_day, initial_weight
+        )
 
         if category == "bull":
             bull_count += 1
@@ -166,8 +182,10 @@ def _aggregate_sentiment(
 def _compute_batch_normalized_score(
     articles: list[dict],
     batch_size: int,
-    forecast_end_date: datetime,
-    horizon: int,
+    reference_date: datetime,
+    decay_rate: float,
+    decay_start_day: int,
+    initial_weight: float,
 ) -> float | None:
     """Per-batch normalization for >60 articles.
     Prevents a single large batch from dominating the signal.
@@ -189,7 +207,9 @@ def _compute_batch_normalized_score(
         batch_bear = 0.0
         for a in batch:
             cat = a.get("category", "not_correlated")
-            w = STRENGTH_WEIGHTS.get(a.get("strength", "low"), 1) * _time_decay(a, forecast_end_date, horizon)
+            w = STRENGTH_WEIGHTS.get(a.get("strength", "low"), 1) * _time_decay(
+                a, reference_date, decay_rate, decay_start_day, initial_weight
+            )
             if cat == "bull":
                 batch_bull += w
             elif cat == "bear":
@@ -253,21 +273,26 @@ def agent_for_news_analysis(state: AgentState):
     unless unclassified articles are found (fallback).
     """
 
+    # We take agents envolvedd in pipeline
     if AGENT_NAME not in state.get("agent_envolved_in_prediction", []):
         print(f"{LOG_TAG} Not in agent_envolved_in_prediction — skipping")
         return {}
 
-    retry_agents = state.get("retry_agents", [])
-    my_retries = state.get("retry_counts", {}).get(AGENT_NAME, 0)
-    is_first_run = my_retries == 0
-
-    if not is_first_run and AGENT_NAME not in retry_agents:
-        print(f"{LOG_TAG} Retry not required — skipping (retries so far: {my_retries})")
+    # Check if the bot has retries
+    my_retry = None
+    for r in state.get("retry_agents", []):
+        if r["agent_name"] == AGENT_NAME:
+            my_retry = r
+            break
+    
+    if my_retry is not None and my_retry["currents_retry"] >= my_retry["max_retries"]:
+        print(f"{LOG_TAG} Retry limit reached ({my_retry['currents_retry']}/{my_retry['max_retries']}) — skipping")
         return {}
 
-    run_label = "FIRST RUN" if is_first_run else f"RETRY #{my_retries}"
+    
+    attempt = my_retry["currents_retry"] if my_retry is not None else 0
     print(f"\n{'='*60}")
-    print(f"{LOG_TAG} === {run_label} ===")
+    print(f"{LOG_TAG} === ATTEMPT #{attempt} ===")
     print(f"{'='*60}")
 
     # --- Settings ---
@@ -275,7 +300,14 @@ def agent_for_news_analysis(state: AgentState):
     horizon = state["horizon"]
     forecast_date = state["forecast_start_date"]
     window_days = settings["window_to_analysis"]
-    print(f"{LOG_TAG} [1/4] Settings loaded | horizon={horizon}d | forecast_date={forecast_date} | window={window_days}d")
+    decay_rate = settings["decay_rate"]
+    decay_start_day = settings["decay_start_day"]
+    initial_weight = settings["initial_weight"]
+    print(
+        f"{LOG_TAG} [1/4] Settings loaded | horizon={horizon}d | forecast_date={forecast_date} | "
+        f"window={window_days}d | decay_rate={decay_rate} | decay_start_day={decay_start_day} | "
+        f"initial_weight={initial_weight}"
+    )
 
     # --- Date boundaries ---
     window_start, forecast_end_date, window_end_exclusive = _parse_forecast_window(forecast_date, window_days)
@@ -288,12 +320,19 @@ def agent_for_news_analysis(state: AgentState):
     print(f"{LOG_TAG}   Found {len(articles)} articles in window")
 
     if not articles:
-        print(f"{LOG_TAG}   No articles found — returning empty signal")
-        return {"agent_signals": {AGENT_NAME: {"summary": None}}}
+        print(f"{LOG_TAG}   No articles found — returning neutral stub signal")
+        return {"agent_signals": {AGENT_NAME: {
+            "reasoning": f"No articles found in window {window_start.date()} -> {forecast_end_date.date()}.",
+            "summary": "No news data — abstain from voting.",
+            "risks": "",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
+        }}}
 
     # --- Aggregate pre-classified sentiment ---
     bull_weight, bear_weight, bull_count, bear_count, not_correlated_count = _aggregate_sentiment(
-        articles, forecast_end_date, horizon
+        articles, forecast_end_date, decay_rate, decay_start_day, initial_weight
     )
 
     print(f"{LOG_TAG}   bull={bull_count} (w={bull_weight:.2f}), bear={bear_count} (w={bear_weight:.2f}), neutral={not_correlated_count}")
@@ -306,13 +345,34 @@ def agent_for_news_analysis(state: AgentState):
 
     # --- Compute verdict ---
     total_articles = len(articles)
-    normalized_score = _compute_batch_normalized_score(articles, batch_size=30, forecast_end_date=forecast_end_date, horizon=horizon)
+    normalized_score = _compute_batch_normalized_score(
+        articles,
+        batch_size=30,
+        reference_date=forecast_end_date,
+        decay_rate=decay_rate,
+        decay_start_day=decay_start_day,
+        initial_weight=initial_weight,
+    )
 
     if normalized_score is not None:
         is_bullish, confidence, bull_ratio = _compute_verdict_from_normalized_score(normalized_score)
         print(f"{LOG_TAG}   Batch-normalized: score={normalized_score:.3f}")
     else:
         is_bullish, confidence, bull_ratio = _compute_verdict_from_weights(bull_weight, bear_weight)
+
+    if is_bullish is None:
+        print(f"{LOG_TAG}   No directional signal (all articles not_correlated) — abstain")
+        return {"agent_signals": {AGENT_NAME: {
+            "reasoning": (
+                f"Out of {total_articles} articles, none were classified as bull/bear "
+                f"(not_correlated={not_correlated_count}). No directional signal."
+            ),
+            "summary": "No directional news signal — abstain from voting.",
+            "risks": "",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
+        }}}
 
     prediction_label = "HIGHER" if is_bullish else "LOWER"
     print(f"{LOG_TAG} [4/4] Verdict: {prediction_label} | confidence={confidence} | bull_ratio={bull_ratio:.2f}")
@@ -345,4 +405,5 @@ def agent_for_news_analysis(state: AgentState):
         "risks": "",
         "prediction": is_bullish,
         "confidence": confidence,
+        "description_of_the_reports_problem": [],
     }}}

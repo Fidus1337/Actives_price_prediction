@@ -15,7 +15,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir selenium undetected-chromedriver
 
-COPY . .
+# Targeted COPY -- only what the API needs at runtime
+COPY api/ ./api/
+COPY Classic_ml_model_solutions/ ./Classic_ml_model_solutions/
+COPY MultiagentSystem/ ./MultiagentSystem/
+COPY configs/ ./configs/
+COPY Logs/LoggingSystem/ ./Logs/LoggingSystem/
 
 EXPOSE 8080
 

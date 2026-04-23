@@ -47,10 +47,31 @@ _collection_locks: dict[str, asyncio.Lock] = {
     "/multiagent_predictions",
     response_model=MultiagentPredictionsResponse,
     summary="Run multiagent predictions",
-    description="Runs the multiagent system for last N eligible dates using request body shaped like multiagent_config.json",
+    description=(
+        "Runs the multiagent system for last N eligible dates using a request body "
+        "shaped like multiagent_config.json. "
+        "Top-level fields: forecast_start_date, horizon, n_last_dates, "
+        "neutral_threshold, agent_envolved_in_prediction, agent_settings. "
+        "agent_settings accepts per-agent blocks keyed by agent name (e.g. "
+        "agent_for_analysing_tech_indicators, agent_for_twitter_analysis, "
+        "agent_for_news_analysis, agent_for_economic_calendar_analysis, "
+        "agent_for_analysing_onchain_indicators) plus the reserved "
+        "'verdicts_validator' block. Each block may override llm_model, "
+        "system_prompt_file, window_to_analysis, base_feats, decay_rate, "
+        "decay_start_day, initial_weight, authors — anything the agent's "
+        "runtime reads from state['config']. Unknown keys inside a block are "
+        "forwarded to the agent as-is (agent_settings is dict[str, dict[str, Any]])."
+    ),
 )
 async def multiagent_predictions(request: MultiagentPredictionsRequest) -> MultiagentPredictionsResponse:
-    """Run multiagent predictions using request config."""
+    """Run multiagent predictions using request config.
+
+    The request body is passed through to make_prediction_for_last_N_days as
+    a plain dict (n_last_dates stripped). agent_settings is schema-free by
+    design, so adding new agent keys or per-agent overrides (e.g. llm_model,
+    verdicts_validator) requires no changes here — it propagates to the
+    LangGraph nodes via state['config'].
+    """
     if _prediction_lock.locked():
         raise HTTPException(status_code=409, detail="Multiagent prediction is already running")
 
@@ -77,9 +98,13 @@ async def multiagent_predictions(request: MultiagentPredictionsRequest) -> Multi
         else:
             date_value = str(raw_date)
 
+        raw_price = row.get("btc_bybit_close_price")
+        base_price = float(raw_price) if raw_price is not None and pd.notna(raw_price) else None
+
         predictions.append(
             MultiagentSinglePrediction(
                 date=date_value,
+                base_price=base_price,
                 y_true=_DIRECTION_MAP.get(row.get("y_true")),
                 y_prediction=_DIRECTION_MAP.get(row.get("y_predict")),
                 confidence_score=row.get("y_predict_confidence"),

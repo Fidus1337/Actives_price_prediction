@@ -329,7 +329,14 @@ def agent_for_twitter_analysis(state: AgentState):
     )
 
     if verdict is None:
-        return {"agent_signals": {AGENT_NAME: {"summary": None}}}
+        return {"agent_signals": {AGENT_NAME: {
+            "reasoning": "No actionable Twitter signals in window — abstain from voting.",
+            "summary": "No Twitter data — abstain from voting.",
+            "risks": "",
+            "prediction": None,
+            "confidence": None,
+            "description_of_the_reports_problem": [],
+        }}}
 
     is_bullish = verdict["signal_type"] == "BULL"
     confidence = {3: "high", 2: "medium", 1: "low"}.get(verdict["signal_confidence"], "low")

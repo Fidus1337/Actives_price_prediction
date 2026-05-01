@@ -15,9 +15,6 @@ AGENT_DIR = Path(__file__).parent
 LOG_TAG = "[agent_for_twitter_analysis]"
 AGENT_NAME = "agent_for_twitter_analysis"
 
-# Confidence → weight mapping (same scale as news agent)
-CONFIDENCE_WEIGHTS = {"HIGH": 3, "MIDDLE": 2, "LOW": 1}
-
 
 # -- Helpers -------------------------------------------------------------------
 
@@ -234,42 +231,21 @@ def agent_for_twitter_analysis(state: AgentState):
     This node reads classifications and aggregates — no LLM calls.
     """
 
-    # Get the agents envolved in prediction process
     if AGENT_NAME not in state.get("agent_envolved_in_prediction", []):
         print(f"{LOG_TAG} Not in agent_envolved_in_prediction — skipping")
         return {}
 
-    # ACCESS TO RETRY CLASS
-    # agent_retry = None
-    # for r in state.get("retry_agents", []):
-    #     if r["agent_name"] == AGENT_NAME:
-    #         agent_retry = r
-    #         break
-    # # Check retry
-    # if agent_retry is not None:
-    #     if agent_retry["currents_retry"] >= agent_retry["max_retries"]:
-    #         print(f"{LOG_TAG} Retry limit reached — skipping")
-    #         return {}
-    #     agent_retry["currents_retry"] += 1
-
-    
-    # Go through every author in database and take his signals in window
     settings = get_agent_settings(state, AGENT_NAME)
     forecast_date = state["forecast_start_date"]
     window_days = settings["window_to_analysis"]
-    decay_rate      = float(settings["decay_rate"])
-    decay_start_day = int(  settings["decay_start_day"])
-    initial_weight  = float(settings["initial_weight"])
+    decay_rate = float(settings["decay_rate"])
+    decay_start_day = int(settings["decay_start_day"])
+    initial_weight = float(settings["initial_weight"])
     dt_from, dt_to = _get_window_dates(forecast_date, window_days)
-    # print(
-    #     f"{LOG_TAG} Window: {window_days}d  ({dt_from.date()} → {dt_to.date()})  "
-    #     f"decay_rate={decay_rate} decay_start_day={decay_start_day} initial_weight={initial_weight}"
-    # )
 
     tweets_raw = get_tweets_in_range(dt_from=dt_from, dt_to=dt_to)
     print(f"{LOG_TAG} Fetched {len(tweets_raw)} tweets from DB")
 
-    # Lookahead check
     future_leak = [t for t in tweets_raw if (t.get("date") or "") > str(dt_to.date())]
     if future_leak:
         print(f"{LOG_TAG} !! LOOKAHEAD DETECTED — {len(future_leak)} tweets with date > {dt_to.date()}")
@@ -278,47 +254,26 @@ def agent_for_twitter_analysis(state: AgentState):
     else:
         print(f"{LOG_TAG} Lookahead check OK — no tweets beyond {dt_to.date()}")
 
-    # Filter authors by chosen in multiagent system
     allowed_authors = [a.lower() for a in settings.get("authors", [])]
     tweets = tweets_raw
     if allowed_authors:
         tweets = [t for t in tweets if (t.get("author_username") or "").lower() in allowed_authors]
         print(f"{LOG_TAG} After author filter ({allowed_authors}): {len(tweets)} tweets")
 
-    # Drop tweets without a signal or explicitly marked as No Correlation to BTC
     tweets = [
         t for t in tweets
         if (t.get("signal_type") or "").upper() not in ("", "NO_CORRELATION_TO_BTC")
     ]
     print(f"{LOG_TAG} After signal filter: {len(tweets)} actionable tweets")
 
-    # Print each actionable tweet in full
     for t in sorted(tweets, key=lambda x: x.get("date") or ""):
         text_full = (t.get("text") or "").replace("\n", " ")
         print(f"{LOG_TAG}   [{t.get('date')}] @{t.get('author_username')} | {t.get('signal_type')} {t.get('signal_confidence')}")
         print(f"{LOG_TAG}     {text_full}")
 
     tweets_by_date = _group_tweets_by_date(tweets)
-
-    # Step 1: group by date
-    # print(f"{LOG_TAG} --- Step 1: by date ---")
-    # for d, day_tweets in sorted(tweets_by_date.items()):
-    #     print(f"{LOG_TAG}   {d}: {len(day_tweets)} tweets")
-
-    # Step 2: aggregate by author per date
     by_author = _aggregate_signals_by_author_and_date(tweets_by_date)
-    # print(f"{LOG_TAG} --- Step 2: by author ---")
-    # for d, authors in sorted(by_author.items()):
-    #     for author, sig in authors.items():
-    #         print(f"{LOG_TAG}   {d} @{author}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['tweets_count']} tweets)")
-    #     if not authors:
-    #         print(f"{LOG_TAG}   {d}: (no actionable signals)")
-
-    # Step 3: one signal per date
     by_date = _merge_authors_signals_in_dates_into_one_signal(by_author)
-    # print(f"{LOG_TAG} --- Step 3: one signal/date ---")
-    # for d, sig in sorted(by_date.items()):
-    #     print(f"{LOG_TAG}   {d}: {sig['signal_type']} conf={sig['signal_confidence']} avg={sig['avg_score']} ({sig['authors_count']} authors)")
 
     verdict = _merge_date_signals_into_final_verdict(
         by_date,

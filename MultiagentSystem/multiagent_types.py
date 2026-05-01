@@ -49,7 +49,9 @@ class AgentState(TypedDict):
     general_reports_reasoning: str
     general_reports_risks: str
     confidence_score: float  # in [-3, +3], sign indicates direction, |score| indicates strength
-    forecast_start_date: str 
+    forecast_start_date: str
+    save_results: bool                 # write each prediction row to CSV at save_path
+    save_path: str | None              # CSV path; ignored when save_results is False
     agent_signals: Annotated[dict[str, AgentSignal], merge_dicts] # every agent returns signal
     retry_agents: Annotated[list[AgentRetry], merge_retry_agents]
 

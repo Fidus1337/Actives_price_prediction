@@ -44,7 +44,7 @@ _dataset_refresh_lock = asyncio.Lock()
 _predictor_cache: dict[str, Predictor] = {}
 
 MODELS_DIR = PROJECT_ROOT / "Classic_ml_model_solutions" / "Created_models_to_use"
-CONFIG_PATH = PROJECT_ROOT / "configs" / "config.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "ml_config.json"
 
 
 def get_predictor(model_name: str) -> Predictor:

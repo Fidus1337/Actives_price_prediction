@@ -131,7 +131,7 @@ if __name__ == "__main__":
     sys.stdout = LoggingSystem("Logs/logs.log")
 
     try:
-        train_all_models_from_configs("configs/config.json")
+        train_all_models_from_configs("configs/ml_config.json")
     finally:
         sys.stdout.close()
         sys.stdout = sys.__stdout__

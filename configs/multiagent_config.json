@@ -1,5 +1,5 @@
 {
-    "forecast_start_date": "2026-04-21",
+    "forecast_start_date": "2026-05-01",
     "horizon": 1,
     "agent_envolved_in_prediction": [
         "agent_for_twitter_analysis",

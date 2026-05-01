@@ -1,0 +1,82 @@
+{
+  "fields": [
+    {
+      "name": "forecast_start_date",
+      "type": "date",
+      "format": "default"
+    },
+    {
+      "name": "y_predict",
+      "type": "string",
+      "format": "default"
+    },
+    {
+      "name": "y_predict_confidence",
+      "type": "number",
+      "format": "default"
+    },
+    {
+      "name": "summary",
+      "type": "string",
+      "format": "default"
+    },
+    {
+      "name": "reasoning",
+      "type": "string",
+      "format": "default"
+    },
+    {
+      "name": "risks",
+      "type": "string",
+      "format": "default"
+    },
+    {
+      "name": "analysing_tech_indicators__prediction",
+      "type": "boolean",
+      "format": "default"
+    },
+    {
+      "name": "analysing_tech_indicators__confidence",
+      "type": "string",
+      "format": "default"
+    },
+    {
+      "name": "twitter_analysis__prediction",
+      "type": "boolean",
+      "format": "default"
+    },
+    {
+      "name": "twitter_analysis__confidence",
+      "type": "string",
+      "format": "default"
+    },
+    {
+      "name": "start_date_price",
+      "type": "number",
+      "format": "default"
+    },
+    {
+      "name": "btc_bybit_close_price",
+      "type": "number",
+      "format": "default"
+    },
+    {
+      "name": "btc_bybit_high_price",
+      "type": "number",
+      "format": "default"
+    },
+    {
+      "name": "btc_bybit_low_price",
+      "type": "number",
+      "format": "default"
+    },
+    {
+      "name": "y_true",
+      "type": "string",
+      "format": "default"
+    }
+  ],
+  "missingValues": [
+    ""
+  ]
+}

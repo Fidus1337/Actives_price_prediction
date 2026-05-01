@@ -3,6 +3,8 @@ import os
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 from .multiagent_predictions_module import (
     add_y_true,
     build_confusion_matrix,
@@ -36,31 +38,23 @@ if __name__ == "__main__":
     os.environ["COINGLASS_API_KEY"]  # fail fast if key is missing
 
     cm_path = Path(__file__).parent / "confusion_matrix.png"
-    
+    save_path = Path(__file__).parent / "predictions_results.csv"
+
     # Gather predictions
-    
+
     print(f"{N_days} | {cm_path}")
-    results_dataset = make_prediction_for_last_N_days(
+    make_prediction_for_last_N_days(
         app, config, N_days,
         checkpoint_every=10,
         cm_path=cm_path,
+        save_results=True,
+        save_path=str(save_path),
     )
-    results_dataset = add_y_true(results_dataset, config["horizon"])
 
-    # Report by analysis
-    output_path = Path(__file__).parent / "predictions_results.csv"
-    results_dataset[
-        [
-            "forecast_start_date",
-            "y_predict",
-            "y_predict_confidence",
-            "start_date_price",
-            "btc_bybit_close_price",
-            "btc_bybit_high_price",
-            "btc_bybit_low_price",
-            "y_true",
-        ]
-    ].to_csv(output_path, index=False)
-    print(f"\n✅ Predictions saved → {output_path}")
+    # Read saved per-row CSV and enrich it with y_true in a single batch.
+    saved_df = pd.read_csv(save_path)
+    saved_df = add_y_true(saved_df, config["horizon"])
+    saved_df.to_csv(save_path, index=False)
+    print(f"\n[OK] Predictions saved -> {save_path}")
 
-    build_confusion_matrix(results_dataset, config["horizon"], cm_path)
+    build_confusion_matrix(saved_df, config["horizon"], cm_path)

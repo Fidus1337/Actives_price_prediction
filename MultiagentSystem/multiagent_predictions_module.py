@@ -16,6 +16,8 @@ def make_one_prediction(
     config: dict,
     forecast_start_date: str,
     cached_dataset: pd.DataFrame | None,
+    save_results: bool = False,
+    save_path: str | None = None,
 ) -> dict:
     final_state = app.invoke({
         "config": config,
@@ -28,6 +30,8 @@ def make_one_prediction(
         "general_reports_reasoning": "",
         "general_reports_risks": "",
         "confidence_score": 0.0,
+        "save_results": save_results,
+        "save_path": save_path,
         "agent_signals": {},
         "retry_agents": [],
     })
@@ -47,6 +51,16 @@ def make_one_prediction(
         row[f"{short}__prediction"] = signal.get("prediction")
         row[f"{short}__confidence"] = signal.get("confidence")
 
+    if save_results and save_path:
+        target = Path(save_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame([row]).to_csv(
+            target,
+            mode="a",
+            header=not target.exists(),
+            index=False,
+        )
+
     return row
 
 
@@ -56,9 +70,14 @@ def make_prediction_for_last_N_days(
     last_days: int,
     checkpoint_every: int = 0,
     cm_path: Path | None = None,
+    save_results: bool = False,
+    save_path: str | None = None,
 ) -> pd.DataFrame:
     end_date = datetime.strptime(config["forecast_start_date"], "%Y-%m-%d")
     print(f"FORECAST_DATE: {end_date}")
+
+    if save_results and save_path:
+        Path(save_path).unlink(missing_ok=True)
 
     active_agents = set(config.get("agent_envolved_in_prediction", []))
 
@@ -95,7 +114,14 @@ def make_prediction_for_last_N_days(
         print(f"{'='*60}")
 
         print("DATE PREDICT:", forecast_date)
-        row = make_one_prediction(app, config, forecast_date, cached_dataset)
+        row = make_one_prediction(
+            app,
+            config,
+            forecast_date,
+            cached_dataset,
+            save_results=save_results,
+            save_path=save_path,
+        )
 
         rows.append(row)
 
@@ -171,18 +197,7 @@ def add_y_true(
         df["y_true"] = None
         return df
 
-    try:
-        spot_data = _fetch_bybit_btc_spot_via_coinglass()
-    except Exception as exc:
-        print(f"[add_y_true] Failed to fetch Bybit prices via CoinGlass: {exc}")
-        print("[add_y_true] y_true will be None for all rows")
-        df = df.copy()
-        df["start_date_price"] = None
-        df["btc_bybit_close_price"] = None
-        df["btc_bybit_high_price"] = None
-        df["btc_bybit_low_price"] = None
-        df["y_true"] = None
-        return df
+    spot_data = _fetch_bybit_btc_spot_via_coinglass()
 
     open_values = []
     close_now_values = []

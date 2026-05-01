@@ -292,4 +292,11 @@ if __name__ == "__main__":
     # run_fetch_only()
 
     # Step 2: Classify unclassified tweets in range
-    run_classify_unclassified("2026-04-10", "2026-04-20")
+    run_classify_unclassified("2026-01-01", "2026-04-24", [                "CarpeNoctom",
+                "JSeyff",
+                "AltcoinPsycho",
+                "DavidDuong",
+                "TraderMercury",
+                "_Checkmatey_",
+                "CryptoHayes",
+                "rektcapital"])

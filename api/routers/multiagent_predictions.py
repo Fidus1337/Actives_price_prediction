@@ -13,7 +13,10 @@ from MultiagentSystem.agents.news_analyser.news_archive_database_manipulator imp
 from MultiagentSystem.agents.economic_calendar_analyser.calendar_collector import collect_calendar_events
 from MultiagentSystem.agents.economic_calendar_analyser.economic_calendar_database_manipulator import get_latest_date as calendar_get_latest_date
 from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.twitter_db import get_latest_date as twitter_get_latest_date
-from MultiagentSystem.agents.twitter_analyser.full_scrapping_pipeline import run_fetch_only as twitter_fetch
+from MultiagentSystem.agents.twitter_analyser.full_scrapping_pipeline import (
+    run_fetch_only as twitter_fetch,
+    run_classify_unclassified as twitter_classify,
+)
 from MultiagentSystem.agents.twitter_analyser.twitter_scrapper.chrome_login_before_scrapping import (
     check_twitter_auth,
     save_cookies_from_upload,
@@ -152,6 +155,13 @@ async def collect_agent_data(request: CollectAgentDataRequest) -> CollectAgentDa
                         request.twitter_until_date,
                         request.twitter_authors,
                     )
+                    if request.twitter_since_date and request.twitter_until_date:
+                        await run_in_threadpool(
+                            twitter_classify,
+                            request.twitter_since_date,
+                            request.twitter_until_date,
+                            request.twitter_authors,
+                        )
                 else:
                     raw = await run_in_threadpool(_AGENT_COLLECTORS[agent_name])
                 if agent_name == "twitter_analyser":

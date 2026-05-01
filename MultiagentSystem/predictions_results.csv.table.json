@@ -1,0 +1,139 @@
+{
+  "columns": [
+    {
+      "field": "forecast_start_date",
+      "title": "forecast_start_date",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 172
+    },
+    {
+      "field": "y_predict",
+      "title": "y_predict",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 112
+    },
+    {
+      "field": "y_predict_confidence",
+      "title": "y_predict_confidence",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "number",
+      "headerSort": true,
+      "width": 186
+    },
+    {
+      "field": "summary",
+      "title": "summary",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 158
+    },
+    {
+      "field": "reasoning",
+      "title": "reasoning",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 1247
+    },
+    {
+      "field": "risks",
+      "title": "risks",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 84
+    },
+    {
+      "field": "analysing_tech_indicators__prediction",
+      "title": "analysing_tech_indicators__prediction",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 287
+    },
+    {
+      "field": "analysing_tech_indicators__confidence",
+      "title": "analysing_tech_indicators__confidence",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 292
+    },
+    {
+      "field": "twitter_analysis__prediction",
+      "title": "twitter_analysis__prediction",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 224
+    },
+    {
+      "field": "twitter_analysis__confidence",
+      "title": "twitter_analysis__confidence",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 229
+    },
+    {
+      "field": "start_date_price",
+      "title": "start_date_price",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "number",
+      "headerSort": true,
+      "width": 153
+    },
+    {
+      "field": "btc_bybit_close_price",
+      "title": "btc_bybit_close_price",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "number",
+      "headerSort": true,
+      "width": 186
+    },
+    {
+      "field": "btc_bybit_high_price",
+      "title": "btc_bybit_high_price",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "number",
+      "headerSort": true,
+      "width": 182
+    },
+    {
+      "field": "btc_bybit_low_price",
+      "title": "btc_bybit_low_price",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "number",
+      "headerSort": true,
+      "width": 177
+    },
+    {
+      "field": "y_true",
+      "title": "y_true",
+      "minWidth": 40,
+      "resizable": true,
+      "sorter": "string",
+      "headerSort": true,
+      "width": 94
+    }
+  ]
+}

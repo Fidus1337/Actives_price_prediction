@@ -11,6 +11,64 @@ Bitcoin price direction prediction system with two independent prediction pipeli
 
 Market data comes from **CoinGlass (Bybit)** for futures/on-chain and yfinance for S&P 500 / Gold / IGV.
 
+## Working Rules (Karpathy Principles)
+
+These four rules are **mandatory**, override default behaviour, and apply to every task in this repo. They exist to counter the most common LLM failure modes: silent assumptions, over-engineering, drive-by edits, and unverified output.
+
+### 1. Think Before Coding — never guess
+
+If a request is ambiguous, under-specified, or missing context, **STOP**. Do NOT pick the most likely interpretation and start coding. Instead:
+
+1. List the possible interpretations of the task in plain language.
+2. State the concrete information you are missing (file path? expected behaviour? edge case? data shape?).
+3. Ask the user one focused clarifying question and wait.
+
+Examples that REQUIRE a question, not a guess:
+- "fix the bug" without saying which one or where
+- "add a new agent" without saying what it consumes or outputs
+- "update the model" with multiple candidate files (`base_model_*`, `range_model_*`, `vol_scaled_*`, `ret_threshold_*`)
+- a feature whose behaviour at a boundary (empty input, missing column, retry exhausted, NaN) is unspecified
+
+Silently picking an interpretation and building 200 lines on top of it is the **worst** failure mode in this repo and is explicitly forbidden.
+
+### 2. Simplicity First — minimum viable code only
+
+Write the smallest amount of code that makes the current task work. Concretely:
+
+- No abstractions "for future flexibility" — no base classes, no plugin systems, no config flags, no dependency injection unless the task requires it.
+- No options/parameters the user didn't ask for. If a function needs one path today, give it one path. Don't add `mode="..."` "just in case".
+- No premature generalisation. Three similar lines beat one clever helper. Wait until there are **three real** call sites before extracting.
+- No defensive wrappers around code you control (try/except that re-raises, validations on internal-only inputs, `if x is None` for values that cannot be `None` per the type contract). Validate only at system boundaries (user input, external APIs, file/network I/O).
+- No backwards-compatibility shims, no feature flags, no dead-code "commented-out for later". If the change supersedes old behaviour, delete the old behaviour.
+
+When in doubt: 50 lines that solve today's problem beat 200 lines that solve a hypothetical future one.
+
+### 3. Surgical Changes — touch only what the task demands
+
+When editing existing files:
+
+- Modify only the lines required by the task. Do not reformat surrounding code, rename unrelated variables, fix unrelated lint warnings, reorder imports beyond what your edit makes necessary, or "clean up" code you did not need to touch.
+- Match the existing style of the file even if you disagree with it (indentation width, quote style, naming conventions, log-tag prefix format, comment language — Russian comments stay Russian, English stays English).
+- The only "drive-by cleanup" allowed is removing **your own** newly-orphaned artifacts: imports made unused by your edit, variables your edit dropped, dead branches your edit made unreachable. Pre-existing unused imports / dead code are not yours to fix in this commit.
+- Do not delete pre-existing commented-out code blocks. The author left them for a reason; if you think they should go, raise it as a question, do not delete unilaterally.
+- When refactoring is genuinely needed, propose it first and wait for approval before mixing it into a feature/fix.
+
+### 4. Verifiable Success Criteria — close the feedback loop
+
+Every change must be **verifiable in a binary pass/fail way before you report it as done**. Concretely:
+
+- For pure functions and data transformations: write a small script or pytest case that executes the function on representative input and asserts the expected output. If the assertion fails, the change is not done.
+- For pipeline / agent / API changes: run the actual entry point end-to-end (`python -m ...`, `uvicorn ...`, the relevant `make_one_prediction(...)` call) and check the observable output against an expected shape or value. Type checks and dry-runs are NOT verification — they prove the code parses, not that it works.
+- For UI changes: open the page in a browser and exercise the changed flow.
+- If verification is impossible in the current sandbox (missing API keys, headed browser required, machine-specific data), say so **explicitly** instead of claiming success. The honest message is "implemented but not verified because X" — never report a task as complete based on "it should work" or "the diff looks right".
+- Prefer fast, deterministic checks. A failing assertion that points at the broken line is worth more than a passing-by-luck integration run.
+
+Order of operations: write the verification first (or at least sketch its expected pass condition), implement until it passes, then report.
+
+---
+
+These four rules supersede any general LLM defaults. If a section later in this file appears to conflict with them, these rules win.
+
 ## Commands
 
 ```bash
@@ -19,7 +77,7 @@ python -m venv .venv
 .venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
-# Train all classic ML models (reads configs/config.json → saves to Classic_ml_model_solutions/Created_models_to_use/)
+# Train all classic ML models (reads configs/ml_config.json → saves to Classic_ml_model_solutions/Created_models_to_use/)
 python -m Classic_ml_model_solutions.Models_builder_pipeline.Models_builder_pipeline
 
 # Start API (port 8000) — serves both classic ML and multiagent endpoints
@@ -28,14 +86,15 @@ uvicorn api.main:app --reload
 # Run multiagent system standalone (reads configs/multiagent_config.json)
 python -m MultiagentSystem.multiagent_system_main
 
-# Tune multiagent hyperparameters (reads tuning_top.json grid)
-python -m MultiagentSystem.hyperparameters_tuner
+# Tune Twitter agent hyperparameters via Optuna (writes top-N runs to MultiagentSystem/agents_tuners/twitter_tuner/tuning_top.json)
+python -m MultiagentSystem.agents_tuners.twitter_tuner.tuner_main
 
 # Required env in dev.env:
 # COINGLASS_API_KEY=...
 # OPENAI_API_KEY=... (for multiagent LLM calls routed via MultiagentSystem/llm_factory.py)
 # CLAUDE_KEY=... (optional, used when an agent's model id starts with "claude-")
 # TWITTER_UPLOAD_KEY=... (optional, for /api/agents/twitter-upload-cookies)
+# TWITTER_EMAIL=..., TWITTER_PASSWORD=... (used by chrome_login_before_scrapping.py for the headed re-login flow)
 ```
 
 ## Project Structure
@@ -71,16 +130,24 @@ python -m MultiagentSystem.hyperparameters_tuner
 │   └── __init__.py
 ├── Classic_ml_model_solutions/Predict_with_ml_model/Predictor.py  # Classic-ML inference: loads joblib, reuses SharedBaseDataCache, returns probs
 ├── MultiagentSystem/                       # LangGraph agent DAG (see "Multiagent System" section below)
+│   ├── multiagent_graph.py                 # build_multiagent_graph() — wires all agent nodes; exports compiled `app`
+│   ├── multiagent_system_main.py           # __main__ runner; re-exports `app` from multiagent_graph
+│   ├── multiagent_predictions_module.py    # make_one_prediction, make_prediction_for_last_N_days, add_y_true, build_confusion_matrix
+│   ├── multiagent_types.py                 # AgentState TypedDict, AgentSignal, AgentRetry, NON_VALIDATED_AGENTS, reducers
+│   ├── llm_factory.py                      # make_chat_llm() — routes claude-* to ChatAnthropic, else ChatOpenAI
+│   ├── agents/                             # tech_indicators / twitter_analyser / news_analyser / onchain_indicators / economic_calendar_analyser / verdicts_validator / reports_analyser / unbias_agent
+│   ├── agents_tuners/twitter_tuner/        # Optuna-based hyperparameter search for the twitter agent (tuner_main.py, twitter_optuna_tuner.py, twitter_tuner.py grid fallback, tuning_top.json output)
+│   └── predictions_results*.csv            # Per-agent-combo snapshots from standalone runs (tech_twitter_v2, econ_twitter, twitter_onhain_tech, eco_twitter_tech, …)
 ├── Classic_ml_model_solutions/Dataset_pipeline/Dataset_builder_pipeline.py  # get_features() — fetches 28 datasets in parallel (ThreadPoolExecutor)
-├── Classic_ml_model_solutions/Models_builder_pipeline/Models_builder_pipeline.py  # Training orchestrator: main_pipeline() per config in configs/config.json
+├── Classic_ml_model_solutions/Models_builder_pipeline/Models_builder_pipeline.py  # Training orchestrator: main_pipeline() per config in configs/ml_config.json
 ├── Classic_ml_model_solutions/PlotsBuilder/Plots_Builder.py  # ROC, metrics-vs-threshold, confusion matrix plots
 ├── new_targets.py                          # Experimental targets (triple barrier, vol-scaled, return-threshold)
 ├── configs/
-│   ├── config.json                         # 8 classic-ML experiment configs
-│   └── ml_config.json                      # Alternate feature sets (experimental)
+│   ├── ml_config.json                      # Classic-ML training config — top-level {"runs": [...]} with 8 experiment objects
+│   └── multiagent_config.json              # Multiagent runtime config (forecast_start_date, agents, agent_settings, neutral_threshold)
 ├── notebooks/                              # Jupyter experiments
 ├── Logs/available_features.json            # Auto-generated on every data fetch — ground truth for feature names
-├── dev.env                                 # COINGLASS_API_KEY, OPENAI_API_KEY, TWITTER_UPLOAD_KEY
+├── dev.env                                 # COINGLASS_API_KEY, OPENAI_API_KEY, CLAUDE_KEY, TWITTER_UPLOAD_KEY, TWITTER_EMAIL, TWITTER_PASSWORD
 └── graphics/                               # Saved plots per config_name
 ```
 
@@ -142,9 +209,9 @@ Prefix: `/api` (NOT `/api/v1`). All endpoints grouped by router:
 ```
 POST /api/predictions                     — batch predict: {models, dates, refresh_dataset}
 GET  /api/models                          — list models with cv_avg_* metrics
-GET  /api/health                          — server status + loaded predictor names
+GET  /api/health                          — {"status": "healthy", "models_loaded": <bool dict per model>}
 GET  /api/dataset-status                  — dataset load status, last_refreshed_at, shape
-POST /api/system/train_classic_ml_models  — retrain classic ML models from configs/config.json
+POST /api/system/train_classic_ml_models  — retrain classic ML models from configs/ml_config.json (or a custom payload)
 ```
 
 ### Multiagent (`api/routers/multiagent_predictions.py`)
@@ -174,7 +241,7 @@ Metrics JSON fields:
 - Best fold OOS: `auc`, `acc`, `precision`, `recall`, `f1`, `n_oos_samples`
 - CV averages: `cv_avg_auc`, `cv_avg_acc`, `cv_avg_precision`, `cv_avg_recall`, `cv_avg_f1`
 
-**Feature source of truth for prediction**: `metrics_*.json["features"]` (saved at training time). Fallbacks: `model.feature_names_in_` → `config.json["base_feats"]`.
+**Feature source of truth for prediction**: `metrics_*.json["features"]` (saved at training time). Fallbacks: `model.feature_names_in_` → `ml_config.json["runs"][i]["base_feats"]`.
 
 ## Data Sources (28 datasets in Classic_ml_model_solutions/Dataset_pipeline/Dataset_builder_pipeline.py)
 
@@ -216,49 +283,55 @@ Metrics JSON fields:
 - Pipeline: SimpleImputer(mean) → StandardScaler → LogisticRegression(max_iter=3000, class_weight=balanced)
 - Best model selected by metric (`accuracy` by default) across CV folds, n_splits=4
 - Sparse columns explicitly dropped via `_SPARSE_COLUMNS` list (12 columns)
-- TA features (24 total) replace the old lag-based feature engineering
+- TA features: 32 total (8 indicators × 4 assets) replace the old lag-based feature engineering
 - Graphics saved to `graphics/{config_name}/`: ROC, metrics-vs-threshold, confusion matrix
 - Logging: `LoggingSystem` redirects stdout to `logs.log` during training
 - `available_features.json` auto-generated on each data fetch — ground truth for available features
 
-## Config Structure (configs/config.json)
+## Config Structure (configs/ml_config.json)
 
-Array of 8 classic-ML experiment objects. Each has:
-- `config_name`: e.g. `"base_model_1d"`, `"range_model_3d"`
+Top-level wrapper: `{"runs": [...]}` — 8 classic-ML experiment objects loaded by `Models_builder_pipeline.load_config()` via `.get("runs", [])`. Each entry has:
+- `name`: e.g. `"base_model_1d"`, `"range_model_3d"` (used as folder name and `CONFIG_NAME` in metrics JSON)
 - `N_DAYS`: prediction horizon (1, 3, 5, 7)
 - `base_feats`: list of feature column names for this model
 - `threshold`: probability threshold for binary classification
 - `ma_window`: (range models only) SMA window for baseline, typically 7 or 14
+- `range_feats`: (range models only) extra range-target features added on top of `base_feats`
 
-`configs/ml_config.json` is an alternate/experimental feature-set file — not wired into the default training pipeline.
+Both the CLI training entry point (`Models_builder_pipeline.py:__main__`) and the API router (`api/routers/classic_ml_predictions.py:CONFIG_PATH`) read this same file. The API also accepts a custom `runs` payload via `POST /api/system/train_classic_ml_models` to override the file.
 
 ## Multiagent System
 
 Located in `MultiagentSystem/`. Built on **LangGraph** — a DAG of LLM agents that each produce an `AgentSignal` (`prediction: bool`, `confidence: "high"|"medium"|"low"`, reasoning, risks), validated by a checker and merged by a reports analyser into a single LONG/SHORT verdict with a confidence score.
 
-### Graph (`multiagent_system_main.py`)
+### Graph (`MultiagentSystem/multiagent_graph.py`)
+
+`build_multiagent_graph()` wires all five agent nodes — `agent_for_analysing_tech_indicators`, `agent_for_analysing_onchain_indicators`, `agent_for_news_analysis`, `agent_for_twitter_analysis`, `agent_for_economic_calendar_analysis` — in parallel from `supervisor`, fans them in to `validator`, then routes via `_should_retry` to either re-run flagged agents or hand off to `agent_reports_analyser`. `multiagent_system_main.py` only re-exports the compiled `app` and provides the `__main__` runner.
 
 ```
-START → supervisor → [agent_for_analysing_tech_indicators, agent_for_twitter_analysis]
-                   → validator (fan-in)
+START → supervisor → [tech, onchain, news, twitter, economic_calendar]   (fan-out, parallel)
+                   → validator                                           (fan-in)
                    → _should_retry?
-                       ├─ retry → supervisor (if any agent has requirements and budget left)
+                       ├─ retry → supervisor (any agent has requirements & retry budget left)
                        └─ done  → agent_reports_analyser → END
 ```
 
-Currently enabled nodes: `agent_for_analysing_tech_indicators`, `agent_for_twitter_analysis`, `validator`, `agent_reports_analyser`. News / on-chain / economic calendar agents exist as code but are commented out in the graph builder. `MAX_RETRIES = 2` per non-news agent.
+**Which agents actually contribute votes is decided at runtime**, not by the graph: every agent function checks `state["agent_envolved_in_prediction"]` (sourced from `multiagent_config.json`) and short-circuits with `return {}` if its name is absent. Inactive nodes still execute but produce no signal.
+
+`MAX_RETRIES = 2` per retry-eligible agent (everything except `multiagent_types.NON_VALIDATED_AGENTS`).
 
 ### Key files
 
 | File | Purpose |
 |---|---|
-| `multiagent_system_main.py` | LangGraph builder + `__main__` runner; exports compiled `app` |
+| `multiagent_graph.py` | `build_multiagent_graph()` — node registration, fan-out/fan-in edges, `_should_retry` router; exports compiled `app` |
+| `multiagent_system_main.py` | `__main__` runner that re-exports `app` from `multiagent_graph` |
 | `multiagent_predictions_module.py` | `make_one_prediction`, `make_prediction_for_last_N_days`, `add_y_true`, `build_confusion_matrix` |
-| `multiagent_types.py` | `AgentState` TypedDict, `AgentSignal`, `AgentRetry`, reducers (`merge_dicts`, `merge_retry_agents`) |
+| `multiagent_types.py` | `AgentState` TypedDict, `AgentSignal`, `AgentRetry`, `NON_VALIDATED_AGENTS`, reducers (`merge_dicts`, `merge_retry_agents`) |
 | `llm_factory.py` | `make_chat_llm(model, temperature, **kwargs)` — routes `claude-*` ids to `ChatAnthropic` (uses `CLAUDE_KEY`), everything else to `ChatOpenAI` (uses `OPENAI_API_KEY`) |
-| `multiagent_config.json` | `forecast_start_date`, `horizon`, `agent_envolved_in_prediction`, per-agent settings (`window_to_analysis`, `base_feats`, Twitter authors/decay, etc.) |
-| `hyperparameters_tuner.py` | Grid search over ranges for multiagent hyperparams, logs top-N to `tuning_top.json` |
-| `predictions_results.csv` | Last batch-prediction output (standalone runner) |
+| `multiagent_config.json` | `forecast_start_date`, `horizon`, `agent_envolved_in_prediction`, `neutral_threshold`, per-agent `agent_settings` (`window_to_analysis`, `base_feats`, Twitter authors/decay, etc.) |
+| `agents_tuners/twitter_tuner/tuner_main.py` | Optuna entry point for Twitter agent hyperparam search; writes top-N to `agents_tuners/twitter_tuner/tuning_top.json`. `twitter_tuner.py` keeps an older grid-search fallback. |
+| `predictions_results.csv` (and `predictions_results_*.csv`) | Per-agent-combo snapshots from standalone runs (one CSV per saved experiment) |
 | `confusion_matrix.png` | Last confusion matrix (standalone runner) |
 | `agents/twitter_analyser/twitter_archive.db` | SQLite tweet archive |
 | `agents/news_analyser/news_archive.json` | News archive |
@@ -267,10 +340,53 @@ Currently enabled nodes: `agent_for_analysing_tech_indicators`, `agent_for_twitt
 ### Agents
 
 - `agents/tech_indicators/agent_for_analysing_tech_indicators.py` — LLM reads windowed TA/OHLCV slice from the cached base df; system prompt at `agents/tech_indicators/system_prompt_general.md`.
-- `agents/twitter_analyser/` — tweet collector (`twitter_scrapper/`), news classifier (`twitter_news_classifier/classifier.py`), and agent (`agent_for_twitter_analysis.py`) that applies time-decayed weights per author (`decay_rate`, `decay_start_day`, `initial_weight`). Authors come from `multiagent_config.json["agent_settings"]["agent_for_twitter_analysis"]["authors"]`.
-- `agents/news_analyser/`, `agents/onchain_indicators/`, `agents/economic_calendar_analyser/` — exist but currently not wired into the graph.
+- `agents/twitter_analyser/` — tweet collector (`twitter_scrapper/`), tweet classifier (`twitter_news_classifier/classifier.py`, LLM-based, runs at collection time and emits `signal_type ∈ {BULL, BEAR, NO_CORRELATION_TO_BTC}` × `signal_confidence ∈ {LOW, MIDDLE, HIGH}`), and aggregation agent (`agent_for_twitter_analysis.py`) that applies a per-day exponential decay (see "Twitter aggregation pipeline" below). Authors come from `multiagent_config.json["agent_settings"]["agent_for_twitter_analysis"]["authors"]`.
+- `agents/news_analyser/`, `agents/onchain_indicators/`, `agents/economic_calendar_analyser/` — wired into the graph but inactive unless listed in `agent_envolved_in_prediction`.
 - `agents/verdicts_validator/agent_for_verdicts_validation.py` — quality check on agent outputs; can request `recompose_report` which triggers a retry loop.
 - `agents/reports_analyser/` — aggregates validated signals into the final LONG/SHORT + confidence.
+
+### Reports analyser — final verdict
+
+`agents/reports_analyser/agent_for_reports_analysis.py:compute_confidence_score()` produces the final aggregate. Each voting agent contributes:
+
+```
+weight  = {"low": 1, "medium": 2, "high": 3}[signal["confidence"]]
+sign    = +1 if signal["prediction"] is True (LONG/HIGHER) else -1
+vote    = sign * weight                               # ∈ {-3, -2, -1, +1, +2, +3}
+score   = arithmetic mean of votes over voting agents # ∈ [-3, +3]
+```
+
+Agents with `prediction is None` or `confidence is None` (stub agents, or formula-based agents that returned "no actionable signal") abstain and are excluded from the mean.
+
+`direction` is then decided by `multiagent_config.json["neutral_threshold"]`:
+- `score > neutral_threshold` → `LONG`
+- `score < -neutral_threshold` → `SHORT`
+- otherwise → `None` (neutral)
+
+**Default `neutral_threshold` is `0.0`**, which means there is **no neutral band** — any non-zero score produces a LONG/SHORT verdict. Raise it (e.g. to `1.0`) to filter out low-conviction sells.
+
+API serialization in `api/routers/multiagent_predictions.py`: `_DIRECTION_MAP = {"LONG": 1, "SHORT": 0}`; `None` becomes `null`. The float `score` is exposed as `confidence_score` in the response.
+
+### Twitter aggregation pipeline (`agent_for_twitter_analysis.py`)
+
+The agent does NOT call an LLM at prediction time — it reads pre-classified tweets from `twitter_archive.db` and aggregates in four steps for the window `[forecast_start_date - window_to_analysis + 1, forecast_start_date]`:
+
+1. **Group by date** — tweets within the window, after filtering to configured `authors` and dropping `signal_type ∈ {"", "NO_CORRELATION_TO_BTC"}`.
+2. **Per-author per-date averaging** — for each `(date, author)`, average per-tweet signed scores (BULL: +1/+2/+3, BEAR: −1/−2/−3 by `LOW/MIDDLE/HIGH`); the author's daily vote = `(round(abs(avg)), sign(avg))`. Authors averaging to 0 are dropped for that date.
+3. **Authors → one signal per date** — average signed author votes within each date; ties round to 0 and drop the date.
+4. **Date signals → final verdict with age decay**, relative to `forecast_start_date`:
+   - `age < decay_start_day` → weight = `1.0` (fresh zone)
+   - `age >= decay_start_day` → weight = `initial_weight * (1 - decay_rate) ** (age - decay_start_day)`
+
+   Compute weighted average of signed daily scores; final `signal_confidence = round(abs(avg))`. If 0, agent abstains (returns `prediction=None`, `confidence=None`).
+
+### `predictions_results.csv` schema
+
+Written by `make_one_prediction` / `make_prediction_for_last_N_days` in `multiagent_predictions_module.py`. Columns:
+
+- `forecast_start_date`, `y_predict` (`"LONG"` / `"SHORT"` / `None`), `y_predict_confidence` (= `confidence_score`, float in `[-3, +3]`), `summary`, `reasoning`, `risks`
+- Per-agent flatten: `{agent_short}__prediction`, `{agent_short}__confidence` — where `agent_short` = `agent_name` with `agent_for_` and `agent_for_analysing_` prefixes stripped (e.g. `tech_indicators__prediction`, `twitter_analysis__confidence`)
+- After `add_y_true()`: `start_date_price`, `btc_bybit_close_price`, `btc_bybit_high_price`, `btc_bybit_low_price`, `y_true`
 
 ### Twitter scraper auth flow
 
